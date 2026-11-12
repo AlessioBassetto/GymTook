@@ -1,0 +1,19 @@
+# Output di build, cache di Gradle e Kotlin, file locali dell'IDE
+build/
+.gradle
+.kotlin
+/.idea/
+*.iml
+local.properties
+/captures
+.externalNativeBuild
+.cxx
+.DS_Store
+
+# Firma di rilascio: mai nel controllo di versione
+keystore.properties
+*.jks
+*.keystore
+
+# APK compilati: si pubblicano nelle GitHub Releases, non nel codice
+/dist/

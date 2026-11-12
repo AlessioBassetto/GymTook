@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup e trasferimento dati da Android 12.
+
+    Cloud (limite di 25 MB, oltre il quale il backup salta del tutto): database e impostazioni sì;
+    esclusi i media ricostruibili (media/), i video personali (user-media/, troppo pesanti) e lo
+    stato del timer di recupero.
+
+    Trasferimento da telefono a telefono (cavo o rete locale, nessun limite pratico): si porta
+    tutto, video personali compresi; restano fuori solo i media che si riscaricano e il timer.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="media/" />
+        <exclude domain="file" path="user-media/" />
+        <exclude domain="sharedpref" path="rest_timer.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="media/" />
+        <exclude domain="sharedpref" path="rest_timer.xml" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,691 @@
+<resources>
+    <string name="app_name">Sport</string>
+
+    <!-- Navigazione -->
+    <string name="nav_today">Oggi</string>
+    <string name="nav_routines">Schede</string>
+    <string name="nav_exercises">Esercizi</string>
+    <string name="nav_progress">Progressi</string>
+    <string name="nav_nutrition">Dieta</string>
+    <string name="action_back">Indietro</string>
+
+    <!-- Tastierino -->
+    <string name="keypad_next">Avanti</string>
+    <string name="keypad_backspace">Cancella</string>
+    <string name="keypad_decimal">Virgola</string>
+    <string name="keypad_increment">Aumenta di %1$s</string>
+    <string name="keypad_decrement">Diminuisci di %1$s</string>
+
+
+    <!-- Oggi -->
+    <string name="today_routine_label">Scheda: %1$s</string>
+    <string name="today_no_routine_title">Nessuna scheda attiva</string>
+    <string name="today_no_routine_message">Attiva una scheda: ogni giorno qui troverai l\'allenamento previsto, pronto da iniziare.</string>
+    <string name="today_no_routine_action">Vai alle schede</string>
+    <string name="today_rest_title">Giorno di riposo</string>
+    <string name="today_rest_message">Il recupero fa parte dell\'allenamento: i muscoli crescono adesso.</string>
+    <string name="today_next_workout">Prossimo: %1$s · %2$s</string>
+    <string name="today_workout_summary">%1$d esercizi · %2$d serie · ≈ %3$d min</string>
+    <string name="today_plan_header">Esercizi previsti</string>
+    <string name="plan_target">%1$d × %2$s</string>
+    <string name="plan_rest">recupero %1$s</string>
+
+    <!-- Schede -->
+    <string name="routines_active_badge">Attiva</string>
+    <string name="routines_set_active">Imposta come attiva</string>
+    <string name="routines_empty_title">Nessuna scheda</string>
+    <string name="routines_empty_message">Parti da un modello collaudato: potrai personalizzarlo esercizio per esercizio.</string>
+    <string name="routines_templates_header">Crea da un modello</string>
+    <string name="routines_template_use">Usa questo modello</string>
+    <string name="routines_template_created">Scheda «%1$s» creata e attivata</string>
+    <string name="routines_my_routines">Le tue schede</string>
+    <plurals name="routines_days_count">
+        <item quantity="one">%d giorno</item>
+        <item quantity="other">%d giorni</item>
+    </plurals>
+    <plurals name="routines_days_per_week">
+        <item quantity="one">%d allenamento a settimana</item>
+        <item quantity="other">%d allenamenti a settimana</item>
+    </plurals>
+    <string name="routines_new">Nuova scheda</string>
+    <string name="routines_name_label">Nome della scheda</string>
+    <string name="routines_default_name">La mia scheda</string>
+    <string name="routines_open">Modifica</string>
+    <string name="routines_variant_of">Variante di «%1$s»</string>
+    <string name="routines_open_description">Modifica la scheda %1$s</string>
+
+    <!-- Builder della scheda -->
+    <string name="builder_more_options">Opzioni scheda</string>
+    <string name="builder_rename">Rinomina scheda</string>
+    <string name="builder_duplicate">Duplica o crea variante</string>
+    <string name="builder_delete">Elimina scheda</string>
+    <string name="builder_delete_title">Eliminare «%1$s»?</string>
+    <string name="builder_delete_message">Gli allenamenti già fatti restano nello storico.</string>
+    <string name="builder_week">Settimana</string>
+    <string name="builder_week_hint">Tocca un giorno della settimana per scegliere cosa allenare.</string>
+    <string name="builder_rest">Riposo</string>
+    <string name="builder_assign_title">%1$s: cosa alleni?</string>
+    <string name="builder_weekday_description">%1$s: %2$s</string>
+    <string name="builder_days">Giorni</string>
+    <string name="builder_add_day">Giorno</string>
+    <string name="builder_add_day_description">Aggiungi un giorno</string>
+    <string name="builder_new_day_title">Nuovo giorno</string>
+    <string name="builder_day_name_label">Nome del giorno</string>
+    <string name="builder_day_default">Giorno %1$s</string>
+    <string name="builder_day_menu">Opzioni del giorno</string>
+    <string name="builder_rename_day">Rinomina giorno</string>
+    <string name="builder_duplicate_day">Duplica giorno</string>
+    <string name="builder_copy_suffix">%1$s (copia)</string>
+    <string name="builder_move_day_left">Sposta prima</string>
+    <string name="builder_move_day_right">Sposta dopo</string>
+    <string name="builder_delete_day">Elimina giorno</string>
+    <string name="builder_delete_day_message">Gli esercizi del giorno vengono rimossi; nei giorni della settimana in cui era previsto diventa riposo.</string>
+    <string name="builder_empty_day_title">Giorno vuoto</string>
+    <string name="builder_empty_day_message">Aggiungi gli esercizi: li riordini trascinando la maniglia a sinistra.</string>
+    <string name="builder_no_days_title">Nessun giorno</string>
+    <string name="builder_no_days_message">Aggiungi il primo giorno di allenamento della scheda.</string>
+    <string name="builder_add_exercise">Aggiungi esercizio</string>
+    <string name="builder_drag_handle">Trascina per riordinare %1$s</string>
+    <string name="builder_exercise_menu">Opzioni di %1$s</string>
+    <string name="builder_edit_targets">Modifica obiettivi</string>
+    <string name="builder_replace">Sostituisci esercizio</string>
+    <string name="builder_link_superset">Superserie con il successivo</string>
+    <string name="builder_unlink_superset">Separa dalla superserie</string>
+    <string name="builder_move_to_day">Sposta in un altro giorno</string>
+    <string name="builder_move_up">Sposta su</string>
+    <string name="builder_move_down">Sposta giù</string>
+    <string name="builder_remove">Rimuovi dal giorno</string>
+    <string name="builder_move_to_title">Sposta «%1$s» in…</string>
+    <string name="builder_superset">Superserie</string>
+    <string name="builder_sets_only">%1$d serie</string>
+    <string name="builder_targets_sets">Serie</string>
+    <string name="builder_targets_reps_min">Ripetizioni da</string>
+    <string name="builder_targets_reps_max">Ripetizioni a</string>
+    <string name="builder_targets_rest">Recupero</string>
+    <string name="builder_targets_rest_default">Usa il predefinito (%1$s)</string>
+    <string name="builder_targets_apply">Applica</string>
+    <string name="builder_decrease">Riduci %1$s</string>
+    <string name="builder_increase">Aumenta %1$s</string>
+    <string name="builder_variant_title">Duplica scheda</string>
+    <string name="builder_variant_name">Nome della copia</string>
+    <string name="builder_variant_deload">Settimana di scarico</string>
+    <string name="builder_variant_deload_hint">Stessi esercizi, serie ridotte del 40% circa</string>
+    <string name="builder_variant_create">Crea copia</string>
+    <string name="builder_deload_suffix">%1$s · Scarico</string>
+    <string name="builder_cancel">Annulla</string>
+    <string name="builder_save">Salva</string>
+    <string name="builder_delete_confirm">Elimina</string>
+    <string name="builder_copy_created">Creata «%1$s»</string>
+    <string name="builder_open">Apri</string>
+    <string name="builder_not_found">Scheda non trovata</string>
+
+    <!-- Aggiungi a scheda (dalla scheda esercizio) -->
+    <string name="exercise_add_to_routine">Aggiungi a una scheda</string>
+    <string name="exercise_add_to_routine_title">Aggiungi «%1$s» a…</string>
+    <string name="exercise_added_to_routine">Aggiunto a «%1$s» in %2$s</string>
+    <string name="exercise_no_routines">Nessuna scheda: creane una nella sezione Schede.</string>
+    <string name="workout_superset">Superserie %1$s</string>
+
+    <!-- Esercizi -->
+    <string name="exercises_search_hint">Cerca (anche in inglese)</string>
+    <string name="exercises_clear_search">Cancella ricerca</string>
+    <string name="exercises_filter_all">Tutti</string>
+    <string name="exercises_empty_title">Nessun esercizio trovato</string>
+    <string name="exercises_empty_message">Prova con un\'altra parola o togli qualche filtro.</string>
+    <plurals name="exercises_count">
+        <item quantity="one">%d esercizio</item>
+        <item quantity="other">%d esercizi</item>
+    </plurals>
+    <string name="exercises_filters">Filtri</string>
+    <string name="exercises_filters_count">Filtri · %1$d</string>
+    <string name="exercises_favorites">Preferiti</string>
+    <string name="exercises_filters_reset">Azzera</string>
+    <string name="exercises_filter_equipment">Attrezzatura</string>
+    <string name="exercises_filter_category">Tipo di esercizio</string>
+    <string name="exercises_filter_muscles">Muscolo specifico</string>
+    <string name="exercises_filter_include_secondary">Includi i muscoli secondari</string>
+    <string name="exercises_filter_include_secondary_hint">Es. «Tricipiti» mostra anche le distensioni su panca</string>
+    <string name="exercises_filter_only_custom">Solo i miei esercizi</string>
+    <plurals name="exercises_show_results">
+        <item quantity="one">Mostra %d esercizio</item>
+        <item quantity="other">Mostra %d esercizi</item>
+    </plurals>
+    <string name="exercises_new">Nuovo esercizio</string>
+    <string name="exercise_custom_badge">Tuo</string>
+
+    <!-- Categorie e tracciamento -->
+    <string name="category_strength">Forza</string>
+    <string name="category_olympic">Olimpici</string>
+    <string name="category_plyometric">Pliometria</string>
+    <string name="category_cardio">Cardio</string>
+    <string name="tracking_weight_reps">Peso e ripetizioni</string>
+    <string name="tracking_bodyweight_reps">Corpo libero (± zavorra)</string>
+    <string name="tracking_assisted">Con contrappeso (assistito)</string>
+    <string name="tracking_duration">Tempo</string>
+    <string name="tracking_distance_duration">Distanza e tempo</string>
+
+    <!-- Scheda esercizio: azioni, alternative, video -->
+    <string name="exercise_more_options">Altre opzioni</string>
+    <string name="exercise_edit">Modifica</string>
+    <string name="exercise_delete">Elimina esercizio</string>
+    <string name="exercise_delete_title">Eliminare «%1$s»?</string>
+    <string name="exercise_delete_message">Se l\'hai già usato in schede o allenamenti verrà solo nascosto dalla libreria: lo storico resta intatto.</string>
+    <string name="exercise_delete_confirm">Elimina</string>
+    <string name="exercise_deleted">Esercizio eliminato</string>
+    <string name="exercise_hidden">Esercizio nascosto: resta nello storico</string>
+    <string name="exercise_custom_note">Esercizio creato da te</string>
+    <string name="exercise_alternatives">Alternative</string>
+    <string name="exercise_my_setups">Le tue regolazioni</string>
+    <string name="exercise_video_add">Aggiungi il tuo video</string>
+    <string name="exercise_video_record">Registra un video</string>
+    <string name="exercise_video_pick">Scegli dalla galleria</string>
+    <string name="exercise_video_replace">Sostituisci il tuo video</string>
+    <string name="exercise_video_remove">Rimuovi il tuo video</string>
+    <string name="exercise_video_mine">Il mio video</string>
+    <string name="exercise_video_catalog">Catalogo</string>
+    <string name="exercise_video_too_large">Video troppo grande (massimo %1$d MB): accorcialo e riprova.</string>
+    <string name="exercise_video_import_failed">Impossibile importare il video.</string>
+    <string name="exercise_video_saved">Video salvato</string>
+    <string name="exercise_video_removed">Video rimosso</string>
+    <string name="exercise_video_description">Video in loop di %1$s</string>
+    <string name="exercise_video_pause">Metti in pausa</string>
+    <string name="exercise_video_play">Riproduci</string>
+    <string name="exercise_video_speed">Velocità %1$s</string>
+    <string name="exercise_video_importing">Importazione del video…</string>
+    <string name="exercise_video_no_camera">Nessuna app fotocamera disponibile per registrare.</string>
+    <string name="exercise_video_unplayable">Questo video non si riesce a riprodurre su questo telefono: prova a registrarne uno nuovo.</string>
+
+    <!-- Editor esercizio personalizzato -->
+    <string name="editor_title_new">Nuovo esercizio</string>
+    <string name="editor_title_edit">Modifica esercizio</string>
+    <string name="editor_name">Nome</string>
+    <string name="editor_name_error">Inserisci un nome</string>
+    <string name="editor_name_exists">Nella libreria c\'è già «%1$s»: puoi salvarlo comunque.</string>
+    <string name="editor_equipment">Attrezzatura</string>
+    <string name="editor_tracking">Cosa registri a ogni serie</string>
+    <string name="editor_primary">Muscoli principali</string>
+    <string name="editor_primary_hint">Il primo che scegli è il target mostrato nelle liste.</string>
+    <string name="editor_primary_error">Scegli almeno un muscolo principale</string>
+    <string name="editor_secondary">Muscoli secondari (facoltativi)</string>
+    <string name="editor_mechanic">Movimento</string>
+    <string name="editor_unilateral">Un lato alla volta</string>
+    <string name="editor_rest">Recupero predefinito</string>
+    <string name="editor_rest_minus">Riduci il recupero di 15 secondi</string>
+    <string name="editor_rest_plus">Aumenta il recupero di 15 secondi</string>
+    <string name="editor_setup">Regolazioni da annotare</string>
+    <string name="editor_setup_hint">Es. Altezza sedile, Schienale: le trovi già pronte nel logger.</string>
+    <string name="editor_setup_param">Nuova regolazione</string>
+    <string name="editor_setup_add">Aggiungi</string>
+    <string name="editor_setup_remove">Rimuovi %1$s</string>
+    <string name="editor_notes">Esecuzione e note (facoltative)</string>
+    <string name="editor_notes_hint">Un passaggio per riga</string>
+    <string name="editor_save">Salva esercizio</string>
+    <string name="editor_discard_title">Uscire senza salvare?</string>
+    <string name="editor_discard_message">Le modifiche a questo esercizio andranno perse.</string>
+    <string name="editor_discard">Esci</string>
+    <string name="editor_keep_editing">Continua</string>
+    <string name="editor_close">Chiudi</string>
+    <string name="picker_create">Crea «%1$s»</string>
+    <string name="picker_create_hint">Nuovo esercizio personalizzato</string>
+    <string name="exercise_primary_muscles">Muscoli principali</string>
+    <string name="exercise_secondary_muscles">Muscoli secondari</string>
+    <string name="exercise_execution">Esecuzione</string>
+    <string name="exercise_key_points">Punti chiave</string>
+    <string name="exercise_common_mistakes">Errori comuni</string>
+    <string name="exercise_setup_hints">Regolazioni da annotare</string>
+    <string name="exercise_content_english">Istruzioni non ancora tradotte: testo originale in inglese.</string>
+    <string name="exercise_media_credit">Immagini: %1$s · licenza %2$s</string>
+    <string name="exercise_favorite_add">Aggiungi ai preferiti</string>
+    <string name="exercise_favorite_remove">Rimuovi dai preferiti</string>
+    <string name="exercise_not_found">Esercizio non trovato</string>
+    <string name="exercise_muscle_map_description">Muscoli principali: %1$s. Secondari: %2$s.</string>
+    <string name="exercise_frames_description">Esecuzione di %1$s</string>
+    <string name="exercise_none">nessuno</string>
+
+    <!-- Progressi -->
+    <string name="progress_body_weight">Peso corporeo</string>
+    <string name="progress_body_weight_none">Nessuna pesata registrata</string>
+    <string name="progress_recorded_on">Registrato %1$s</string>
+    <string name="progress_history">Storico allenamenti</string>
+    <string name="progress_empty_title">Ancora nessun allenamento</string>
+    <string name="progress_empty_message">Gli allenamenti conclusi compariranno qui con durata, serie e volume.</string>
+    <string name="progress_sets">serie</string>
+    <string name="progress_volume">volume</string>
+    <string name="progress_duration">durata</string>
+    <string name="progress_weigh_in">Registra peso</string>
+    <string name="progress_average_7d">Media 7 giorni %1$s</string>
+    <string name="progress_weekly_change">%1$s in una settimana</string>
+    <string name="progress_body_weight_open">Storico del peso</string>
+    <string name="progress_exercises">Esercizi</string>
+    <string name="progress_exercises_empty">Completa un allenamento con i pesi per vedere qui i progressi di ogni esercizio.</string>
+    <string name="progress_one_rep_max">1RM stimato %1$s</string>
+    <string name="progress_last_performed">ultima %1$s</string>
+    <string name="progress_open_exercise">Progressi di %1$s</string>
+    <plurals name="progress_sessions_count">
+        <item quantity="one">%d sessione</item>
+        <item quantity="other">%d sessioni</item>
+    </plurals>
+    <string name="progress_records">Record personali</string>
+    <string name="progress_record_heaviest">Carico massimo</string>
+    <string name="progress_record_one_rep_max">1RM stimato</string>
+    <string name="progress_record_volume">Volume in una sessione</string>
+    <string name="progress_show_all">Mostra tutti (%1$d)</string>
+    <string name="progress_show_less">Mostra meno</string>
+    <string name="progress_chart_weight_description">Peso degli ultimi giorni: da %1$s a %2$s, media 7 giorni %3$s.</string>
+    <string name="progress_trend_up">in aumento di %1$s</string>
+    <string name="progress_trend_down">in calo di %1$s</string>
+    <string name="range_1m">1 mese</string>
+    <string name="range_3m">3 mesi</string>
+    <string name="range_6m">6 mesi</string>
+    <string name="range_1y">1 anno</string>
+    <string name="range_all">Tutto</string>
+
+    <!-- Peso corporeo -->
+    <string name="weight_entries">Pesate</string>
+    <string name="weight_delete">Elimina la pesata del %1$s</string>
+    <string name="weight_deleted">Pesata eliminata</string>
+    <string name="weight_undo">Annulla</string>
+    <string name="weight_today">Oggi</string>
+    <string name="weight_yesterday">Ieri</string>
+    <string name="weight_save">Salva peso</string>
+    <string name="weight_saved">Peso salvato</string>
+    <string name="weight_empty_title">Nessuna pesata</string>
+    <string name="weight_empty_message">Pesati al mattino, a digiuno: la media dei 7 giorni smussa le oscillazioni di acqua e sale.</string>
+    <string name="weight_change_period">Nel periodo</string>
+    <string name="weight_legend_daily">Pesata</string>
+    <string name="weight_legend_average">Media 7 giorni</string>
+    <string name="weight_marker">%1$s · %2$s</string>
+    <string name="weight_marker_average">%1$s · %2$s (media %3$s)</string>
+    <string name="weight_out_of_range">Inserisci un peso tra %1$s e %2$s</string>
+    <string name="weight_replaces">Sostituisce la pesata già registrata</string>
+    <string name="weight_day_recorded">%1$s, pesata già registrata</string>
+    <string name="weight_latest">Ultima pesata</string>
+    <string name="weight_week">In una settimana</string>
+    <string name="weight_none_in_range">Nessuna pesata nel periodo: scegline uno più ampio.</string>
+    <string name="weight_value">Peso</string>
+
+    <!-- Progressi per esercizio -->
+    <string name="metric_one_rep_max">1RM stimato</string>
+    <string name="metric_max_weight">Carico massimo</string>
+    <string name="metric_volume">Volume</string>
+    <string name="exercise_progress_sessions">Sessioni</string>
+    <string name="metric_reps">Ripetizioni</string>
+    <string name="unit_reps">%1$s rip.</string>
+    <string name="exercise_progress_latest">Ultima sessione</string>
+    <string name="exercise_progress_best">Migliore nel periodo</string>
+    <string name="exercise_progress_records">Record di sempre</string>
+    <string name="exercise_progress_session_line">%1$d serie · %2$s</string>
+    <string name="exercise_progress_unsupported">I grafici sono disponibili per gli esercizi a ripetizioni.</string>
+    <string name="exercise_progress_empty_title">Nessun dato nel periodo</string>
+    <string name="exercise_progress_empty_message">Allarga il periodo o completa un allenamento con questo esercizio.</string>
+    <string name="exercise_progress_chart_description">%1$s: da %2$s a %3$s.</string>
+    <string name="exercise_progress_open">Progressi</string>
+    <string name="exercise_progress_marker">%1$s · %2$s</string>
+
+    <!-- Dettaglio allenamento -->
+    <string name="session_delete">Elimina allenamento</string>
+    <string name="session_delete_title">Eliminare l\'allenamento del %1$s?</string>
+    <string name="session_delete_message">Le serie registrate verranno cancellate; record e grafici si ricalcolano.</string>
+    <string name="session_not_found">Allenamento non trovato</string>
+    <string name="session_more_options">Opzioni allenamento</string>
+    <string name="session_exercise_volume">Volume %1$s</string>
+    <string name="session_set_rpe">RPE %1$s</string>
+    <string name="session_open_description">Dettaglio dell\'allenamento %1$s del %2$s</string>
+    <string name="session_time_range">%1$s–%2$s</string>
+    <string name="session_delete_confirm">Elimina</string>
+    <string name="session_cancel">Annulla</string>
+    <string name="session_no_sets">Nessuna serie completata</string>
+
+    <!-- Dieta -->
+    <string name="nutrition_empty_title">Nessun piano alimentare attivo</string>
+    <string name="nutrition_empty_message">Con un piano attivo qui vedrai i pasti del giorno da spuntare e i macro-nutrienti raggiunti.</string>
+    <string name="nutrition_today">Oggi · %1$s</string>
+    <string name="nutrition_calories">Calorie</string>
+    <string name="nutrition_protein">Proteine</string>
+    <string name="nutrition_carbs">Carboidrati</string>
+    <string name="nutrition_fat">Grassi</string>
+    <string name="nutrition_progress">%1$s / %2$s</string>
+    <string name="nutrition_mark_consumed">Segna come consumato</string>
+    <string name="nutrition_mark_not_consumed">Segna come non consumato</string>
+
+    <!-- Attrezzatura -->
+    <string name="equipment_bodyweight">Corpo libero</string>
+    <string name="equipment_dumbbell">Manubri</string>
+    <string name="equipment_cable">Cavi</string>
+    <string name="equipment_machine">Macchinari</string>
+    <string name="equipment_barbell">Bilanciere</string>
+    <string name="equipment_smith_machine">Multipower</string>
+    <string name="equipment_kettlebell">Kettlebell</string>
+    <string name="equipment_resistance_band">Elastici</string>
+    <string name="equipment_cardio_machine">Cardio</string>
+    <string name="equipment_other">Altro</string>
+
+    <!-- Gruppi muscolari -->
+    <string name="muscle_group_abs">Addominali</string>
+    <string name="muscle_group_forearms">Avambracci</string>
+    <string name="muscle_group_biceps">Bicipiti</string>
+    <string name="muscle_group_neck">Collo</string>
+    <string name="muscle_group_lats">Dorsali</string>
+    <string name="muscle_group_lower_back">Lombari</string>
+    <string name="muscle_group_upper_back">Dorso alto</string>
+    <string name="muscle_group_chest">Petto</string>
+    <string name="muscle_group_shoulders">Spalle</string>
+    <string name="muscle_group_traps">Trapezi</string>
+    <string name="muscle_group_triceps">Tricipiti</string>
+    <string name="muscle_group_abductors">Abduttori</string>
+    <string name="muscle_group_adductors">Adduttori</string>
+    <string name="muscle_group_hamstrings">Femorali</string>
+    <string name="muscle_group_glutes">Glutei</string>
+    <string name="muscle_group_calves">Polpacci</string>
+    <string name="muscle_group_quadriceps">Quadricipiti</string>
+    <string name="muscle_group_cardio_full_body">Cardio e full body</string>
+
+    <!-- Regioni muscolari -->
+    <string name="muscle_abs_upper">Addome alto</string>
+    <string name="muscle_abs_lower">Addome basso</string>
+    <string name="muscle_obliques">Obliqui</string>
+    <string name="muscle_forearms">Avambracci</string>
+    <string name="muscle_biceps">Bicipiti</string>
+    <string name="muscle_neck">Collo</string>
+    <string name="muscle_lats">Dorsali</string>
+    <string name="muscle_lower_back">Lombari</string>
+    <string name="muscle_upper_back">Romboidi e dorso alto</string>
+    <string name="muscle_chest_upper">Petto alto</string>
+    <string name="muscle_chest_middle">Petto centrale</string>
+    <string name="muscle_chest_lower">Petto basso</string>
+    <string name="muscle_shoulders_front">Deltoide anteriore</string>
+    <string name="muscle_shoulders_side">Deltoide laterale</string>
+    <string name="muscle_shoulders_rear">Deltoide posteriore</string>
+    <string name="muscle_traps">Trapezi</string>
+    <string name="muscle_triceps">Tricipiti</string>
+    <string name="muscle_abductors">Abduttori</string>
+    <string name="muscle_adductors">Adduttori</string>
+    <string name="muscle_hamstrings">Femorali</string>
+    <string name="muscle_glutes">Glutei</string>
+    <string name="muscle_calves">Polpacci</string>
+    <string name="muscle_quadriceps">Quadricipiti</string>
+    <string name="muscle_cardio">Cardio</string>
+    <string name="muscle_full_body">Corpo intero</string>
+
+    <!-- Livello, meccanica, split, pasti, serie -->
+    <string name="level_beginner">Principiante</string>
+    <string name="level_intermediate">Intermedio</string>
+    <string name="level_advanced">Avanzato</string>
+    <string name="mechanic_compound">Multiarticolare</string>
+    <string name="mechanic_isolation">Monoarticolare</string>
+    <string name="split_push_pull_legs">Push Pull Legs</string>
+    <string name="split_upper_lower">Upper / Lower</string>
+    <string name="split_full_body">Full body</string>
+    <string name="split_bro_split">Monofrequenza</string>
+    <string name="split_custom">Personalizzata</string>
+    <string name="meal_breakfast">Colazione</string>
+    <string name="meal_morning_snack">Spuntino</string>
+    <string name="meal_lunch">Pranzo</string>
+    <string name="meal_afternoon_snack">Snack</string>
+    <string name="meal_dinner">Cena</string>
+    <string name="meal_other">Altro pasto</string>
+    <string name="set_type_warmup">Riscaldamento</string>
+    <string name="set_type_working">Allenante</string>
+    <string name="set_type_drop">Drop set</string>
+    <string name="set_type_failure">A cedimento</string>
+    <string name="set_badge_warmup">R</string>
+    <string name="set_badge_drop">D</string>
+    <string name="set_badge_failure">C</string>
+
+    <!-- Avvio allenamento -->
+    <string name="workout_start">Inizia allenamento</string>
+    <string name="workout_resume">Riprendi allenamento</string>
+    <string name="workout_free">Allenamento libero</string>
+    <string name="workout_free_title">Allenamento libero</string>
+
+    <!-- Workout Logger -->
+    <string name="workout_minimize">Riduci, l\'allenamento resta in corso</string>
+    <string name="workout_finish">Termina</string>
+    <string name="workout_finish_title">Terminare l\'allenamento?</string>
+    <string name="workout_finish_message">Le serie non spuntate verranno eliminate dal registro.</string>
+    <string name="workout_continue">Continua</string>
+    <string name="workout_discard">Annulla allenamento</string>
+    <string name="workout_discard_title">Annullare l\'allenamento?</string>
+    <string name="workout_discard_message">Tutte le serie registrate in questa sessione verranno eliminate.</string>
+    <string name="workout_keep">Mantieni</string>
+    <string name="workout_progress">%1$s · %2$d/%3$d serie</string>
+    <string name="workout_add_exercise">Aggiungi esercizio</string>
+    <string name="workout_add_set">Aggiungi serie</string>
+    <string name="workout_more_options">Altre opzioni</string>
+    <string name="workout_replace">Sostituisci esercizio</string>
+    <string name="workout_remove_exercise">Rimuovi esercizio</string>
+    <string name="workout_show_rpe">Registra RPE</string>
+    <string name="workout_hide_rpe">Nascondi RPE</string>
+    <string name="workout_show_rir">Registra RIR</string>
+    <string name="workout_hide_rir">Nascondi RIR</string>
+    <string name="workout_setup">Regolazione macchinario</string>
+    <string name="workout_open_details">Scheda esercizio</string>
+    <string name="workout_rest_chip">Recupero %1$s</string>
+    <string name="workout_replaced">Sostituito al volo</string>
+    <string name="workout_no_session_title">Nessun allenamento in corso</string>
+    <string name="workout_no_session_message">Avvia un allenamento dalla sezione Oggi.</string>
+    <string name="workout_empty_title">Nessun esercizio</string>
+    <string name="workout_empty_message">Aggiungi il primo esercizio: le serie si registrano con un tocco.</string>
+    <string name="workout_record">Nuovo record</string>
+    <string name="workout_col_set">Serie</string>
+    <string name="workout_col_previous">Prec.</string>
+    <string name="workout_col_added">+%1$s</string>
+    <string name="workout_col_assist">−%1$s</string>
+    <string name="workout_col_reps">Rip.</string>
+    <string name="workout_col_rpe">RPE</string>
+    <string name="workout_col_rir">RIR</string>
+    <string name="workout_col_seconds">Sec</string>
+    <string name="workout_col_km">km</string>
+    <string name="workout_col_minutes">Min</string>
+    <string name="workout_set_complete">Completa la serie %1$d</string>
+    <string name="workout_set_uncomplete">Serie %1$d completata, tocca per annullare</string>
+    <string name="workout_set_options">Opzioni serie %1$d</string>
+    <string name="workout_set_delete">Elimina serie</string>
+    <string name="workout_field_weight">Peso</string>
+    <string name="workout_field_reps">Ripetizioni</string>
+    <string name="workout_field_rpe">RPE</string>
+    <string name="workout_field_rir">RIR</string>
+    <string name="workout_field_seconds">Secondi</string>
+    <string name="workout_field_km">Distanza</string>
+    <string name="workout_field_minutes">Minuti</string>
+    <string name="workout_keypad_title">%1$s · serie %2$d · %3$s</string>
+    <string name="workout_keypad_close">Chiudi tastierino</string>
+
+    <!-- Timer di recupero -->
+    <string name="rest_title">Recupero</string>
+    <string name="rest_next">Poi: %1$s</string>
+    <string name="rest_skip">Salta</string>
+    <string name="rest_minus">−15 s</string>
+    <string name="rest_plus">+15 s</string>
+    <string name="rest_exact_hint">A schermo spento l\'avviso di fine recupero può tardare: consenti «Sveglie e promemoria».</string>
+    <string name="rest_exact_grant">Consenti</string>
+    <string name="rest_exact_dismiss">Non ora</string>
+    <string name="notif_channel_rest">Timer di recupero</string>
+    <string name="notif_channel_rest_desc">Conto alla rovescia del recupero tra le serie</string>
+    <string name="notif_channel_rest_done">Fine recupero</string>
+    <string name="notif_channel_rest_done_desc">Avviso con vibrazione quando il recupero è terminato</string>
+    <string name="notif_rest_title">Recupero in corso</string>
+    <string name="notif_rest_done_title">Recupero finito</string>
+    <string name="notif_rest_next">Prossima serie: %1$s</string>
+
+    <!-- Regolazione macchinario -->
+    <string name="setup_title">Regolazione · %1$s</string>
+    <string name="setup_hint">Annota posizioni e tacche: la prossima volta le trovi già compilate.</string>
+    <string name="setup_empty">Tocca per annotare la regolazione</string>
+    <string name="setup_name">Voce</string>
+    <string name="setup_value">Valore</string>
+    <string name="setup_add_row">Aggiungi voce</string>
+    <string name="setup_remove_row">Rimuovi voce</string>
+    <string name="setup_save">Salva regolazione</string>
+    <string name="setup_save_as_new">Salva come nuovo profilo</string>
+    <string name="setup_new_label">Nome profilo (es. Palestra centro)</string>
+    <string name="setup_profiles">Profili salvati</string>
+    <string name="setup_default_label">Predefinita</string>
+
+    <!-- Selettore esercizi -->
+    <string name="picker_add_title">Aggiungi esercizio</string>
+    <string name="picker_replace_title">Sostituisci esercizio</string>
+    <string name="picker_alternatives">Alternative consigliate</string>
+    <string name="picker_recent">Usati di recente</string>
+    <string name="picker_all">Tutti gli esercizi</string>
+
+    <!-- Riepilogo -->
+    <string name="summary_title">Allenamento completato</string>
+    <string name="summary_duration">Durata</string>
+    <string name="summary_sets">Serie</string>
+    <string name="summary_volume">Volume</string>
+    <string name="summary_records">Nuovi record</string>
+    <string name="summary_record_line">%1$s (prima %2$s)</string>
+    <string name="summary_exercises">Esercizi</string>
+    <string name="summary_best_set">Miglior serie: %1$s</string>
+    <string name="summary_done">Fine</string>
+
+    <!-- Banner sessione in corso -->
+    <string name="banner_active">Allenamento in corso</string>
+    <string name="banner_resume">Riprendi</string>
+
+    <!-- Impostazioni e backup -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_units">Unità di peso</string>
+    <string name="settings_units_hint">Lo storico resta salvato in chilogrammi: cambiare unità non modifica nessun dato.</string>
+    <string name="settings_kg">Chilogrammi</string>
+    <string name="settings_lb">Libbre</string>
+    <string name="settings_effort">Sforzo percepito</string>
+    <string name="settings_effort_hint">RPE: quanto è stata dura la serie (10 = cedimento). RIR: quante ripetizioni avevi ancora in riserva. La colonna si attiva dal menu ⋮ di ogni esercizio nel logger.</string>
+    <string name="settings_rpe">RPE</string>
+    <string name="settings_rir">RIR</string>
+    <string name="settings_data">I tuoi dati</string>
+    <string name="settings_data_hint">Tutto resta su questo telefono. Il backup è un file con schede, allenamenti, regolazioni, peso, dieta, esercizi personalizzati e impostazioni; i video personali non sono inclusi.</string>
+    <string name="settings_export">Esporta backup</string>
+    <string name="settings_restore">Ripristina da backup</string>
+    <string name="settings_exported">Backup salvato: %1$s, %2$s</string>
+    <string name="settings_restored">Dati ripristinati: %1$s, %2$s</string>
+    <plurals name="count_workouts">
+        <item quantity="one">%d allenamento</item>
+        <item quantity="other">%d allenamenti</item>
+    </plurals>
+    <plurals name="count_routines">
+        <item quantity="one">%d scheda</item>
+        <item quantity="other">%d schede</item>
+    </plurals>
+    <plurals name="count_weighins">
+        <item quantity="one">%d pesata</item>
+        <item quantity="other">%d pesate</item>
+    </plurals>
+    <plurals name="count_diet_plans">
+        <item quantity="one">%d piano alimentare</item>
+        <item quantity="other">%d piani alimentari</item>
+    </plurals>
+    <plurals name="count_custom_exercises">
+        <item quantity="one">%d esercizio personalizzato</item>
+        <item quantity="other">%d esercizi personalizzati</item>
+    </plurals>
+    <string name="settings_export_failed">Impossibile salvare il backup nella posizione scelta</string>
+    <string name="settings_restore_failed">Ripristino non riuscito: i dati non sono stati modificati</string>
+    <string name="settings_invalid_file">Il file scelto non è un backup di questa app, oppure è di una versione più recente</string>
+    <string name="settings_restore_title">Ripristinare il backup?</string>
+    <string name="settings_restore_contents">%1$s, %2$s, %3$s, %4$s e %5$s.</string>
+    <string name="settings_restore_dated">Backup del %1$s:</string>
+    <string name="settings_restore_warning">Sostituisce tutti i dati attuali di questo telefono. I video personali restano.</string>
+    <string name="settings_restore_confirm">Ripristina</string>
+    <string name="settings_cancel">Annulla</string>
+    <string name="settings_about">Informazioni</string>
+    <string name="settings_version">Versione %1$s</string>
+    <string name="settings_offline">Funziona senza connessione: nessun account, nessun dato inviato a server.</string>
+
+    <!-- Piani alimentari -->
+    <string name="diet_plans">Piani alimentari</string>
+    <string name="diet_plans_open">I tuoi piani</string>
+    <string name="diet_edit_plan">Modifica piano</string>
+    <string name="diet_new_plan">Nuovo piano</string>
+    <string name="diet_create_plan">Crea un piano</string>
+    <string name="diet_plan_name">Nome del piano</string>
+    <string name="diet_plan_default_name">Il mio piano</string>
+    <string name="diet_rename">Rinomina piano</string>
+    <string name="diet_create">Crea</string>
+    <string name="diet_save">Salva</string>
+    <string name="diet_cancel">Annulla</string>
+    <string name="diet_delete">Elimina</string>
+    <string name="diet_active">Attivo</string>
+    <string name="diet_set_active">Imposta come attivo</string>
+    <string name="diet_active_hint">Piano attivo: i suoi pasti compaiono ogni giorno in Dieta.</string>
+    <string name="diet_inactive_hint">Piano non attivo: in Dieta compare il piano attivo.</string>
+    <string name="diet_duplicate">Duplica</string>
+    <string name="diet_duplicate_title">Duplica piano</string>
+    <string name="diet_copy_name">%1$s (copia)</string>
+    <string name="diet_delete_plan">Elimina piano</string>
+    <string name="diet_delete_title">Eliminare «%1$s»?</string>
+    <string name="diet_delete_plan_message">Pasti, alimenti e spunte del piano verranno cancellati.</string>
+    <string name="diet_more_options">Opzioni piano</string>
+    <string name="diet_targets">Obiettivi giornalieri</string>
+    <string name="diet_targets_empty">Nessun obiettivo: tocca per fissare calorie e macro.</string>
+    <string name="diet_targets_edit">Modifica obiettivi</string>
+    <string name="diet_plan_total">Nel piano</string>
+    <string name="diet_target_short">Obiettivo</string>
+    <string name="diet_kcal_label">Calorie (kcal)</string>
+    <string name="diet_protein_label">Proteine (g)</string>
+    <string name="diet_carbs_label">Carboidrati (g)</string>
+    <string name="diet_fat_label">Grassi (g)</string>
+    <string name="diet_protein_short">Proteine</string>
+    <string name="diet_carbs_short">Carbo</string>
+    <string name="diet_fat_short">Grassi</string>
+    <string name="diet_macros_kcal">Dai macro: %1$s kcal</string>
+    <string name="diet_use_value">Usa</string>
+    <string name="diet_add_meal">Aggiungi pasto</string>
+    <string name="diet_meal_new">Nuovo pasto</string>
+    <string name="diet_meal_type">Tipo di pasto</string>
+    <string name="diet_meal_name">Nome (facoltativo)</string>
+    <string name="diet_meal_time">Orario (es. 7:30)</string>
+    <string name="diet_meal_time_error">Orario non valido</string>
+    <string name="diet_meal_edit">Modifica pasto</string>
+    <string name="diet_meal_move_up">Sposta su</string>
+    <string name="diet_meal_move_down">Sposta giù</string>
+    <string name="diet_meal_delete">Elimina pasto</string>
+    <string name="diet_meal_delete_message">Il pasto e i suoi alimenti verranno cancellati.</string>
+    <string name="diet_meal_options">Opzioni di %1$s</string>
+    <string name="diet_meal_empty">Nessun alimento</string>
+    <string name="diet_add_item">Aggiungi alimento</string>
+    <string name="diet_item_new">Nuovo alimento</string>
+    <string name="diet_item_edit">Modifica alimento</string>
+    <string name="diet_item_name">Alimento</string>
+    <string name="diet_item_quantity">Quantità</string>
+    <string name="diet_item_unit">Unità</string>
+    <string name="diet_item_notes">Note o alternative</string>
+    <string name="diet_item_delete">Elimina alimento</string>
+    <string name="diet_number_error">Numero non valido</string>
+    <string name="diet_notes">Note</string>
+    <string name="diet_notes_empty">Integrazione, idratazione, indicazioni del nutrizionista…</string>
+    <string name="diet_macros_line">%1$s kcal · P %2$s · C %3$s · G %4$s</string>
+    <plurals name="diet_meals_count">
+        <item quantity="one">%d pasto</item>
+        <item quantity="other">%d pasti</item>
+    </plurals>
+    <string name="diet_plans_empty_title">Nessun piano alimentare</string>
+    <string name="diet_plans_empty_message">Crea un piano: colazione, spuntini, pranzo e cena sono già pronti da riempire con alimenti e quantità.</string>
+    <string name="diet_not_found">Piano non trovato</string>
+
+    <!-- Aggiornamento in-app (GitHub Releases) -->
+    <string name="update_available_title">Aggiornamento disponibile</string>
+    <string name="update_available_versions">Versione %1$s (installata: %2$s)</string>
+    <string name="update_download_size">Download di %1$s</string>
+    <string name="update_now">Aggiorna ora</string>
+    <string name="update_later">Più tardi</string>
+    <string name="update_downloading_title">Download in corso…</string>
+    <string name="update_downloading_version">Scarico la versione %1$s.</string>
+    <string name="update_download_progress">%1$d%% · %2$s di %3$s</string>
+    <string name="update_download_progress_unknown">%1$s scaricati</string>
+    <string name="update_cancel">Annulla</string>
+    <string name="update_ready_title">Aggiornamento pronto</string>
+    <string name="update_ready_message">La versione %1$s è stata scaricata. Android ti chiede conferma prima di installarla; la prima volta devi anche consentire a Sport di installare aggiornamenti.</string>
+    <string name="update_install">Installa</string>
+    <string name="update_failed_title">Aggiornamento non riuscito</string>
+    <string name="update_failed_network">Il download si è interrotto. Controlla la connessione e riprova: i tuoi dati non sono stati toccati.</string>
+    <string name="update_failed_invalid">Il file scaricato non è un aggiornamento valido di questa app e non è stato installato.</string>
+    <string name="update_failed_space">Spazio insufficiente sul telefono per scaricare l\'aggiornamento.</string>
+    <string name="update_retry">Riprova</string>
+    <string name="update_close">Chiudi</string>
+    <string name="settings_check_updates">Controlla aggiornamenti</string>
+    <string name="settings_update_none">Hai già la versione più recente</string>
+    <string name="settings_update_offline">Nessuna connessione: impossibile controllare ora</string>
+    <string name="settings_update_failed">Controllo non riuscito, riprova più tardi</string>
+</resources>
