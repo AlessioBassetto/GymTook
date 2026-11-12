@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Manifest aggiunto solo alle build con l'aggiornamento in-app configurato
+    (proprietà Gradle sport.update.repository, vedi app/build.gradle.kts e docs/aggiornamenti.md).
+
+    REQUEST_INSTALL_PACKAGES permette all'app di avviare l'installazione dell'APK scaricato dalle
+    GitHub Releases: da Android 8.0 l'utente autorizza comunque l'app nelle impostazioni
+    ("Installa app sconosciute") e conferma ogni installazione. Il Play Store non ammette questo
+    permesso per l'auto-aggiornamento: per questo non sta nel manifest principale.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+</manifest>

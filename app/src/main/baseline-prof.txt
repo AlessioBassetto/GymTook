@@ -1,0 +1,6 @@
+# Baseline profile scritto a mano: tutto il codice dell'app (poche centinaia di classi) compilato in
+# anticipo all'installazione. Compose, Room, Navigation, Media3 e le altre librerie portano già il
+# proprio profilo, che AGP unisce a questo. Il profilo generato da :baselineprofile su un telefono
+# reale (vedi docs/rilascio.md) lo integra con l'ordine effettivo di avvio.
+HSPLcom/example/sport/**->**(**)**
+Lcom/example/sport/**;

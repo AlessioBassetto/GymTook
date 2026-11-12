@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Auto Backup fino ad Android 11 (da Android 12 valgono le regole in data_extraction_rules.xml).
+
+    Il backup cloud ha un limite di 25 MB per app: superato, il backup salta del tutto. Restano
+    quindi fuori i contenuti pesanti o ricostruibili:
+    - media/ : immagini "disponibili offline", si riscaricano dalla CDN;
+    - user-media/ : video personali degli esercizi (possono pesare centinaia di MB);
+    - rest_timer.xml : stato di un recupero in corso, senza senso su un altro dispositivo.
+    Database (storico, schede, regolazioni) e impostazioni sono inclusi.
+-->
+<full-backup-content>
+    <exclude domain="file" path="media/" />
+    <exclude domain="file" path="user-media/" />
+    <exclude domain="sharedpref" path="rest_timer.xml" />
+</full-backup-content>

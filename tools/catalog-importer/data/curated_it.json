@@ -1,0 +1,1246 @@
+{
+  "version": 1,
+  "exercises": [
+    {
+      "id": "barbell_bench_press",
+      "name": "Panca piana con bilanciere",
+      "nameEn": "Barbell Bench Press",
+      "aliases": ["distensioni su panca piana", "bench press"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CHEST_MIDDLE"],
+      "secondaryMuscles": ["SHOULDERS_FRONT", "TRICEPS"],
+      "instructions": [
+        "Sdraiati con gli occhi sotto il bilanciere e i piedi ben piantati a terra.",
+        "Impugna poco più larghe delle spalle, retrai le scapole e stacca il bilanciere.",
+        "Scendi controllato fino a sfiorare lo sterno, poi spingi verso l'alto e leggermente indietro."
+      ],
+      "keyPoints": ["Scapole addotte e depresse per tutta la serie", "Avambracci verticali nel punto più basso"],
+      "commonMistakes": ["Gomiti aperti a 90° rispetto al busto", "Rimbalzare il bilanciere sul petto o sollevare i glutei"],
+      "setupParams": ["Altezza supporti", "Altezza fermi di sicurezza"],
+      "defaultRestSeconds": 180
+    },
+    {
+      "id": "incline_dumbbell_press",
+      "name": "Distensioni su panca inclinata con manubri",
+      "nameEn": "Incline Dumbbell Press",
+      "aliases": ["panca inclinata manubri"],
+      "equipment": "DUMBBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CHEST_UPPER"],
+      "secondaryMuscles": ["SHOULDERS_FRONT", "TRICEPS"],
+      "instructions": [
+        "Regola la panca a 30-45° e porta i manubri sulle cosce prima di sdraiarti.",
+        "Parti con i manubri sopra il petto alto, palmi in avanti o leggermente ruotati.",
+        "Scendi fino a sentire l'allungamento del petto e spingi convergendo leggermente."
+      ],
+      "keyPoints": ["Inclinazione moderata: oltre 45° lavora soprattutto la spalla", "Polsi allineati sopra i gomiti"],
+      "commonMistakes": ["Panca troppo inclinata", "Scendere poco riducendo l'escursione"],
+      "setupParams": ["Inclinazione panca"]
+    },
+    {
+      "id": "machine_chest_press",
+      "name": "Chest press",
+      "nameEn": "Machine Chest Press",
+      "aliases": ["distensioni alla macchina"],
+      "equipment": "MACHINE",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CHEST_MIDDLE"],
+      "secondaryMuscles": ["SHOULDERS_FRONT", "TRICEPS"],
+      "instructions": [
+        "Regola il sedile così che le maniglie siano all'altezza del petto medio.",
+        "Schiena e scapole aderenti allo schienale, impugna le maniglie.",
+        "Spingi fino a braccia quasi tese e torna controllando l'eccentrica."
+      ],
+      "keyPoints": ["Maniglie allineate al petto, non alle spalle", "Scapole ferme sullo schienale"],
+      "commonMistakes": ["Sedile troppo basso: il lavoro passa alle spalle", "Staccare la schiena dallo schienale"],
+      "setupParams": ["Altezza sedile", "Posizione maniglie"]
+    },
+    {
+      "id": "pec_deck",
+      "name": "Pectoral machine",
+      "nameEn": "Pec Deck",
+      "aliases": ["butterfly", "croci alla macchina"],
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CHEST_MIDDLE"],
+      "secondaryMuscles": ["SHOULDERS_FRONT"],
+      "instructions": [
+        "Regola il sedile così che le braccia siano parallele al pavimento.",
+        "Gomiti leggermente flessi, chiudi le braccia davanti al petto.",
+        "Riapri lentamente fino a sentire l'allungamento senza superare la linea delle spalle."
+      ],
+      "keyPoints": ["Gomiti fissi: il movimento avviene alla spalla", "Breve contrazione a braccia chiuse"],
+      "commonMistakes": ["Apertura eccessiva che stressa la spalla", "Spingere con le mani invece che con i gomiti"],
+      "setupParams": ["Altezza sedile", "Apertura bracci"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "cable_crossover_high_to_low",
+      "name": "Croci ai cavi dall'alto",
+      "nameEn": "High-to-Low Cable Crossover",
+      "aliases": ["cable crossover"],
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["CHEST_LOWER"],
+      "secondaryMuscles": ["CHEST_MIDDLE", "SHOULDERS_FRONT"],
+      "instructions": [
+        "Carrucole in alto, un passo avanti al centro con busto leggermente inclinato.",
+        "Porta le mani in basso e davanti al bacino con un arco ampio.",
+        "Ritorna lentamente fino a sentire l'allungamento del petto."
+      ],
+      "keyPoints": ["Gomiti morbidi e fissi", "Petto in fuori e scapole retratte"],
+      "commonMistakes": ["Trasformare il movimento in una spinta", "Usare lo slancio del busto"],
+      "setupParams": ["Altezza carrucole"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "low_to_high_cable_fly",
+      "name": "Croci ai cavi dal basso",
+      "nameEn": "Low-to-High Cable Fly",
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["CHEST_UPPER"],
+      "secondaryMuscles": ["SHOULDERS_FRONT"],
+      "instructions": [
+        "Carrucole in basso, posizionati al centro con un piede avanti.",
+        "Porta le mani in alto e al centro fino all'altezza del mento.",
+        "Torna giù controllando, mantenendo i gomiti leggermente flessi."
+      ],
+      "keyPoints": ["Traiettoria dal basso verso l'alto e verso l'interno", "Busto fermo"],
+      "commonMistakes": ["Alzare le spalle verso le orecchie", "Carico eccessivo che costringe a piegare i gomiti"],
+      "setupParams": ["Altezza carrucole"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "push_up",
+      "name": "Piegamenti sulle braccia",
+      "nameEn": "Push-Up",
+      "aliases": ["flessioni", "push up"],
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CHEST_MIDDLE"],
+      "secondaryMuscles": ["TRICEPS", "SHOULDERS_FRONT", "ABS_UPPER"],
+      "instructions": [
+        "Mani poco più larghe delle spalle, corpo in linea dalla testa ai talloni.",
+        "Scendi piegando i gomiti a circa 45° dal busto fino a sfiorare il pavimento.",
+        "Spingi il pavimento lontano tornando a braccia tese."
+      ],
+      "keyPoints": ["Glutei e addome contratti", "Gomiti a 45°, non a 90°"],
+      "commonMistakes": ["Bacino che cede verso il basso", "Escursione parziale"]
+    },
+    {
+      "id": "chest_dip",
+      "name": "Dip alle parallele (petto)",
+      "nameEn": "Chest Dip",
+      "aliases": ["dips"],
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["CHEST_LOWER"],
+      "secondaryMuscles": ["TRICEPS", "SHOULDERS_FRONT"],
+      "instructions": [
+        "Sostieniti sulle parallele a braccia tese, busto inclinato in avanti.",
+        "Scendi finché le spalle arrivano poco sotto i gomiti.",
+        "Spingi tornando su mantenendo l'inclinazione del busto."
+      ],
+      "keyPoints": ["Busto inclinato per spostare il lavoro sul petto", "Spalle lontane dalle orecchie"],
+      "commonMistakes": ["Scendere troppo in profondità con spalle instabili", "Oscillare con le gambe"]
+    },
+    {
+      "id": "smith_incline_bench_press",
+      "name": "Panca inclinata al multipower",
+      "nameEn": "Smith Machine Incline Press",
+      "equipment": "SMITH_MACHINE",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CHEST_UPPER"],
+      "secondaryMuscles": ["SHOULDERS_FRONT", "TRICEPS"],
+      "instructions": [
+        "Posiziona la panca inclinata così che il bilanciere scenda sul petto alto.",
+        "Sblocca ruotando i polsi e scendi controllato.",
+        "Spingi fino a braccia quasi tese e riaggancia a fine serie."
+      ],
+      "keyPoints": ["Posizione della panca decisiva per la traiettoria", "Fermi di sicurezza appena sotto il petto"],
+      "commonMistakes": ["Panca troppo avanti o indietro rispetto al bilanciere", "Bloccare i gomiti con forza"],
+      "setupParams": ["Inclinazione panca", "Posizione panca", "Fermi di sicurezza"]
+    },
+    {
+      "id": "pull_up",
+      "name": "Trazioni alla sbarra",
+      "nameEn": "Pull-Up",
+      "aliases": ["trazioni presa prona", "pull up"],
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "INTERMEDIATE",
+      "primaryMuscles": ["LATS"],
+      "secondaryMuscles": ["BICEPS", "UPPER_BACK", "FOREARMS"],
+      "instructions": [
+        "Appenditi con presa prona poco più larga delle spalle.",
+        "Deprimi le scapole e tira portando il petto verso la sbarra.",
+        "Scendi controllato fino a braccia tese."
+      ],
+      "keyPoints": ["Inizia il movimento abbassando le scapole", "Gomiti verso i fianchi"],
+      "commonMistakes": ["Slanci con le gambe (kipping)", "Escursione parziale senza estendere le braccia"],
+      "defaultRestSeconds": 150
+    },
+    {
+      "id": "assisted_pull_up_machine",
+      "name": "Trazioni assistite alla macchina",
+      "nameEn": "Assisted Pull-Up Machine",
+      "equipment": "MACHINE",
+      "trackingType": "ASSISTED_BODYWEIGHT",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["LATS"],
+      "secondaryMuscles": ["BICEPS", "UPPER_BACK"],
+      "instructions": [
+        "Seleziona il contrappeso: più è alto, più la macchina ti aiuta.",
+        "Ginocchia sulla pedana, impugna le maniglie e tira il petto verso le mani.",
+        "Torna giù lentamente fino a braccia tese."
+      ],
+      "keyPoints": ["Riduci gradualmente l'assistenza per progredire", "Scapole depresse prima di tirare"],
+      "commonMistakes": ["Troppa assistenza che rende la serie inutile", "Scendere senza controllo"],
+      "setupParams": ["Posizione pedana"]
+    },
+    {
+      "id": "lat_pulldown",
+      "name": "Lat machine avanti",
+      "nameEn": "Lat Pulldown",
+      "aliases": ["lat machine", "pulldown"],
+      "equipment": "CABLE",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["LATS"],
+      "secondaryMuscles": ["BICEPS", "UPPER_BACK"],
+      "instructions": [
+        "Regola i cuscinetti così che le cosce siano bloccate.",
+        "Impugna la barra larga, busto leggermente inclinato indietro.",
+        "Tira la barra verso il petto alto e risali controllando."
+      ],
+      "keyPoints": ["Petto alto verso la barra", "Gomiti verso il basso e indietro"],
+      "commonMistakes": ["Tirare dietro la nuca", "Dondolare il busto per usare lo slancio"],
+      "setupParams": ["Altezza cuscinetti cosce", "Altezza sedile"]
+    },
+    {
+      "id": "barbell_row",
+      "name": "Rematore con bilanciere",
+      "nameEn": "Barbell Row",
+      "aliases": ["rematore bilanciere", "bent over row"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "INTERMEDIATE",
+      "primaryMuscles": ["LATS", "UPPER_BACK"],
+      "secondaryMuscles": ["BICEPS", "LOWER_BACK", "SHOULDERS_REAR"],
+      "instructions": [
+        "Busto inclinato a circa 45°, ginocchia morbide e schiena neutra.",
+        "Tira il bilanciere verso l'ombelico portando i gomiti indietro.",
+        "Scendi controllato senza perdere la posizione del busto."
+      ],
+      "keyPoints": ["Schiena neutra e addome contratto", "Busto fermo durante la tirata"],
+      "commonMistakes": ["Raddrizzare il busto a ogni ripetizione", "Schiena curva in flessione"]
+    },
+    {
+      "id": "one_arm_dumbbell_row",
+      "name": "Rematore con manubrio a un braccio",
+      "nameEn": "One-Arm Dumbbell Row",
+      "equipment": "DUMBBELL",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "BEGINNER",
+      "unilateral": true,
+      "primaryMuscles": ["LATS"],
+      "secondaryMuscles": ["UPPER_BACK", "BICEPS", "SHOULDERS_REAR"],
+      "instructions": [
+        "Mano e ginocchio sulla panca, schiena parallela al pavimento.",
+        "Tira il manubrio verso l'anca con il gomito vicino al fianco.",
+        "Scendi fino a braccio teso sentendo l'allungamento del dorsale."
+      ],
+      "keyPoints": ["Traiettoria verso l'anca, non verso la spalla", "Bacino parallelo al pavimento"],
+      "commonMistakes": ["Ruotare il busto per sollevare di più", "Tirare solo con il bicipite"]
+    },
+    {
+      "id": "seated_cable_row",
+      "name": "Pulley basso",
+      "nameEn": "Seated Cable Row",
+      "aliases": ["rematore ai cavi", "pulley"],
+      "equipment": "CABLE",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["UPPER_BACK"],
+      "secondaryMuscles": ["LATS", "BICEPS", "SHOULDERS_REAR"],
+      "instructions": [
+        "Siediti con i piedi sulla pedana e le ginocchia leggermente flesse.",
+        "Busto eretto, tira la maniglia verso l'addome stringendo le scapole.",
+        "Allunga le braccia lasciando avanzare le scapole senza flettere la schiena."
+      ],
+      "keyPoints": ["Busto fermo e verticale", "Stringi le scapole a fine tirata"],
+      "commonMistakes": ["Dondolare avanti e indietro con il busto", "Spalle che salgono verso le orecchie"],
+      "setupParams": ["Posizione pedana", "Altezza sedile"]
+    },
+    {
+      "id": "chest_supported_machine_row",
+      "name": "Rematore alla macchina con appoggio al petto",
+      "nameEn": "Chest-Supported Machine Row",
+      "equipment": "MACHINE",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["UPPER_BACK"],
+      "secondaryMuscles": ["LATS", "BICEPS", "SHOULDERS_REAR"],
+      "instructions": [
+        "Regola sedile e appoggio così che il petto sia sostenuto e le maniglie raggiungibili a braccia tese.",
+        "Tira le maniglie portando i gomiti indietro e stringendo le scapole.",
+        "Torna avanti controllando fino all'allungamento completo."
+      ],
+      "keyPoints": ["Petto sempre a contatto con l'appoggio", "Pausa di un secondo in contrazione"],
+      "commonMistakes": ["Staccare il petto per usare lo slancio", "Escursione ridotta"],
+      "setupParams": ["Altezza sedile", "Distanza appoggio petto"]
+    },
+    {
+      "id": "band_pull_apart",
+      "name": "Pull apart con elastico",
+      "nameEn": "Band Pull-Apart",
+      "equipment": "RESISTANCE_BAND",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["SHOULDERS_REAR"],
+      "secondaryMuscles": ["UPPER_BACK", "TRAPS"],
+      "instructions": [
+        "Tieni l'elastico davanti a te a braccia tese all'altezza delle spalle.",
+        "Apri le braccia lateralmente fino a portare l'elastico al petto.",
+        "Torna controllando la resistenza dell'elastico."
+      ],
+      "keyPoints": ["Braccia tese ma non bloccate", "Spalle basse"],
+      "commonMistakes": ["Inarcare la schiena", "Elastico troppo duro che limita l'apertura"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "barbell_deadlift",
+      "name": "Stacco da terra",
+      "nameEn": "Barbell Deadlift",
+      "aliases": ["deadlift", "stacco"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "INTERMEDIATE",
+      "primaryMuscles": ["LOWER_BACK", "GLUTES", "HAMSTRINGS"],
+      "secondaryMuscles": ["QUADRICEPS", "TRAPS", "FOREARMS", "UPPER_BACK"],
+      "instructions": [
+        "Piedi alla larghezza delle anche, bilanciere sopra la metà del piede.",
+        "Afferra il bilanciere, abbassa le anche e metti in tensione la schiena neutra.",
+        "Spingi il pavimento ed estendi anche e ginocchia insieme tenendo il bilanciere vicino al corpo."
+      ],
+      "keyPoints": ["Schiena neutra dall'inizio alla fine", "Bilanciere a contatto con le gambe"],
+      "commonMistakes": ["Schiena che si arrotonda in partenza", "Iperestendere la zona lombare in chiusura"],
+      "defaultRestSeconds": 180
+    },
+    {
+      "id": "back_extension",
+      "name": "Hyperextension",
+      "nameEn": "Back Extension",
+      "aliases": ["estensioni lombari", "panca lombare"],
+      "equipment": "MACHINE",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["LOWER_BACK"],
+      "secondaryMuscles": ["GLUTES", "HAMSTRINGS"],
+      "instructions": [
+        "Regola il cuscinetto appena sotto le creste iliache.",
+        "Scendi flettendo le anche con la schiena neutra.",
+        "Risali fino all'allineamento busto-gambe senza andare oltre."
+      ],
+      "keyPoints": ["Movimento lento e controllato", "Zavorra al petto per progredire"],
+      "commonMistakes": ["Iperestensione eccessiva in alto", "Cuscinetto troppo alto che blocca l'anca"],
+      "setupParams": ["Altezza cuscinetto"]
+    },
+    {
+      "id": "dumbbell_shrug",
+      "name": "Scrollate con manubri",
+      "nameEn": "Dumbbell Shrug",
+      "equipment": "DUMBBELL",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["TRAPS"],
+      "secondaryMuscles": ["FOREARMS"],
+      "instructions": [
+        "In piedi con i manubri ai fianchi, braccia tese.",
+        "Solleva le spalle verso le orecchie il più in alto possibile.",
+        "Mantieni un istante e scendi lentamente."
+      ],
+      "keyPoints": ["Movimento verticale", "Braccia rilassate come ganci"],
+      "commonMistakes": ["Ruotare le spalle in cerchio", "Piegare i gomiti"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "barbell_overhead_press",
+      "name": "Military press con bilanciere",
+      "nameEn": "Barbell Overhead Press",
+      "aliases": ["lento avanti", "overhead press", "ohp"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["SHOULDERS_FRONT"],
+      "secondaryMuscles": ["SHOULDERS_SIDE", "TRICEPS", "TRAPS"],
+      "instructions": [
+        "Bilanciere sulle clavicole, presa poco più larga delle spalle, glutei contratti.",
+        "Spingi verso l'alto spostando la testa indietro per far passare il bilanciere.",
+        "Chiudi con il bilanciere sopra la testa e scendi controllato."
+      ],
+      "keyPoints": ["Addome e glutei contratti per non inarcare", "Bilanciere sopra la metà del piede"],
+      "commonMistakes": ["Iperestendere la schiena", "Spingere in avanti invece che in verticale"],
+      "setupParams": ["Altezza supporti"]
+    },
+    {
+      "id": "seated_dumbbell_shoulder_press",
+      "name": "Lento avanti con manubri da seduto",
+      "nameEn": "Seated Dumbbell Shoulder Press",
+      "equipment": "DUMBBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["SHOULDERS_FRONT"],
+      "secondaryMuscles": ["SHOULDERS_SIDE", "TRICEPS"],
+      "instructions": [
+        "Schienale quasi verticale, manubri all'altezza delle orecchie.",
+        "Spingi verso l'alto fino a braccia quasi tese.",
+        "Scendi fino a portare i gomiti poco sotto le spalle."
+      ],
+      "keyPoints": ["Avambracci verticali", "Schiena aderente allo schienale"],
+      "commonMistakes": ["Scendere troppo poco", "Inarcare la schiena per spingere"],
+      "setupParams": ["Inclinazione schienale"]
+    },
+    {
+      "id": "machine_shoulder_press",
+      "name": "Shoulder press alla macchina",
+      "nameEn": "Machine Shoulder Press",
+      "equipment": "MACHINE",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["SHOULDERS_FRONT"],
+      "secondaryMuscles": ["SHOULDERS_SIDE", "TRICEPS"],
+      "instructions": [
+        "Regola il sedile così che le maniglie partano all'altezza delle spalle.",
+        "Spingi verso l'alto senza bloccare i gomiti.",
+        "Torna giù controllando."
+      ],
+      "keyPoints": ["Schiena appoggiata", "Movimento fluido senza scatti"],
+      "commonMistakes": ["Sedile troppo alto che riduce l'escursione", "Staccare la schiena"],
+      "setupParams": ["Altezza sedile"]
+    },
+    {
+      "id": "dumbbell_lateral_raise",
+      "name": "Alzate laterali con manubri",
+      "nameEn": "Dumbbell Lateral Raise",
+      "aliases": ["alzate laterali"],
+      "equipment": "DUMBBELL",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["SHOULDERS_SIDE"],
+      "secondaryMuscles": ["TRAPS", "SHOULDERS_FRONT"],
+      "instructions": [
+        "In piedi, manubri ai fianchi e gomiti leggermente flessi.",
+        "Solleva lateralmente fino all'altezza delle spalle guidando con i gomiti.",
+        "Scendi lentamente senza appoggiare i manubri."
+      ],
+      "keyPoints": ["Gomiti leggermente più alti dei polsi", "Busto fermo"],
+      "commonMistakes": ["Slancio con il busto", "Alzare le spalle verso le orecchie"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "cable_lateral_raise",
+      "name": "Alzate laterali al cavo",
+      "nameEn": "Cable Lateral Raise",
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "INTERMEDIATE",
+      "unilateral": true,
+      "primaryMuscles": ["SHOULDERS_SIDE"],
+      "secondaryMuscles": ["TRAPS"],
+      "instructions": [
+        "Carrucola in basso, impugna la maniglia con la mano opposta al cavo.",
+        "Solleva il braccio lateralmente fino all'altezza della spalla.",
+        "Torna giù controllando la tensione costante del cavo."
+      ],
+      "keyPoints": ["Tensione continua anche in basso", "Busto stabile"],
+      "commonMistakes": ["Inclinare il busto per sollevare di più", "Carico eccessivo"],
+      "setupParams": ["Altezza carrucola"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "reverse_pec_deck",
+      "name": "Reverse pec deck",
+      "nameEn": "Reverse Pec Deck",
+      "aliases": ["deltoidi posteriori alla macchina", "rear delt fly"],
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["SHOULDERS_REAR"],
+      "secondaryMuscles": ["UPPER_BACK"],
+      "instructions": [
+        "Siediti rivolto verso lo schienale, maniglie all'altezza delle spalle.",
+        "Apri le braccia all'indietro con gomiti leggermente flessi.",
+        "Torna controllando senza far toccare i pesi."
+      ],
+      "keyPoints": ["Pensa a spingere le mani lontano, non a stringere le scapole", "Spalle basse"],
+      "commonMistakes": ["Usare il trapezio alzando le spalle", "Movimento a scatti"],
+      "setupParams": ["Altezza sedile", "Posizione maniglie"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "face_pull",
+      "name": "Face pull al cavo",
+      "nameEn": "Face Pull",
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["SHOULDERS_REAR"],
+      "secondaryMuscles": ["UPPER_BACK", "TRAPS"],
+      "instructions": [
+        "Carrucola all'altezza del viso con la corda.",
+        "Tira la corda verso la fronte aprendo le mani ai lati della testa.",
+        "Torna lentamente a braccia tese."
+      ],
+      "keyPoints": ["Gomiti alti", "Rotazione esterna a fine movimento"],
+      "commonMistakes": ["Tirare verso il collo con i gomiti bassi", "Inclinarsi all'indietro"],
+      "setupParams": ["Altezza carrucola"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "barbell_curl",
+      "name": "Curl con bilanciere",
+      "nameEn": "Barbell Curl",
+      "equipment": "BARBELL",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["BICEPS"],
+      "secondaryMuscles": ["FOREARMS"],
+      "instructions": [
+        "In piedi, bilanciere con presa supina alla larghezza delle spalle.",
+        "Fletti i gomiti portando il bilanciere verso le spalle.",
+        "Scendi lentamente fino a braccia tese."
+      ],
+      "keyPoints": ["Gomiti fermi ai fianchi", "Eccentrica controllata"],
+      "commonMistakes": ["Slancio con la schiena", "Gomiti che avanzano"]
+    },
+    {
+      "id": "dumbbell_hammer_curl",
+      "name": "Curl a martello con manubri",
+      "nameEn": "Dumbbell Hammer Curl",
+      "aliases": ["hammer curl"],
+      "equipment": "DUMBBELL",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["BICEPS"],
+      "secondaryMuscles": ["FOREARMS"],
+      "instructions": [
+        "Manubri ai fianchi con presa neutra (palmi uno verso l'altro).",
+        "Fletti i gomiti mantenendo la presa neutra.",
+        "Scendi controllato."
+      ],
+      "keyPoints": ["Polsi neutri e fermi", "Gomiti ai fianchi"],
+      "commonMistakes": ["Oscillare il busto", "Ruotare i polsi durante il movimento"]
+    },
+    {
+      "id": "incline_dumbbell_curl",
+      "name": "Curl su panca inclinata",
+      "nameEn": "Incline Dumbbell Curl",
+      "equipment": "DUMBBELL",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "INTERMEDIATE",
+      "primaryMuscles": ["BICEPS"],
+      "instructions": [
+        "Panca a 45-60°, braccia distese verso il basso dietro la linea del busto.",
+        "Fletti i gomiti senza portarli in avanti.",
+        "Scendi fino al completo allungamento del bicipite."
+      ],
+      "keyPoints": ["Massimo allungamento in basso", "Spalle appoggiate"],
+      "commonMistakes": ["Portare i gomiti in avanti", "Carico eccessivo per la posizione"],
+      "setupParams": ["Inclinazione panca"]
+    },
+    {
+      "id": "machine_preacher_curl",
+      "name": "Curl alla panca Scott (macchina)",
+      "nameEn": "Machine Preacher Curl",
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["BICEPS"],
+      "secondaryMuscles": ["FOREARMS"],
+      "instructions": [
+        "Regola il sedile così che le ascelle siano a contatto con il bordo del cuscino.",
+        "Fletti i gomiti portando le maniglie verso le spalle.",
+        "Scendi lentamente senza bloccare i gomiti in basso."
+      ],
+      "keyPoints": ["Braccia sempre appoggiate", "Eccentrica lenta"],
+      "commonMistakes": ["Sedile troppo basso", "Sollevare i gomiti dal cuscino"],
+      "setupParams": ["Altezza sedile"]
+    },
+    {
+      "id": "cable_triceps_pushdown",
+      "name": "Push down ai cavi",
+      "nameEn": "Cable Triceps Pushdown",
+      "aliases": ["pushdown", "spinte in basso"],
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["TRICEPS"],
+      "instructions": [
+        "Carrucola alta, impugna barra o corda con i gomiti ai fianchi.",
+        "Estendi i gomiti fino a braccia tese.",
+        "Risali controllando fino a circa 90°."
+      ],
+      "keyPoints": ["Gomiti fermi", "Spalle basse"],
+      "commonMistakes": ["Usare il peso del corpo", "Gomiti che si aprono"],
+      "setupParams": ["Altezza carrucola"]
+    },
+    {
+      "id": "overhead_dumbbell_triceps_extension",
+      "name": "Estensioni tricipiti sopra la testa con manubrio",
+      "nameEn": "Overhead Dumbbell Triceps Extension",
+      "aliases": ["french press manubrio"],
+      "equipment": "DUMBBELL",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["TRICEPS"],
+      "instructions": [
+        "Seduto, tieni un manubrio con entrambe le mani sopra la testa.",
+        "Scendi dietro la testa flettendo i gomiti.",
+        "Estendi le braccia tornando in alto."
+      ],
+      "keyPoints": ["Gomiti puntati in avanti", "Allungamento completo in basso"],
+      "commonMistakes": ["Gomiti che si allargano", "Inarcare la schiena"]
+    },
+    {
+      "id": "ez_bar_skull_crusher",
+      "name": "French press con bilanciere EZ",
+      "nameEn": "EZ-Bar Skull Crusher",
+      "aliases": ["skull crusher"],
+      "equipment": "BARBELL",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["TRICEPS"],
+      "instructions": [
+        "Sdraiato su panca piana, bilanciere EZ sopra il petto a braccia tese.",
+        "Fletti i gomiti portando il bilanciere verso la fronte o dietro la testa.",
+        "Estendi i gomiti tornando alla posizione iniziale."
+      ],
+      "keyPoints": ["Braccia leggermente inclinate verso la testa", "Gomiti stretti"],
+      "commonMistakes": ["Gomiti che si aprono", "Muovere le spalle invece dei gomiti"]
+    },
+    {
+      "id": "close_grip_bench_press",
+      "name": "Panca piana presa stretta",
+      "nameEn": "Close-Grip Bench Press",
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["TRICEPS"],
+      "secondaryMuscles": ["CHEST_MIDDLE", "SHOULDERS_FRONT"],
+      "instructions": [
+        "Presa alla larghezza delle spalle, scapole retratte.",
+        "Scendi con i gomiti vicini al busto fino al petto basso.",
+        "Spingi fino a braccia tese."
+      ],
+      "keyPoints": ["Presa non troppo stretta per proteggere i polsi", "Gomiti vicini al corpo"],
+      "commonMistakes": ["Mani attaccate al centro del bilanciere", "Gomiti larghi"],
+      "setupParams": ["Altezza supporti"]
+    },
+    {
+      "id": "bench_dip",
+      "name": "Dip su panca",
+      "nameEn": "Bench Dip",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["TRICEPS"],
+      "secondaryMuscles": ["SHOULDERS_FRONT", "CHEST_LOWER"],
+      "instructions": [
+        "Mani sul bordo della panca dietro di te, gambe distese avanti.",
+        "Scendi piegando i gomiti fino a circa 90°.",
+        "Spingi tornando a braccia tese."
+      ],
+      "keyPoints": ["Schiena vicina alla panca", "Gomiti verso dietro"],
+      "commonMistakes": ["Scendere troppo con stress alle spalle", "Gomiti aperti"]
+    },
+    {
+      "id": "dumbbell_wrist_curl",
+      "name": "Curl per i polsi con manubri",
+      "nameEn": "Dumbbell Wrist Curl",
+      "equipment": "DUMBBELL",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["FOREARMS"],
+      "instructions": [
+        "Avambracci appoggiati sulle cosce o sulla panca, palmi in alto.",
+        "Lascia scendere il manubrio verso le dita e chiudi il polso verso l'alto.",
+        "Ripeti con movimento lento e completo."
+      ],
+      "keyPoints": ["Solo il polso si muove", "Escursione completa"],
+      "commonMistakes": ["Carico eccessivo con movimento parziale", "Sollevare gli avambracci"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "reverse_barbell_curl",
+      "name": "Curl inverso con bilanciere",
+      "nameEn": "Reverse Barbell Curl",
+      "equipment": "BARBELL",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["FOREARMS"],
+      "secondaryMuscles": ["BICEPS"],
+      "instructions": [
+        "Impugna il bilanciere con presa prona alla larghezza delle spalle.",
+        "Fletti i gomiti mantenendo i polsi in linea.",
+        "Scendi lentamente."
+      ],
+      "keyPoints": ["Polsi neutri", "Gomiti fermi"],
+      "commonMistakes": ["Polsi che cedono verso il basso", "Slancio con il busto"]
+    },
+    {
+      "id": "band_neck_flexion",
+      "name": "Flessione del collo con elastico",
+      "nameEn": "Band Neck Flexion",
+      "equipment": "RESISTANCE_BAND",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["NECK"],
+      "instructions": [
+        "Fissa l'elastico dietro di te all'altezza della testa e appoggialo sulla fronte.",
+        "Porta il mento verso il petto contro la resistenza.",
+        "Torna lentamente in posizione neutra."
+      ],
+      "keyPoints": ["Movimenti lenti e senza scatti", "Resistenza leggera, molte ripetizioni"],
+      "commonMistakes": ["Usare il busto", "Carico eccessivo"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "plate_neck_extension",
+      "name": "Estensione del collo con disco",
+      "nameEn": "Plate Neck Extension",
+      "equipment": "OTHER",
+      "mechanic": "ISOLATION", "level": "INTERMEDIATE",
+      "primaryMuscles": ["NECK"],
+      "secondaryMuscles": ["TRAPS"],
+      "instructions": [
+        "Prono su panca con la testa fuori dal bordo, disco appoggiato sulla nuca su un asciugamano.",
+        "Solleva la testa estendendo il collo.",
+        "Scendi lentamente senza flettere eccessivamente."
+      ],
+      "keyPoints": ["Disco stabile con entrambe le mani", "Escursione controllata"],
+      "commonMistakes": ["Carichi elevati da subito", "Movimenti bruschi"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "crunch",
+      "name": "Crunch a terra",
+      "nameEn": "Crunch",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["ABS_UPPER"],
+      "secondaryMuscles": ["OBLIQUES"],
+      "instructions": [
+        "Supino con ginocchia flesse e piedi a terra.",
+        "Arrotola il busto sollevando le scapole da terra.",
+        "Torna giù lentamente senza appoggiare la testa."
+      ],
+      "keyPoints": ["Avvicina le costole al bacino", "Collo rilassato"],
+      "commonMistakes": ["Tirare la testa con le mani", "Usare lo slancio"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "cable_crunch",
+      "name": "Crunch ai cavi in ginocchio",
+      "nameEn": "Cable Crunch",
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "level": "INTERMEDIATE",
+      "primaryMuscles": ["ABS_UPPER"],
+      "secondaryMuscles": ["OBLIQUES"],
+      "instructions": [
+        "In ginocchio davanti alla carrucola alta, corda ai lati della testa.",
+        "Fletti il busto portando i gomiti verso le cosce.",
+        "Risali controllando senza estendere le anche."
+      ],
+      "keyPoints": ["Il bacino resta fermo", "Arrotola la colonna"],
+      "commonMistakes": ["Sedersi sui talloni usando il peso del corpo", "Tirare con le braccia"],
+      "setupParams": ["Altezza carrucola"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "hanging_leg_raise",
+      "name": "Sollevamento gambe alla sbarra",
+      "nameEn": "Hanging Leg Raise",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "level": "INTERMEDIATE",
+      "primaryMuscles": ["ABS_LOWER"],
+      "secondaryMuscles": ["OBLIQUES", "FOREARMS"],
+      "instructions": [
+        "Appenditi alla sbarra a braccia tese.",
+        "Solleva le gambe retroversando il bacino.",
+        "Scendi lentamente senza oscillare."
+      ],
+      "keyPoints": ["Retroversione del bacino in alto", "Nessuno slancio"],
+      "commonMistakes": ["Oscillare il corpo", "Sollevare solo le gambe senza arrotolare il bacino"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "reverse_crunch",
+      "name": "Crunch inverso",
+      "nameEn": "Reverse Crunch",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["ABS_LOWER"],
+      "secondaryMuscles": ["ABS_UPPER"],
+      "instructions": [
+        "Supino con anche e ginocchia flesse a 90°.",
+        "Porta le ginocchia verso il petto sollevando il bacino da terra.",
+        "Scendi lentamente controllando la zona lombare."
+      ],
+      "keyPoints": ["Il bacino si stacca da terra", "Movimento lento"],
+      "commonMistakes": ["Slancio con le gambe", "Inarcare la schiena in discesa"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "plank",
+      "name": "Plank",
+      "nameEn": "Plank",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "DURATION",
+      "mechanic": "ISOLATION", "force": "STATIC", "level": "BEGINNER",
+      "primaryMuscles": ["ABS_UPPER", "ABS_LOWER"],
+      "secondaryMuscles": ["OBLIQUES", "SHOULDERS_FRONT"],
+      "instructions": [
+        "Appoggia avambracci e punte dei piedi, gomiti sotto le spalle.",
+        "Allinea testa, busto e gambe contraendo addome e glutei.",
+        "Mantieni la posizione respirando regolarmente."
+      ],
+      "keyPoints": ["Bacino in leggera retroversione", "Respirazione continua"],
+      "commonMistakes": ["Bacino troppo alto o che cede", "Trattenere il respiro"]
+    },
+    {
+      "id": "pallof_press",
+      "name": "Pallof press al cavo",
+      "nameEn": "Pallof Press",
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "STATIC", "level": "BEGINNER",
+      "unilateral": true,
+      "primaryMuscles": ["OBLIQUES"],
+      "secondaryMuscles": ["ABS_UPPER"],
+      "instructions": [
+        "Di fianco alla carrucola all'altezza del petto, maniglia al centro del petto.",
+        "Spingi le braccia in avanti resistendo alla rotazione.",
+        "Torna al petto mantenendo busto e bacino frontali."
+      ],
+      "keyPoints": ["Nessuna rotazione del busto", "Glutei contratti"],
+      "commonMistakes": ["Ruotare verso il cavo", "Stare troppo vicino alla carrucola"],
+      "setupParams": ["Altezza carrucola"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "kettlebell_russian_twist",
+      "name": "Russian twist con kettlebell",
+      "nameEn": "Kettlebell Russian Twist",
+      "equipment": "KETTLEBELL",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["OBLIQUES"],
+      "secondaryMuscles": ["ABS_UPPER"],
+      "instructions": [
+        "Seduto con busto inclinato indietro, kettlebell al petto, talloni a terra o sollevati.",
+        "Ruota il busto portando il kettlebell vicino al fianco.",
+        "Ruota dall'altra parte: ogni lato conta come una ripetizione."
+      ],
+      "keyPoints": ["La rotazione parte dal busto, non dalle braccia", "Schiena neutra"],
+      "commonMistakes": ["Schiena curva", "Movimento troppo veloce"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "barbell_back_squat",
+      "name": "Squat con bilanciere",
+      "nameEn": "Barbell Back Squat",
+      "aliases": ["squat", "back squat"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["QUADRICEPS", "GLUTES"],
+      "secondaryMuscles": ["ADDUCTORS", "LOWER_BACK", "HAMSTRINGS"],
+      "instructions": [
+        "Bilanciere sui trapezi, piedi alla larghezza delle spalle con punte leggermente extraruotate.",
+        "Scendi spingendo le anche indietro e le ginocchia in fuori, busto stabile.",
+        "Risali spingendo su tutto il piede fino all'estensione completa."
+      ],
+      "keyPoints": ["Ginocchia in linea con le punte dei piedi", "Talloni sempre a terra"],
+      "commonMistakes": ["Ginocchia che collassano verso l'interno", "Perdere la curva lombare in fondo"],
+      "setupParams": ["Altezza supporti", "Altezza fermi di sicurezza"],
+      "defaultRestSeconds": 180
+    },
+    {
+      "id": "leg_press",
+      "name": "Leg press 45°",
+      "nameEn": "Leg Press",
+      "aliases": ["pressa"],
+      "equipment": "MACHINE",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["QUADRICEPS"],
+      "secondaryMuscles": ["GLUTES", "ADDUCTORS"],
+      "instructions": [
+        "Schiena e bacino ben appoggiati, piedi sulla pedana alla larghezza delle spalle.",
+        "Sblocca la slitta e scendi fino a circa 90° di flessione o oltre se il bacino resta fermo.",
+        "Spingi senza bloccare le ginocchia in estensione."
+      ],
+      "keyPoints": ["Piedi alti sulla pedana: più glutei; bassi: più quadricipiti", "Bacino sempre appoggiato"],
+      "commonMistakes": ["Bloccare le ginocchia in alto", "Sollevare il bacino in fondo al movimento"],
+      "setupParams": ["Inclinazione schienale", "Posizione piedi sulla pedana", "Fermo di sicurezza"],
+      "defaultRestSeconds": 150
+    },
+    {
+      "id": "leg_extension",
+      "name": "Leg extension",
+      "nameEn": "Leg Extension",
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["QUADRICEPS"],
+      "instructions": [
+        "Regola lo schienale così che il ginocchio sia allineato all'asse della macchina.",
+        "Posiziona il rullo appena sopra le caviglie ed estendi le gambe.",
+        "Torna giù lentamente senza far toccare i pesi."
+      ],
+      "keyPoints": ["Ginocchio allineato al perno di rotazione", "Contrazione di un secondo in alto"],
+      "commonMistakes": ["Slancio con il bacino", "Rullo troppo in basso sul collo del piede"],
+      "setupParams": ["Schienale", "Rullo tibie", "Allineamento ginocchio"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "hack_squat",
+      "name": "Hack squat alla macchina",
+      "nameEn": "Machine Hack Squat",
+      "equipment": "MACHINE",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "INTERMEDIATE",
+      "primaryMuscles": ["QUADRICEPS"],
+      "secondaryMuscles": ["GLUTES"],
+      "instructions": [
+        "Spalle sotto le spalliere, schiena aderente, piedi a metà pedana.",
+        "Sblocca e scendi in profondità mantenendo la schiena appoggiata.",
+        "Spingi fino a quasi completa estensione."
+      ],
+      "keyPoints": ["Profondità piena se la schiena resta appoggiata", "Ginocchia in linea con i piedi"],
+      "commonMistakes": ["Talloni che si sollevano", "Escursione parziale"],
+      "setupParams": ["Altezza spalliere", "Posizione piedi"],
+      "defaultRestSeconds": 150
+    },
+    {
+      "id": "smith_machine_squat",
+      "name": "Squat al multipower",
+      "nameEn": "Smith Machine Squat",
+      "equipment": "SMITH_MACHINE",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["QUADRICEPS"],
+      "secondaryMuscles": ["GLUTES", "ADDUCTORS"],
+      "instructions": [
+        "Bilanciere sui trapezi, piedi leggermente avanti rispetto alla linea del bilanciere.",
+        "Sblocca ruotando i polsi e scendi controllato.",
+        "Risali spingendo su tutto il piede."
+      ],
+      "keyPoints": ["La posizione dei piedi determina l'enfasi muscolare", "Fermi di sicurezza regolati"],
+      "commonMistakes": ["Piedi troppo sotto il bilanciere", "Sollevare i talloni"],
+      "setupParams": ["Altezza fermi", "Distanza piedi dal bilanciere"],
+      "defaultRestSeconds": 150
+    },
+    {
+      "id": "bulgarian_split_squat",
+      "name": "Squat bulgaro con manubri",
+      "nameEn": "Bulgarian Split Squat",
+      "aliases": ["affondi bulgari"],
+      "equipment": "DUMBBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "INTERMEDIATE",
+      "unilateral": true,
+      "primaryMuscles": ["QUADRICEPS", "GLUTES"],
+      "secondaryMuscles": ["ADDUCTORS", "HAMSTRINGS"],
+      "instructions": [
+        "Piede posteriore appoggiato sulla panca, manubri ai fianchi.",
+        "Scendi verticalmente finché la coscia anteriore è parallela al pavimento.",
+        "Spingi sul piede anteriore per risalire."
+      ],
+      "keyPoints": ["Busto leggermente inclinato in avanti per i glutei", "Ginocchio anteriore stabile"],
+      "commonMistakes": ["Piede anteriore troppo vicino alla panca", "Perdere l'equilibrio spingendo col piede dietro"]
+    },
+    {
+      "id": "kettlebell_goblet_squat",
+      "name": "Goblet squat con kettlebell",
+      "nameEn": "Kettlebell Goblet Squat",
+      "equipment": "KETTLEBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["QUADRICEPS"],
+      "secondaryMuscles": ["GLUTES", "ADDUCTORS", "ABS_UPPER"],
+      "instructions": [
+        "Tieni il kettlebell al petto per le maniglie, gomiti in basso.",
+        "Scendi tra le gambe mantenendo il busto eretto.",
+        "Risali spingendo su tutto il piede."
+      ],
+      "keyPoints": ["Busto verticale", "Gomiti all'interno delle ginocchia in fondo"],
+      "commonMistakes": ["Talloni che si sollevano", "Kettlebell lontano dal corpo"]
+    },
+    {
+      "id": "romanian_deadlift",
+      "name": "Stacco rumeno con bilanciere",
+      "nameEn": "Romanian Deadlift",
+      "aliases": ["rdl", "stacco a gambe semitese"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "INTERMEDIATE",
+      "primaryMuscles": ["HAMSTRINGS"],
+      "secondaryMuscles": ["GLUTES", "LOWER_BACK", "FOREARMS"],
+      "instructions": [
+        "In piedi con il bilanciere alle cosce, ginocchia leggermente flesse.",
+        "Spingi le anche indietro facendo scorrere il bilanciere lungo le gambe.",
+        "Scendi fino al massimo allungamento dei femorali e torna su estendendo le anche."
+      ],
+      "keyPoints": ["Movimento d'anca, ginocchia quasi ferme", "Schiena neutra"],
+      "commonMistakes": ["Arrotondare la schiena per scendere di più", "Trasformarlo in uno squat"],
+      "defaultRestSeconds": 150
+    },
+    {
+      "id": "lying_leg_curl",
+      "name": "Leg curl sdraiato",
+      "nameEn": "Lying Leg Curl",
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["HAMSTRINGS"],
+      "secondaryMuscles": ["CALVES"],
+      "instructions": [
+        "Prono sulla macchina, ginocchia appena oltre il bordo e allineate al perno.",
+        "Fletti le ginocchia portando il rullo verso i glutei.",
+        "Scendi lentamente fino a gambe quasi tese."
+      ],
+      "keyPoints": ["Bacino a contatto con la panca", "Eccentrica lenta"],
+      "commonMistakes": ["Sollevare il bacino", "Movimento a scatti"],
+      "setupParams": ["Rullo caviglie", "Allineamento ginocchio"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "seated_leg_curl",
+      "name": "Leg curl da seduto",
+      "nameEn": "Seated Leg Curl",
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PULL", "level": "BEGINNER",
+      "primaryMuscles": ["HAMSTRINGS"],
+      "secondaryMuscles": ["CALVES"],
+      "instructions": [
+        "Regola lo schienale per allineare il ginocchio al perno e blocca le cosce con il rullo.",
+        "Fletti le ginocchia spingendo il rullo verso il basso e indietro.",
+        "Torna controllando fino a gambe distese."
+      ],
+      "keyPoints": ["Cosce ben bloccate", "Busto leggermente inclinato in avanti per più allungamento"],
+      "commonMistakes": ["Rullo cosce troppo lento", "Escursione parziale"],
+      "setupParams": ["Schienale", "Rullo cosce", "Rullo caviglie"],
+      "defaultRestSeconds": 75
+    },
+    {
+      "id": "barbell_hip_thrust",
+      "name": "Hip thrust con bilanciere",
+      "nameEn": "Barbell Hip Thrust",
+      "aliases": ["ponte glutei con bilanciere"],
+      "equipment": "BARBELL",
+      "mechanic": "COMPOUND", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["GLUTES"],
+      "secondaryMuscles": ["HAMSTRINGS", "QUADRICEPS"],
+      "instructions": [
+        "Scapole appoggiate alla panca, bilanciere imbottito sulle anche.",
+        "Spingi i talloni e solleva il bacino fino all'allineamento busto-cosce.",
+        "Mantieni un istante con glutei contratti e scendi controllato."
+      ],
+      "keyPoints": ["Mento verso il petto e retroversione in alto", "Tibie verticali in chiusura"],
+      "commonMistakes": ["Iperestendere la zona lombare", "Piedi troppo lontani"]
+    },
+    {
+      "id": "kettlebell_swing",
+      "name": "Kettlebell swing",
+      "nameEn": "Kettlebell Swing",
+      "equipment": "KETTLEBELL",
+      "mechanic": "COMPOUND", "force": "PULL", "level": "INTERMEDIATE",
+      "primaryMuscles": ["GLUTES"],
+      "secondaryMuscles": ["HAMSTRINGS", "LOWER_BACK", "SHOULDERS_FRONT"],
+      "instructions": [
+        "Piedi poco più larghi delle spalle, kettlebell davanti a te.",
+        "Porta il kettlebell tra le gambe con un movimento d'anca.",
+        "Estendi le anche in modo esplosivo facendo salire il kettlebell all'altezza del petto."
+      ],
+      "keyPoints": ["La spinta viene dalle anche, non dalle braccia", "Glutei contratti in chiusura"],
+      "commonMistakes": ["Trasformarlo in uno squat", "Sollevare il kettlebell con le spalle"]
+    },
+    {
+      "id": "cable_glute_kickback",
+      "name": "Slanci posteriori al cavo",
+      "nameEn": "Cable Glute Kickback",
+      "aliases": ["kickback glutei"],
+      "equipment": "CABLE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "unilateral": true,
+      "primaryMuscles": ["GLUTES"],
+      "secondaryMuscles": ["HAMSTRINGS"],
+      "instructions": [
+        "Cavigliera collegata alla carrucola bassa, busto leggermente inclinato.",
+        "Spingi la gamba indietro estendendo l'anca.",
+        "Torna lentamente senza far toccare i pesi."
+      ],
+      "keyPoints": ["Bacino fermo", "Estendi l'anca senza inarcare la schiena"],
+      "commonMistakes": ["Compensare con la zona lombare", "Ruotare il bacino"],
+      "setupParams": ["Altezza carrucola"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "hip_abduction_machine",
+      "name": "Abductor machine",
+      "nameEn": "Hip Abduction Machine",
+      "aliases": ["abduttori alla macchina"],
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["ABDUCTORS"],
+      "secondaryMuscles": ["GLUTES"],
+      "instructions": [
+        "Siediti con i cuscinetti all'esterno delle ginocchia.",
+        "Apri le gambe spingendo verso l'esterno.",
+        "Torna lentamente senza far toccare i pesi."
+      ],
+      "keyPoints": ["Busto inclinato in avanti per enfatizzare i glutei", "Movimento controllato"],
+      "commonMistakes": ["Slancio con il busto", "Escursione parziale"],
+      "setupParams": ["Apertura iniziale", "Inclinazione schienale"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "band_lateral_walk",
+      "name": "Passi laterali con elastico",
+      "nameEn": "Band Lateral Walk",
+      "aliases": ["monster walk"],
+      "equipment": "RESISTANCE_BAND",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["ABDUCTORS"],
+      "secondaryMuscles": ["GLUTES"],
+      "instructions": [
+        "Elastico sopra le ginocchia o alle caviglie, semi-squat.",
+        "Fai passi laterali mantenendo la tensione dell'elastico.",
+        "Completa le ripetizioni e torna nella direzione opposta."
+      ],
+      "keyPoints": ["Ginocchia spinte verso l'esterno", "Altezza del bacino costante"],
+      "commonMistakes": ["Piedi che si avvicinano troppo", "Busto che oscilla"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "hip_adduction_machine",
+      "name": "Adductor machine",
+      "nameEn": "Hip Adduction Machine",
+      "aliases": ["adduttori alla macchina"],
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "level": "BEGINNER",
+      "primaryMuscles": ["ADDUCTORS"],
+      "instructions": [
+        "Siediti con i cuscinetti all'interno delle ginocchia.",
+        "Chiudi le gambe fino al contatto dei cuscinetti.",
+        "Riapri lentamente fino all'allungamento."
+      ],
+      "keyPoints": ["Apertura iniziale adeguata alla tua mobilità", "Eccentrica lenta"],
+      "commonMistakes": ["Apertura eccessiva", "Scatti a fine movimento"],
+      "setupParams": ["Apertura iniziale"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "copenhagen_plank",
+      "name": "Copenhagen plank",
+      "nameEn": "Copenhagen Plank",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "DURATION",
+      "mechanic": "ISOLATION", "force": "STATIC", "level": "ADVANCED",
+      "unilateral": true,
+      "primaryMuscles": ["ADDUCTORS"],
+      "secondaryMuscles": ["OBLIQUES"],
+      "instructions": [
+        "Plank laterale con la gamba superiore appoggiata sulla panca.",
+        "Solleva il bacino allineando il corpo.",
+        "Mantieni la posizione, poi cambia lato."
+      ],
+      "keyPoints": ["Corpo in linea retta", "Versione facilitata: ginocchio sulla panca"],
+      "commonMistakes": ["Bacino che cede", "Spalla non allineata sopra il gomito"]
+    },
+    {
+      "id": "standing_calf_raise_machine",
+      "name": "Calf raise in piedi alla macchina",
+      "nameEn": "Standing Calf Raise Machine",
+      "aliases": ["polpacci in piedi"],
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CALVES"],
+      "instructions": [
+        "Spalle sotto le spalliere, avampiedi sul bordo della pedana.",
+        "Sali sulle punte il più in alto possibile.",
+        "Scendi lentamente fino al massimo allungamento."
+      ],
+      "keyPoints": ["Pausa in basso per eliminare il rimbalzo", "Ginocchia quasi tese"],
+      "commonMistakes": ["Escursione parziale", "Rimbalzare in basso"],
+      "setupParams": ["Altezza spalliere"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "seated_calf_raise",
+      "name": "Calf raise da seduto",
+      "nameEn": "Seated Calf Raise",
+      "equipment": "MACHINE",
+      "mechanic": "ISOLATION", "force": "PUSH", "level": "BEGINNER",
+      "primaryMuscles": ["CALVES"],
+      "instructions": [
+        "Siediti con il cuscinetto sopra le ginocchia e gli avampiedi sulla pedana.",
+        "Sali sulle punte spingendo il cuscinetto verso l'alto.",
+        "Scendi fino al massimo allungamento."
+      ],
+      "keyPoints": ["Lavora sul soleo grazie alle ginocchia flesse", "Movimento lento"],
+      "commonMistakes": ["Escursione ridotta", "Usare lo slancio"],
+      "setupParams": ["Cuscinetto ginocchia"],
+      "defaultRestSeconds": 60
+    },
+    {
+      "id": "treadmill_running",
+      "name": "Corsa su tapis roulant",
+      "nameEn": "Treadmill Running",
+      "aliases": ["tapis roulant", "treadmill"],
+      "equipment": "CARDIO_MACHINE",
+      "trackingType": "DISTANCE_DURATION",
+      "level": "BEGINNER",
+      "primaryMuscles": ["CARDIO"],
+      "secondaryMuscles": ["QUADRICEPS", "CALVES"],
+      "instructions": [
+        "Parti camminando per qualche minuto di riscaldamento.",
+        "Aumenta gradualmente la velocità fino al ritmo desiderato.",
+        "Defatica rallentando negli ultimi minuti."
+      ],
+      "keyPoints": ["Un'inclinazione dell'1% simula la corsa all'aperto", "Busto eretto"],
+      "commonMistakes": ["Reggersi ai corrimano", "Passi troppo lunghi"]
+    },
+    {
+      "id": "stationary_bike",
+      "name": "Bike / cyclette",
+      "nameEn": "Stationary Bike",
+      "aliases": ["cyclette", "spinning"],
+      "equipment": "CARDIO_MACHINE",
+      "trackingType": "DISTANCE_DURATION",
+      "level": "BEGINNER",
+      "primaryMuscles": ["CARDIO"],
+      "secondaryMuscles": ["QUADRICEPS"],
+      "instructions": [
+        "Regola la sella: con il pedale in basso il ginocchio resta leggermente flesso.",
+        "Pedala a cadenza costante regolando la resistenza.",
+        "Defatica riducendo la resistenza negli ultimi minuti."
+      ],
+      "keyPoints": ["Altezza della sella corretta protegge le ginocchia", "Busto rilassato"],
+      "commonMistakes": ["Sella troppo bassa", "Resistenza troppo bassa con cadenza eccessiva"],
+      "setupParams": ["Altezza sella", "Distanza sella-manubrio"]
+    },
+    {
+      "id": "rowing_machine",
+      "name": "Vogatore",
+      "nameEn": "Rowing Machine",
+      "aliases": ["remoergometro", "rower"],
+      "equipment": "CARDIO_MACHINE",
+      "trackingType": "DISTANCE_DURATION",
+      "level": "INTERMEDIATE",
+      "primaryMuscles": ["CARDIO"],
+      "secondaryMuscles": ["LATS", "QUADRICEPS", "UPPER_BACK"],
+      "instructions": [
+        "Piedi fissati, impugna la maniglia con le braccia tese.",
+        "Spingi con le gambe, poi inclina il busto indietro e tira la maniglia all'addome.",
+        "Ritorna in ordine inverso: braccia, busto, gambe."
+      ],
+      "keyPoints": ["Sequenza gambe-busto-braccia", "La forza viene per il 60% dalle gambe"],
+      "commonMistakes": ["Tirare subito con le braccia", "Schiena curva in avanti"],
+      "setupParams": ["Resistenza (damper)", "Posizione poggiapiedi"]
+    },
+    {
+      "id": "burpee",
+      "name": "Burpees",
+      "nameEn": "Burpee",
+      "equipment": "BODYWEIGHT",
+      "trackingType": "BODYWEIGHT_REPS",
+      "mechanic": "COMPOUND", "level": "BEGINNER",
+      "primaryMuscles": ["FULL_BODY"],
+      "secondaryMuscles": ["CARDIO", "CHEST_MIDDLE", "QUADRICEPS"],
+      "instructions": [
+        "Dalla stazione eretta accosciati e appoggia le mani a terra.",
+        "Porta i piedi indietro in plank ed esegui un piegamento.",
+        "Riporta i piedi alle mani e salta verso l'alto."
+      ],
+      "keyPoints": ["Atterraggio morbido", "Ritmo costante"],
+      "commonMistakes": ["Bacino che cede in plank", "Saltare con la schiena curva"],
+      "defaultRestSeconds": 60
+    }
+  ]
+}

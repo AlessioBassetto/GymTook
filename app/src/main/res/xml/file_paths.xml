@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Uniche cartelle condivise con altre app (FileProvider), entrambe nella cache privata:
+    - captures: file temporaneo in cui la fotocamera registra il video personale di un esercizio,
+      poi spostato nella memoria privata dell'app;
+    - updates: APK di aggiornamento scaricato dalle GitHub Releases, letto dall'installer di
+      sistema con un permesso temporaneo di sola lettura.
+-->
+<paths>
+    <cache-path name="captures" path="captures/" />
+    <cache-path name="updates" path="updates/" />
+</paths>

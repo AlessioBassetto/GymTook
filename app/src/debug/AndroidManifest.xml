@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Solo build di debug: permette il traffico in chiaro verso questo computer, per provare
+    l'aggiornamento in-app con un server locale al posto di GitHub (docs/aggiornamenti.md).
+    La release accetta soltanto HTTPS.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:networkSecurityConfig="@xml/debug_network_security_config" />
+
+</manifest>
