@@ -18,6 +18,7 @@ import com.example.sport.core.media.MediaRepository
 import com.example.sport.core.media.UserVideoStore
 import com.example.sport.core.media.VideoImportResult
 import com.example.sport.core.model.ExerciseCategory
+import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.model.Muscle
 import com.example.sport.core.model.catalog.CatalogExerciseDto
 import com.example.sport.core.ui.exercise.ExerciseRowUi
@@ -42,9 +43,19 @@ import javax.inject.Inject
 @Immutable
 data class MediaCreditUi(val source: String, val license: String)
 
-/** Profilo di regolazione salvato dal logger, mostrato in sola lettura nella scheda. */
+/**
+ * Profilo di regolazione del macchinario per questo esercizio. Si legge e si modifica dalla scheda
+ * in qualsiasi momento, senza avviare un allenamento.
+ */
 @Immutable
-data class SetupProfileSummaryUi(val label: String, val summary: String)
+data class SavedSetupUi(
+    val id: Long,
+    val label: String,
+    val params: List<MachineSetupParam>,
+    val notes: String?,
+    /** Il più recente: è quello che il logger richiama da solo al prossimo allenamento. */
+    val isLatest: Boolean,
+)
 
 @Immutable
 data class ExerciseDetailUi(
@@ -65,7 +76,7 @@ data class ExerciseDetailUi(
     /** Video loop di catalogo (URL CDN o file offline). */
     val catalogVideo: String?,
     val setupHints: List<String>,
-    val savedSetups: List<SetupProfileSummaryUi>,
+    val savedSetups: List<SavedSetupUi>,
     val instructions: List<String>,
     val keyPoints: List<String>,
     val commonMistakes: List<String>,
@@ -97,10 +108,10 @@ class ExerciseDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val exerciseRepository: ExerciseRepository,
     private val customExerciseRepository: CustomExerciseRepository,
-    workoutRepository: WorkoutRepository,
+    private val workoutRepository: WorkoutRepository,
     private val routineBuilder: RoutineBuilderRepository,
     private val mediaRepository: MediaRepository,
-    progressRepository: ProgressRepository,
+    private val progressRepository: ProgressRepository,
 ) : ViewModel() {
 
     val routineTargets: StateFlow<List<RoutineTargetUi>> = routineBuilder.observeRoutines()
@@ -126,6 +137,10 @@ class ExerciseDetailViewModel @Inject constructor(
     ) { hasHistory, exercise ->
         hasHistory && exercise != null && ProgressMetric.hasChart(exercise.trackingType)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** L'esercizio compare in almeno un allenamento concluso: abilita "Azzera storico". */
+    val hasHistory: StateFlow<Boolean> = progressRepository.observeHasHistory(exerciseId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val eventChannel = Channel<ExerciseDetailEvent>(Channel.BUFFERED)
     val events: Flow<ExerciseDetailEvent> = eventChannel.receiveAsFlow()
@@ -165,8 +180,15 @@ class ExerciseDetailViewModel @Inject constructor(
                 userVideo = details.userVideo?.let { customExerciseRepository.videoUri(it.fileName) },
                 catalogVideo = details.videoLoop?.let { mediaRepository.resolve(it.path)?.toString() },
                 setupHints = exercise.setupParamHints,
-                savedSetups = setups.filter { it.params.isNotEmpty() }.map { setup ->
-                    SetupProfileSummaryUi(setup.label, setup.params.joinToString(" · ") { "${it.name} ${it.value}" })
+                // Già ordinati dal più recente: il primo è quello proposto dal logger.
+                savedSetups = setups.mapIndexed { index, setup ->
+                    SavedSetupUi(
+                        id = setup.id,
+                        label = setup.label,
+                        params = setup.params,
+                        notes = setup.notes?.takeIf { it.isNotBlank() },
+                        isLatest = index == 0,
+                    )
                 },
                 instructions = exercise.instructions,
                 keyPoints = exercise.keyPoints,
@@ -211,6 +233,32 @@ class ExerciseDetailViewModel @Inject constructor(
     fun onDelete() {
         viewModelScope.launch {
             eventChannel.send(ExerciseDetailEvent.Removed(customExerciseRepository.delete(exerciseId)))
+        }
+    }
+
+    /**
+     * Salva la regolazione "a freddo", senza un allenamento avviato: nuovo profilo se [setupId] è
+     * null, altrimenti aggiorna quello indicato. Il logger la ritrova da solo alla prossima sessione.
+     */
+    fun onSaveSetup(setupId: Long?, label: String, params: List<MachineSetupParam>, notes: String) {
+        viewModelScope.launch {
+            workoutRepository.saveSetupFromLibrary(exerciseId, setupId, label, params, notes)
+            eventChannel.send(ExerciseDetailEvent.Message(R.string.exercise_setup_saved))
+        }
+    }
+
+    fun onDeleteSetup(setupId: Long) {
+        viewModelScope.launch {
+            workoutRepository.deleteSetup(setupId)
+            eventChannel.send(ExerciseDetailEvent.Message(R.string.exercise_setup_deleted))
+        }
+    }
+
+    /** Azzera lo storico di questo solo esercizio; tutti gli altri dati restano. */
+    fun onResetHistory() {
+        viewModelScope.launch {
+            progressRepository.resetExerciseHistory(exerciseId)
+            eventChannel.send(ExerciseDetailEvent.Message(R.string.exercise_history_reset_done))
         }
     }
 

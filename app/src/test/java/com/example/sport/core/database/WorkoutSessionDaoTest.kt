@@ -187,6 +187,8 @@ class WorkoutSessionDaoTest : DatabaseTest() {
     @Test
     fun deletingRoutine_keepsSessionHistory() = runTest {
         val sessionId = dao.startSessionFromRoutineDay(dayId, startedAt = T0)
+        // Almeno una serie valida: una sessione senza dati verrebbe scartata come nulla.
+        completeSet(dao.getSets(dao.getSessionExercises(sessionId).first().id).first(), weightKg = 60.0, reps = 8, at = T0)
         dao.finishSession(sessionId, endedAt = hoursAfterT0(1), discardIncompleteSets = false)
 
         db.routineDao().deleteRoutine(db.routineDao().getRoutine(routineId)!!)

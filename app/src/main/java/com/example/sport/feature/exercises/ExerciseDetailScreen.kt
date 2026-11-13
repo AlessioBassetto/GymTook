@@ -43,7 +43,6 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.VideocamOff
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -89,12 +88,14 @@ import com.example.sport.core.database.dao.CustomExerciseRemoval
 import com.example.sport.core.designsystem.component.EmptyState
 import com.example.sport.core.designsystem.component.SectionHeader
 import com.example.sport.core.designsystem.theme.SportDimens
+import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.ui.anatomy.MuscleMap
 import com.example.sport.core.ui.exercise.ExerciseRowUi
 import com.example.sport.core.ui.labels.labelRes
 import com.example.sport.core.ui.media.ExerciseThumbnail
 import com.example.sport.core.ui.media.FrameLoop
 import com.example.sport.core.ui.media.VideoLoop
+import com.example.sport.feature.progress.ResetHistoryDialog
 import java.io.File
 
 /** Azioni della scheda esercizio (separate dal ViewModel per i test di interfaccia). */
@@ -109,6 +110,10 @@ internal data class DetailActions(
     val onRemoveVideo: () -> Unit,
     val onAddToRoutineDay: (dayId: Long) -> Unit = {},
     val onOpenProgress: () -> Unit = {},
+    /** Regolazione salvata "a freddo": [setupId] null crea un nuovo profilo. */
+    val onSaveSetup: (setupId: Long?, label: String, params: List<MachineSetupParam>, notes: String) -> Unit = { _, _, _, _ -> },
+    val onDeleteSetup: (setupId: Long) -> Unit = {},
+    val onResetHistory: () -> Unit = {},
 )
 
 @Composable
@@ -122,6 +127,7 @@ fun ExerciseDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val routineTargets by viewModel.routineTargets.collectAsStateWithLifecycle()
     val hasProgress by viewModel.hasProgress.collectAsStateWithLifecycle()
+    val hasHistory by viewModel.hasHistory.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -158,6 +164,7 @@ fun ExerciseDetailScreen(
         snackbarHostState = snackbarHostState,
         routineTargets = routineTargets,
         hasProgress = hasProgress,
+        hasHistory = hasHistory,
         actions = DetailActions(
             onBack = onBack,
             onToggleFavorite = viewModel::toggleFavorite,
@@ -182,6 +189,9 @@ fun ExerciseDetailScreen(
             },
             onRemoveVideo = viewModel::onRemoveVideo,
             onAddToRoutineDay = viewModel::onAddToRoutineDay,
+            onSaveSetup = viewModel::onSaveSetup,
+            onDeleteSetup = viewModel::onDeleteSetup,
+            onResetHistory = viewModel::onResetHistory,
         ),
     )
 
@@ -211,8 +221,11 @@ internal fun ExerciseDetailContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     routineTargets: List<RoutineTargetUi> = emptyList(),
     hasProgress: Boolean = false,
+    hasHistory: Boolean = false,
 ) {
     var showAddToRoutine by rememberSaveable { mutableStateOf(false) }
+    var setupEditor by remember { mutableStateOf<SetupEditorTarget?>(null) }
+    var confirmReset by rememberSaveable { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
@@ -255,12 +268,56 @@ internal fun ExerciseDetailContent(
                     icon = Icons.Outlined.SearchOff,
                     title = stringResource(R.string.exercise_not_found),
                 )
-                is ExerciseDetailUiState.Content -> ExerciseDetailBody(state.exercise, state.isImportingVideo, actions)
+                is ExerciseDetailUiState.Content -> ExerciseDetailBody(
+                    exercise = state.exercise,
+                    isImportingVideo = state.isImportingVideo,
+                    actions = actions,
+                    hasHistory = hasHistory,
+                    onEditSetup = { setupEditor = SetupEditorTarget(it) },
+                    onResetRequest = { confirmReset = true },
+                )
             }
         }
         SnackbarHost(
             snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).windowInsetsPadding(WindowInsets.navigationBars),
+        )
+        val editing = setupEditor
+        if (editing != null && state is ExerciseDetailUiState.Content) {
+            val exercise = state.exercise
+            val firstProfile = exercise.savedSetups.isEmpty()
+            SetupEditorDialog(
+                exerciseName = exercise.name,
+                setup = editing.setup,
+                // Un secondo profilo riparte dalle voci del primo (stessa macchina, altra palestra).
+                hints = exercise.savedSetups.firstOrNull()?.params?.map { it.name }?.takeIf { it.isNotEmpty() } ?: exercise.setupHints,
+                defaultLabel = if (firstProfile) {
+                    stringResource(R.string.setup_default_label)
+                } else {
+                    stringResource(R.string.exercise_setup_profile_numbered, exercise.savedSetups.size + 1)
+                },
+                onSave = { label, params, notes ->
+                    setupEditor = null
+                    actions.onSaveSetup(editing.setup?.id, label, params, notes)
+                },
+                onDelete = editing.setup?.let { setup ->
+                    {
+                        setupEditor = null
+                        actions.onDeleteSetup(setup.id)
+                    }
+                },
+                onDismiss = { setupEditor = null },
+            )
+        }
+    }
+    if (confirmReset && state is ExerciseDetailUiState.Content) {
+        ResetHistoryDialog(
+            exerciseName = state.exercise.name,
+            onConfirm = {
+                confirmReset = false
+                actions.onResetHistory()
+            },
+            onDismiss = { confirmReset = false },
         )
     }
     if (showAddToRoutine && state is ExerciseDetailUiState.Content) {
@@ -363,7 +420,14 @@ private fun CustomExerciseMenu(actions: DetailActions) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ExerciseDetailBody(exercise: ExerciseDetailUi, isImportingVideo: Boolean, actions: DetailActions) {
+private fun ExerciseDetailBody(
+    exercise: ExerciseDetailUi,
+    isImportingVideo: Boolean,
+    actions: DetailActions,
+    hasHistory: Boolean,
+    onEditSetup: (SavedSetupUi?) -> Unit,
+    onResetRequest: () -> Unit,
+) {
     val primaryLabels = exercise.primaryMuscles.map { stringResource(it.labelRes()) }
     val secondaryLabels = exercise.secondaryMuscles.map { stringResource(it.labelRes()) }
     val none = stringResource(R.string.exercise_none)
@@ -421,18 +485,18 @@ private fun ExerciseDetailBody(exercise: ExerciseDetailUi, isImportingVideo: Boo
                 }
             }
         }
-        if (exercise.savedSetups.isNotEmpty()) {
-            item { SectionHeader(stringResource(R.string.exercise_my_setups)) }
-            items(exercise.savedSetups) { setup -> SavedSetupRow(setup) }
-        }
-        if (exercise.setupHints.isNotEmpty()) {
-            item { SectionHeader(stringResource(R.string.exercise_setup_hints)) }
+        // Regolazioni e note del macchinario: sempre presenti, si leggono e si modificano "a freddo".
+        item { SectionHeader(stringResource(R.string.exercise_my_setups)) }
+        if (exercise.savedSetups.isEmpty()) {
+            item { SetupEmptyCard(hints = exercise.setupHints, onAdd = { onEditSetup(null) }) }
+        } else {
+            items(exercise.savedSetups, key = { "setup-${it.id}" }) { setup ->
+                SavedSetupCard(setup, onEdit = { onEditSetup(setup) })
+            }
             item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingS),
-                    verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingS),
-                ) {
-                    exercise.setupHints.forEach { Pill(it) }
+                TextButton(onClick = { onEditSetup(null) }) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Text(stringResource(R.string.exercise_setup_add_profile))
                 }
             }
         }
@@ -460,6 +524,10 @@ private fun ExerciseDetailBody(exercise: ExerciseDetailUi, isImportingVideo: Boo
             items(exercise.alternatives, key = { "alt-${it.id}" }) { alternative ->
                 AlternativeRow(alternative, onClick = { actions.onOpenExercise(alternative.id) })
             }
+        }
+        if (hasHistory) {
+            item { SectionHeader(stringResource(R.string.exercise_data_management)) }
+            item { DataManagementCard(onReset = onResetRequest) }
         }
         exercise.mediaCredit?.let { credit ->
             item {
@@ -579,18 +647,18 @@ private fun MyVideoButton(hasVideo: Boolean, actions: DetailActions) {
     }
 }
 
+/** "Gestione dati": azzera lo storico di questo solo esercizio (dati anomali, ripartenza da zero). */
 @Composable
-private fun SavedSetupRow(setup: SetupProfileSummaryUi) {
+private fun DataManagementCard(onReset: () -> Unit) {
     Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.padding(SportDimens.SpacingM),
-            horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingM),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Outlined.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Column {
-                Text(setup.label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(setup.summary, style = MaterialTheme.typography.bodyLarge)
+        Column(Modifier.padding(SportDimens.SpacingM), verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingS)) {
+            Text(
+                stringResource(R.string.exercise_data_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onReset) {
+                Text(stringResource(R.string.history_reset_action), color = MaterialTheme.colorScheme.error)
             }
         }
     }

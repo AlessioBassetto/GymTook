@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.data.ExerciseRepository
 import com.example.sport.core.data.RoutineBuilderRepository
+import com.example.sport.core.data.SessionVerdict
 import com.example.sport.core.data.SetMetric
 import com.example.sport.core.data.WorkoutRepository
 import com.example.sport.core.database.DatabaseTest
@@ -13,6 +14,7 @@ import com.example.sport.core.media.MediaConfig
 import com.example.sport.core.media.MediaRepository
 import com.example.sport.core.media.OfflineMediaStore
 import com.example.sport.core.model.EffortScale
+import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.model.WeightUnit
 import com.example.sport.core.workout.RestTimerController
 import com.example.sport.core.workout.RestTimerNotifier
@@ -233,5 +235,54 @@ class WorkoutViewModelTest : DatabaseTest() {
         assertEquals(1, db.workoutSessionDao().getSessionWithExercises(sessionId)!!.exercises.single().sets.size)
         assertNull(restTimer.state.value)
         assertEquals(WorkoutUiState.NoActiveSession, viewModel.uiState.first { it == WorkoutUiState.NoActiveSession })
+    }
+
+    @Test
+    fun finishingWithoutValidSets_isJudgedEmpty_andTheSessionIsDiscarded() = runTest {
+        val (_, dayId) = createRoutineWithDay("Gambe", listOf("leg_extension" to 3))
+        val sessionId = workoutRepository.startFromRoutineDay(dayId)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        assertEquals(0, awaitActive().validCompletedSets)
+        clock.current = T0.plusSeconds(1_800)
+        assertEquals("Mezz'ora senza serie resta una sessione vuota", SessionVerdict.EMPTY, viewModel.finishVerdict())
+
+        viewModel.onFinish()
+
+        assertEquals("Niente riepilogo: la sessione nulla viene scartata", WorkoutEvent.Discarded, viewModel.events.first())
+        assertNull(db.workoutSessionDao().getSession(sessionId))
+    }
+
+    @Test
+    fun finishingWithinAMinute_asksBeforeSaving() = runTest {
+        val (_, dayId) = createRoutineWithDay("Gambe", listOf("leg_extension" to 3))
+        workoutRepository.startFromRoutineDay(dayId)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        viewModel.onToggleComplete(awaitActive().exercises[0].sets[0].setId)
+        assertEquals(1, awaitActive { it.completedSets == 1 }.validCompletedSets)
+
+        clock.current = T0.plusSeconds(30)
+        assertEquals(SessionVerdict.TOO_SHORT, viewModel.finishVerdict())
+        clock.current = T0.plusSeconds(600)
+        assertEquals(SessionVerdict.VALID, viewModel.finishVerdict())
+    }
+
+    @Test
+    fun setupSavedFromTheExercisePage_reachesTheLogger_withItsNotes() = runTest {
+        val seat = listOf(MachineSetupParam("Schienale", "3"))
+        // Salvata "a freddo", prima di qualsiasi allenamento.
+        workoutRepository.saveSetupFromLibrary("leg_extension", null, "Predefinita", seat, "Carico abituale 40 kg")
+        val (_, dayId) = createRoutineWithDay("Gambe", listOf("leg_extension" to 3))
+        workoutRepository.startFromRoutineDay(dayId)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+
+        val exercise = awaitActive().exercises.single()
+        assertEquals(seat, exercise.setup.params)
+        assertEquals("Carico abituale 40 kg", exercise.setup.notes)
+
+        viewModel.onOpenSetup(exercise.sessionExerciseId)
+        val sheet = viewModel.setupSheet.first { it != null }!!
+        assertEquals("Carico abituale 40 kg", sheet.notes)
+        viewModel.onSaveSetup(sheet.params, "Carico abituale 45 kg", "Predefinita")
+        awaitActive { it.exercises.single().setup.notes == "Carico abituale 45 kg" }
     }
 }

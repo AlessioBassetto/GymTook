@@ -175,7 +175,7 @@
     <string name="exercise_hidden">Esercizio nascosto: resta nello storico</string>
     <string name="exercise_custom_note">Esercizio creato da te</string>
     <string name="exercise_alternatives">Alternative</string>
-    <string name="exercise_my_setups">Le tue regolazioni</string>
+    <string name="exercise_my_setups">I miei settaggi / Note macchinario</string>
     <string name="exercise_video_add">Aggiungi il tuo video</string>
     <string name="exercise_video_record">Registra un video</string>
     <string name="exercise_video_pick">Scegli dalla galleria</string>
@@ -232,7 +232,6 @@
     <string name="exercise_execution">Esecuzione</string>
     <string name="exercise_key_points">Punti chiave</string>
     <string name="exercise_common_mistakes">Errori comuni</string>
-    <string name="exercise_setup_hints">Regolazioni da annotare</string>
     <string name="exercise_content_english">Istruzioni non ancora tradotte: testo originale in inglese.</string>
     <string name="exercise_media_credit">Immagini: %1$s · licenza %2$s</string>
     <string name="exercise_favorite_add">Aggiungi ai preferiti</string>
@@ -442,7 +441,7 @@
     <string name="workout_minimize">Riduci, l\'allenamento resta in corso</string>
     <string name="workout_finish">Termina</string>
     <string name="workout_finish_title">Terminare l\'allenamento?</string>
-    <string name="workout_finish_message">Le serie non spuntate verranno eliminate dal registro.</string>
+    <string name="workout_finish_message">Le serie non spuntate o senza dati verranno eliminate dal registro.</string>
     <string name="workout_continue">Continua</string>
     <string name="workout_discard">Annulla allenamento</string>
     <string name="workout_discard_title">Annullare l\'allenamento?</string>
@@ -688,4 +687,71 @@
     <string name="settings_update_none">Hai già la versione più recente</string>
     <string name="settings_update_offline">Nessuna connessione: impossibile controllare ora</string>
     <string name="settings_update_failed">Controllo non riuscito, riprova più tardi</string>
+
+    <!-- Azioni comuni dei dialoghi -->
+    <string name="action_save">Salva</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_delete">Elimina</string>
+
+    <!-- Settaggi e note del macchinario dalla scheda esercizio (fuori allenamento) -->
+    <string name="exercise_setup_empty">Nessun settaggio salvato. Annota qui sedile, schienale, fori, carico abituale o note tecniche: li ritrovi già pronti nel logger, senza dover avviare un allenamento adesso.</string>
+    <string name="exercise_setup_suggested">Voci suggerite: %1$s</string>
+    <string name="exercise_setup_add">Aggiungi settaggi</string>
+    <string name="exercise_setup_add_profile">Aggiungi profilo (altra palestra o macchina)</string>
+    <string name="exercise_setup_latest">%1$s · usato dal logger</string>
+    <string name="exercise_setup_param">%1$s: %2$s</string>
+    <string name="exercise_setup_edit">Modifica settaggi %1$s</string>
+    <string name="exercise_setup_new_title">Nuovi settaggi</string>
+    <string name="exercise_setup_edit_title">Modifica settaggi</string>
+    <string name="exercise_setup_profile_name">Nome profilo</string>
+    <string name="exercise_setup_profile_numbered">Profilo %1$d</string>
+    <string name="exercise_setup_delete">Elimina profilo</string>
+    <string name="exercise_setup_delete_title">Eliminare il profilo «%1$s»?</string>
+    <string name="exercise_setup_delete_message">Lo storico degli allenamenti conserva comunque i settaggi usati in ogni sessione.</string>
+    <string name="exercise_setup_saved">Settaggi salvati: il logger li userà dal prossimo allenamento</string>
+    <string name="exercise_setup_deleted">Profilo eliminato</string>
+    <string name="setup_notes">Note macchinario</string>
+    <string name="setup_notes_placeholder">Es. maniglia stretta, carico abituale 40 kg</string>
+
+    <!-- Gestione dati: reset dello storico di un solo esercizio -->
+    <string name="exercise_data_management">Gestione dati</string>
+    <string name="exercise_data_hint">Dati sbagliati o vuoi ripartire da zero? Puoi azzerare lo storico di questo solo esercizio: tutti gli altri dati dell\'app restano.</string>
+    <string name="exercise_history_reset_done">Storico dell\'esercizio azzerato</string>
+    <string name="exercise_progress_more_options">Opzioni esercizio</string>
+    <string name="history_reset_action">Azzera storico esercizio</string>
+    <string name="history_reset_title">Azzerare lo storico di %1$s?</string>
+    <string name="history_reset_message">Tutte le serie di questo esercizio verranno eliminate dagli allenamenti conclusi; gli allenamenti che restano vuoti escono dallo storico. Record e grafici si ricalcolano. Schede, settaggi e tutti gli altri esercizi non vengono toccati. L\'operazione non si può annullare.</string>
+    <string name="history_reset_confirm">Azzera storico</string>
+
+    <!-- Sessioni vuote o troppo brevi alla chiusura dell'allenamento -->
+    <string name="workout_null_title">Nessuna serie da salvare</string>
+    <string name="workout_null_message">Non hai completato nessuna serie con dati validi. Se chiudi, la sessione viene scartata: non entra nello storico né nelle statistiche.</string>
+    <string name="workout_null_discard">Scarta sessione</string>
+    <string name="workout_short_title">Allenamento di meno di un minuto</string>
+    <string name="workout_short_message">Vuoi davvero salvare questa sessione o annullarla? Se è partita per errore scartala: non entrerà nello storico né nelle statistiche.</string>
+    <string name="workout_short_save">Salva</string>
+    <string name="workout_short_discard">Scarta</string>
+
+    <!-- Correzioni dello storico: serie, record, allenamenti -->
+    <string name="session_edit_hint">Tocca una serie per correggerla o eliminarla.</string>
+    <string name="session_emptied">Allenamento eliminato: non conteneva più serie</string>
+    <string name="session_deleted">Allenamento eliminato: statistiche ricalcolate</string>
+    <string name="session_delete_description">Elimina l\'allenamento %1$s del %2$s</string>
+    <string name="set_edit_title">Correggi serie</string>
+    <string name="set_edit_current">Valore registrato: %1$s</string>
+    <string name="set_edit_weight">Peso (%1$s)</string>
+    <string name="set_edit_reps">Ripetizioni</string>
+    <string name="set_edit_seconds">Durata (secondi)</string>
+    <string name="set_edit_kilometers">Distanza (km)</string>
+    <string name="set_edit_minutes">Durata (minuti)</string>
+    <string name="set_delete">Elimina serie</string>
+    <string name="set_delete_title">Eliminare la serie %1$s?</string>
+    <string name="set_delete_message">Record, volumi e grafici si ricalcolano. Se era l\'unica serie, anche l\'esercizio esce dall\'allenamento.</string>
+    <string name="set_updated">Serie corretta: statistiche ricalcolate</string>
+    <string name="set_deleted">Serie eliminata: statistiche ricalcolate</string>
+    <string name="record_delete">Elimina il record: %1$s</string>
+    <string name="record_delete_title">Eliminare questo record?</string>
+    <string name="record_delete_set_message">Verrà eliminata la serie %1$s del %2$s che lo ha stabilito; record, volumi e grafici si ricalcolano. Per correggerla invece di eliminarla, apri l\'allenamento e tocca la serie.</string>
+    <string name="record_delete_volume_message">Verranno eliminate tutte le serie di questo esercizio nell\'allenamento del %1$s; record, volumi e grafici si ricalcolano. Per correggere una singola serie, apri l\'allenamento e toccala.</string>
+    <string name="record_deleted">Record eliminato: statistiche ricalcolate</string>
 </resources>

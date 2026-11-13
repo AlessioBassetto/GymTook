@@ -1,5 +1,6 @@
 package com.example.sport.feature.progress
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,29 +13,42 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,6 +76,8 @@ data class ExerciseProgressActions(
     val onSelectMetric: (ProgressMetric) -> Unit,
     val onSelectRange: (TimeRange) -> Unit,
     val onOpenSession: (Long) -> Unit,
+    val onDeleteRecord: (RecordTileUi) -> Unit = {},
+    val onResetHistory: () -> Unit = {},
 )
 
 @Composable
@@ -71,6 +87,19 @@ fun ExerciseProgressScreen(
     viewModel: ExerciseProgressViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                ExerciseProgressEvent.HistoryReset -> {
+                    Toast.makeText(context, R.string.exercise_history_reset_done, Toast.LENGTH_LONG).show()
+                    onBack()
+                }
+                is ExerciseProgressEvent.Message -> snackbarHostState.showSnackbar(context.getString(event.messageRes))
+            }
+        }
+    }
     ExerciseProgressContent(
         state = state,
         actions = ExerciseProgressActions(
@@ -78,13 +107,53 @@ fun ExerciseProgressScreen(
             onSelectMetric = viewModel::onSelectMetric,
             onSelectRange = viewModel::onSelectRange,
             onOpenSession = onOpenSession,
+            onDeleteRecord = viewModel::onDeleteRecord,
+            onResetHistory = viewModel::onResetHistory,
         ),
+        snackbarHostState = snackbarHostState,
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ExerciseProgressContent(state: ExerciseProgressUiState, actions: ExerciseProgressActions) {
+internal fun ExerciseProgressContent(
+    state: ExerciseProgressUiState,
+    actions: ExerciseProgressActions,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
+    var confirmReset by rememberSaveable { mutableStateOf(false) }
+    var deletingRecord by remember { mutableStateOf<RecordTileUi?>(null) }
+    val content = state as? ExerciseProgressUiState.Content
+    if (confirmReset && content != null) {
+        ResetHistoryDialog(
+            exerciseName = content.name,
+            onConfirm = {
+                confirmReset = false
+                actions.onResetHistory()
+            },
+            onDismiss = { confirmReset = false },
+        )
+    }
+    deletingRecord?.let { record ->
+        val unit = LocalWeightUnit.current
+        val day = Formatters.shortDate(record.date)
+        DestructiveConfirmDialog(
+            title = stringResource(R.string.record_delete_title),
+            message = if (record.setId != null) {
+                val set = Formatters.setLabel(record.weightKg ?: record.valueKg, record.reps ?: 0, unit)
+                stringResource(R.string.record_delete_set_message, set, day)
+            } else {
+                stringResource(R.string.record_delete_volume_message, day)
+            },
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = {
+                deletingRecord = null
+                actions.onDeleteRecord(record)
+            },
+            onDismiss = { deletingRecord = null },
+        )
+    }
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = {
@@ -99,6 +168,9 @@ internal fun ExerciseProgressContent(state: ExerciseProgressUiState, actions: Ex
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                 }
             },
+            actions = {
+                if (content != null && content.metric != null) ProgressMenu(onReset = { confirmReset = true })
+            },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
         when (state) {
@@ -107,14 +179,42 @@ internal fun ExerciseProgressContent(state: ExerciseProgressUiState, actions: Ex
             is ExerciseProgressUiState.Content -> if (state.metric == null) {
                 EmptyState(icon = Icons.Outlined.Insights, title = stringResource(R.string.exercise_progress_unsupported))
             } else {
-                ExerciseProgressBody(state, state.metric, actions)
+                ExerciseProgressBody(state, state.metric, actions, onDeleteRecordRequest = { deletingRecord = it })
             }
+        }
+    }
+        SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+    }
+}
+
+/** Menu ⋮: gestione dati dell'esercizio. */
+@Composable
+private fun ProgressMenu(onReset: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }, modifier = Modifier.size(SportDimens.TouchTargetMin)) {
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.exercise_progress_more_options))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.history_reset_action)) },
+                leadingIcon = { Icon(Icons.Outlined.DeleteSweep, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onReset()
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun ExerciseProgressBody(state: ExerciseProgressUiState.Content, metric: ProgressMetric, actions: ExerciseProgressActions) {
+private fun ExerciseProgressBody(
+    state: ExerciseProgressUiState.Content,
+    metric: ProgressMetric,
+    actions: ExerciseProgressActions,
+    onDeleteRecordRequest: (RecordTileUi) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.navigationBarsPadding(),
         contentPadding = PaddingValues(bottom = SportDimens.SpacingXl),
@@ -140,7 +240,11 @@ private fun ExerciseProgressBody(state: ExerciseProgressUiState.Content, metric:
                 )
             }
             items(state.records, key = { "record-${it.kind}" }) { record ->
-                RecordTile(record, onClick = { actions.onOpenSession(record.sessionId) })
+                RecordTile(
+                    record = record,
+                    onClick = { actions.onOpenSession(record.sessionId) },
+                    onDelete = { onDeleteRecordRequest(record) },
+                )
             }
         }
         if (state.sessions.isNotEmpty()) {
@@ -262,7 +366,7 @@ private fun MetricChart(points: List<MetricPoint>, metric: ProgressMetric) {
 }
 
 @Composable
-private fun RecordTile(record: RecordTileUi, onClick: () -> Unit) {
+private fun RecordTile(record: RecordTileUi, onClick: () -> Unit, onDelete: () -> Unit) {
     val unit = LocalWeightUnit.current
     val (label, value) = when (record.kind) {
         RecordKind.HEAVIEST_SET -> stringResource(R.string.progress_record_heaviest) to
@@ -290,6 +394,10 @@ private fun RecordTile(record: RecordTileUi, onClick: () -> Unit) {
                 Text(value, style = SportNumberStyles.Compact)
             }
             Text(Formatters.shortDate(record.date), style = MaterialTheme.typography.labelMedium)
+            // Dato anomalo (es. 1000 kg al posto di 100): si elimina da qui, con conferma.
+            IconButton(onClick = onDelete, modifier = Modifier.size(SportDimens.TouchTargetMin)) {
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.record_delete, label))
+            }
         }
     }
 }

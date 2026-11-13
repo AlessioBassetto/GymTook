@@ -10,18 +10,23 @@ import com.example.sport.R
 import com.example.sport.core.data.ProgressRepository
 import com.example.sport.core.data.progress.PersonalRecord
 import com.example.sport.core.data.progress.RecordKind
+import com.example.sport.core.database.dao.HistoryRemoval
 import com.example.sport.core.database.relation.ExerciseProgressPoint
 import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.navigation.ExerciseProgressRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -83,7 +88,16 @@ data class RecordTileUi(
     val reps: Int?,
     val date: LocalDate,
     val sessionId: Long,
+    /** Serie che ha stabilito il record; null per il volume, che riguarda l'intera sessione. */
+    val setId: Long? = null,
 )
+
+sealed interface ExerciseProgressEvent {
+    /** Storico dell'esercizio azzerato: non resta nulla da mostrare. */
+    data object HistoryReset : ExerciseProgressEvent
+
+    data class Message(@StringRes val messageRes: Int) : ExerciseProgressEvent
+}
 
 sealed interface ExerciseProgressUiState {
     data object Loading : ExerciseProgressUiState
@@ -154,6 +168,29 @@ class ExerciseProgressViewModel @Inject constructor(
         chosenMetric.value = metric
     }
 
+    private val eventChannel = Channel<ExerciseProgressEvent>(Channel.BUFFERED)
+    val events: Flow<ExerciseProgressEvent> = eventChannel.receiveAsFlow()
+
+    /**
+     * Elimina il dato anomalo dietro a un record: la singola serie per carico e massimale, tutte le
+     * serie dell'esercizio in quell'allenamento per il volume. I record si ricalcolano da soli.
+     */
+    fun onDeleteRecord(record: RecordTileUi) {
+        viewModelScope.launch {
+            val removal = record.setId?.let { repository.deleteSet(it) }
+                ?: repository.deleteExerciseFromSession(record.sessionId, exerciseId)
+            if (removal != HistoryRemoval.NOTHING) eventChannel.send(ExerciseProgressEvent.Message(R.string.record_deleted))
+        }
+    }
+
+    /** Azzera lo storico di questo solo esercizio; tutti gli altri dati restano. */
+    fun onResetHistory() {
+        viewModelScope.launch {
+            repository.resetExerciseHistory(exerciseId)
+            eventChannel.send(ExerciseProgressEvent.HistoryReset)
+        }
+    }
+
     private fun dailyPoints(rows: List<ExerciseProgressPoint>, metric: ProgressMetric, zone: ZoneId): List<MetricPoint> =
         rows.mapNotNull { row -> metric.valueOf(row)?.let { row.performedAt.toLocalDate(zone) to it } }
             .groupBy({ it.first }, { it.second })
@@ -177,5 +214,6 @@ class ExerciseProgressViewModel @Inject constructor(
         reps = reps,
         date = achievedAt.toLocalDate(zone),
         sessionId = sessionId,
+        setId = setId,
     )
 }

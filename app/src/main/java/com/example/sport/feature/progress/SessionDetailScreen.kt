@@ -1,5 +1,6 @@
 package com.example.sport.feature.progress
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +48,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sport.R
+import com.example.sport.core.data.SetValues
 import com.example.sport.core.designsystem.component.EmptyState
 import com.example.sport.core.designsystem.component.StatValue
 import com.example.sport.core.designsystem.theme.SportDimens
@@ -65,6 +71,8 @@ data class SessionDetailActions(
     val onBack: () -> Unit,
     val onOpenExercise: (String) -> Unit,
     val onDelete: () -> Unit,
+    val onUpdateSet: (setId: Long, values: SetValues) -> Unit = { _, _ -> },
+    val onDeleteSet: (setId: Long) -> Unit = {},
 )
 
 @Composable
@@ -74,20 +82,44 @@ fun SessionDetailScreen(
     viewModel: SessionDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 SessionDetailEvent.Deleted -> onBack()
+                SessionDetailEvent.Emptied -> {
+                    Toast.makeText(context, R.string.session_emptied, Toast.LENGTH_LONG).show()
+                    onBack()
+                }
+                is SessionDetailEvent.Message -> snackbarHostState.showSnackbar(context.getString(event.messageRes))
             }
         }
     }
-    SessionDetailContent(state, SessionDetailActions(onBack, onOpenExercise, viewModel::onDelete))
+    SessionDetailContent(
+        state = state,
+        actions = SessionDetailActions(
+            onBack = onBack,
+            onOpenExercise = onOpenExercise,
+            onDelete = viewModel::onDelete,
+            onUpdateSet = viewModel::onUpdateSet,
+            onDeleteSet = viewModel::onDeleteSet,
+        ),
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SessionDetailContent(state: SessionDetailUiState, actions: SessionDetailActions) {
+internal fun SessionDetailContent(
+    state: SessionDetailUiState,
+    actions: SessionDetailActions,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var editingSet by remember { mutableStateOf<SetEditTarget?>(null) }
+    var deletingSet by remember { mutableStateOf<SetEditTarget?>(null) }
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = {
@@ -106,8 +138,36 @@ internal fun SessionDetailContent(state: SessionDetailUiState, actions: SessionD
         when (state) {
             SessionDetailUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             SessionDetailUiState.NotFound -> EmptyState(icon = Icons.Outlined.EventBusy, title = stringResource(R.string.session_not_found))
-            is SessionDetailUiState.Content -> SessionDetailBody(state, actions)
+            is SessionDetailUiState.Content -> SessionDetailBody(state, actions, onEditSet = { editingSet = it })
         }
+    }
+        SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+        editingSet?.let { target ->
+            SetEditDialog(
+                target = target,
+                onSave = { values ->
+                    editingSet = null
+                    actions.onUpdateSet(target.setId, values)
+                },
+                onDeleteRequest = {
+                    editingSet = null
+                    deletingSet = target
+                },
+                onDismiss = { editingSet = null },
+            )
+        }
+    }
+    deletingSet?.let { target ->
+        DestructiveConfirmDialog(
+            title = stringResource(R.string.set_delete_title, target.description),
+            message = stringResource(R.string.set_delete_message),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = {
+                deletingSet = null
+                actions.onDeleteSet(target.setId)
+            },
+            onDismiss = { deletingSet = null },
+        )
     }
     val content = state as? SessionDetailUiState.Content
     if (confirmDelete && content != null) {
@@ -151,7 +211,11 @@ private fun SessionMenu(onDelete: () -> Unit) {
 }
 
 @Composable
-private fun SessionDetailBody(state: SessionDetailUiState.Content, actions: SessionDetailActions) {
+private fun SessionDetailBody(
+    state: SessionDetailUiState.Content,
+    actions: SessionDetailActions,
+    onEditSet: (SetEditTarget) -> Unit,
+) {
     val unit = LocalWeightUnit.current
     LazyColumn(
         modifier = Modifier.navigationBarsPadding(),
@@ -193,14 +257,23 @@ private fun SessionDetailBody(state: SessionDetailUiState.Content, actions: Sess
                 )
             }
         }
+        if (state.exercises.isNotEmpty()) {
+            item {
+                Text(
+                    stringResource(R.string.session_edit_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         items(state.exercises, key = { it.id }) { exercise ->
-            ExerciseBlock(exercise, onOpen = { actions.onOpenExercise(exercise.exerciseId) })
+            ExerciseBlock(exercise, onOpen = { actions.onOpenExercise(exercise.exerciseId) }, onEditSet = onEditSet)
         }
     }
 }
 
 @Composable
-private fun ExerciseBlock(exercise: SessionExerciseUi, onOpen: () -> Unit) {
+private fun ExerciseBlock(exercise: SessionExerciseUi, onOpen: () -> Unit, onEditSet: (SetEditTarget) -> Unit) {
     val unit = LocalWeightUnit.current
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.fillMaxWidth()) {
@@ -232,14 +305,31 @@ private fun ExerciseBlock(exercise: SessionExerciseUi, onOpen: () -> Unit) {
                 modifier = Modifier.padding(start = SportDimens.CardPadding, end = SportDimens.CardPadding, bottom = SportDimens.SpacingM),
                 verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingXs),
             ) {
-                exercise.sets.forEach { set -> SetLine(set) }
+                exercise.sets.forEach { set ->
+                    SetLine(
+                        set = set,
+                        onClick = {
+                            onEditSet(
+                                SetEditTarget(
+                                    setId = set.id,
+                                    trackingType = exercise.trackingType,
+                                    weightKg = set.weightKg,
+                                    reps = set.reps,
+                                    durationSeconds = set.durationSeconds,
+                                    distanceMeters = set.distanceMeters,
+                                    description = set.description,
+                                ),
+                            )
+                        },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SetLine(set: SessionSetUi) {
+private fun SetLine(set: SessionSetUi, onClick: () -> Unit) {
     val badge = when (set.type) {
         SetType.WARMUP -> stringResource(R.string.set_badge_warmup)
         SetType.DROP -> stringResource(R.string.set_badge_drop)
@@ -247,7 +337,15 @@ private fun SetLine(set: SessionSetUi) {
         SetType.WORKING -> set.number.toString()
     }
     val isWarmup = set.type == SetType.WARMUP
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    // Tutta la riga è il bersaglio del tocco: apre la correzione della serie.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .clickable(onClickLabel = stringResource(R.string.set_edit_title), onClick = onClick)
+            .heightIn(min = SportDimens.TouchTargetMin),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Surface(
             shape = CircleShape,
             color = if (isWarmup) MaterialTheme.colorScheme.surfaceContainerHighest else SportTheme.extendedColors.completedContainer,

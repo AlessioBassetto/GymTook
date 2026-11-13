@@ -115,11 +115,18 @@ class WorkoutRepository @Inject constructor(
 
     /** Avvia la sessione del giorno di scheda; se ce n'è già una in corso restituisce quella. */
     suspend fun startFromRoutineDay(routineDayId: Long): Long =
-        sessionDao.getActiveSessionId() ?: sessionDao.startSessionFromRoutineDay(routineDayId, now())
+        sessionDao.getActiveSessionId() ?: run {
+            sessionDao.purgeDiscardedSessions()
+            sessionDao.startSessionFromRoutineDay(routineDayId, now())
+        }
 
     /** Allenamento libero, senza scheda: gli esercizi si aggiungono dal logger. */
     suspend fun startFree(title: String): Long =
-        sessionDao.getActiveSessionId() ?: sessionDao.startEmptySession(title, now())
+        sessionDao.getActiveSessionId() ?: run {
+            // Le sessioni annullate in passato non servono più: non devono restare nel database.
+            sessionDao.purgeDiscardedSessions()
+            sessionDao.startEmptySession(title, now())
+        }
 
     suspend fun updateMetric(setId: Long, metric: SetMetric, value: Double?) {
         when (metric) {
@@ -163,17 +170,38 @@ class WorkoutRepository @Inject constructor(
 
     fun observeSetups(exerciseId: String): Flow<List<MachineSetupEntity>> = setupDao.observeSetupsForExercise(exerciseId)
 
-    suspend fun saveSetup(sessionExerciseId: Long, params: List<MachineSetupParam>, defaultLabel: String): Long =
-        setupDao.saveForSessionExercise(sessionExerciseId, params, defaultLabel, now())
+    /** Salvataggio dal logger: aggiorna il profilo in uso (o ne crea uno), note comprese. */
+    suspend fun saveSetup(sessionExerciseId: Long, params: List<MachineSetupParam>, notes: String?, defaultLabel: String): Long =
+        setupDao.saveWithNotesForSessionExercise(sessionExerciseId, params, notes, defaultLabel, now())
 
-    suspend fun saveSetupAsNew(sessionExerciseId: Long, label: String, params: List<MachineSetupParam>): Long =
-        setupDao.saveAsNewForSessionExercise(sessionExerciseId, label, params, now())
+    suspend fun saveSetupAsNew(sessionExerciseId: Long, label: String, params: List<MachineSetupParam>, notes: String?): Long {
+        val setupId = setupDao.saveAsNewForSessionExercise(sessionExerciseId, label, params, now())
+        setupDao.updateNotes(setupId, notes?.trim()?.takeIf { it.isNotEmpty() })
+        return setupId
+    }
+
+    /**
+     * Regolazioni "a freddo" dalla scheda esercizio, senza avviare un allenamento: crea il profilo
+     * ([setupId] null) o lo aggiorna. Diventa il più recente, quindi il logger lo richiama da solo.
+     */
+    suspend fun saveSetupFromLibrary(
+        exerciseId: String,
+        setupId: Long?,
+        label: String,
+        params: List<MachineSetupParam>,
+        notes: String?,
+    ): Long = setupDao.saveFromLibrary(exerciseId, setupId, label, params, notes, now())
+
+    suspend fun deleteSetup(setupId: Long) = setupDao.deleteById(setupId)
 
     suspend fun selectSetup(sessionExerciseId: Long, setupId: Long) =
         setupDao.selectForSessionExercise(sessionExerciseId, setupId, now())
 
-    /** Conclude la sessione eliminando le serie non spuntate e gli esercizi rimasti vuoti. */
-    suspend fun finish(sessionId: Long) = sessionDao.finishSession(sessionId, now(), discardIncompleteSets = true)
+    /**
+     * Conclude la sessione eliminando le serie non spuntate o senza dati e gli esercizi rimasti vuoti.
+     * @return false se non restava nessuna serie valida: la sessione era nulla ed è stata scartata.
+     */
+    suspend fun finish(sessionId: Long): Boolean = sessionDao.finishSession(sessionId, now(), discardIncompleteSets = true)
 
     suspend fun discard(sessionId: Long) = sessionDao.discardSession(sessionId, now())
 

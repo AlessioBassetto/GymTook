@@ -4,20 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -30,7 +23,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.example.sport.R
@@ -38,34 +30,30 @@ import com.example.sport.core.designsystem.component.PrimaryActionButton
 import com.example.sport.core.designsystem.component.SecondaryActionButton
 import com.example.sport.core.designsystem.theme.SportDimens
 import com.example.sport.core.model.MachineSetupParam
-
-private data class SetupRow(val name: String, val value: String)
+import com.example.sport.core.ui.setup.SetupFields
+import com.example.sport.core.ui.setup.initialSetupRows
+import com.example.sport.core.ui.setup.toParams
 
 /**
- * Editor della regolazione macchinario. Al primo utilizzo propone i nomi suggeriti dal catalogo
- * (es. "Schienale", "Rullo tibie") con i valori da compilare; dopo, i valori dell'ultima volta.
- * Qui si usa la tastiera di sistema: i valori possono essere lettere ("B") o testo ("foro 2").
+ * Editor della regolazione macchinario nel logger. Al primo utilizzo propone i nomi suggeriti dal
+ * catalogo (es. "Schienale", "Rullo tibie") con i valori da compilare; dopo, i valori e le note
+ * dell'ultima volta, anche se inseriti "a freddo" dalla scheda esercizio.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun MachineSetupSheet(
     sheet: SetupSheetUi,
     onDismiss: () -> Unit,
-    onSave: (List<MachineSetupParam>) -> Unit,
-    onSaveAsNew: (label: String, params: List<MachineSetupParam>) -> Unit,
+    onSave: (params: List<MachineSetupParam>, notes: String) -> Unit,
+    onSaveAsNew: (label: String, params: List<MachineSetupParam>, notes: String) -> Unit,
     onSelectProfile: (Long) -> Unit,
 ) {
     val rows = remember(sheet.sessionExerciseId) {
-        val initial = when {
-            sheet.params.isNotEmpty() -> sheet.params.map { SetupRow(it.name, it.value) }
-            sheet.hints.isNotEmpty() -> sheet.hints.map { SetupRow(it, "") }
-            else -> listOf(SetupRow("", ""))
-        }
-        mutableStateListOf(*initial.toTypedArray())
+        mutableStateListOf(*initialSetupRows(sheet.params, sheet.hints).toTypedArray())
     }
+    var notes by remember(sheet.sessionExerciseId) { mutableStateOf(sheet.notes) }
     var creatingProfile by remember(sheet.sessionExerciseId) { mutableStateOf(false) }
     var profileLabel by remember(sheet.sessionExerciseId) { mutableStateOf("") }
-    val params = { rows.map { MachineSetupParam(it.name, it.value) } }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -97,36 +85,9 @@ internal fun MachineSetupSheet(
                     }
                 }
             }
-            rows.forEachIndexed { index, row ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingS),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = row.name,
-                        onValueChange = { rows[index] = row.copy(name = it) },
-                        label = { Text(stringResource(R.string.setup_name)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1.4f),
-                    )
-                    OutlinedTextField(
-                        value = row.value,
-                        onValueChange = { rows[index] = row.copy(value = it) },
-                        label = { Text(stringResource(R.string.setup_value)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = { rows.removeAt(index) }, modifier = Modifier.size(SportDimens.TouchTargetMin)) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.setup_remove_row))
-                    }
-                }
-            }
-            TextButton(onClick = { rows.add(SetupRow("", "")) }) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text(stringResource(R.string.setup_add_row))
-            }
+            SetupFields(rows = rows, notes = notes, onNotesChange = { notes = it })
             val defaultLabel = stringResource(R.string.setup_default_label)
-            PrimaryActionButton(text = stringResource(R.string.setup_save), onClick = { onSave(params()) })
+            PrimaryActionButton(text = stringResource(R.string.setup_save), onClick = { onSave(rows.toParams(), notes) })
             if (creatingProfile) {
                 OutlinedTextField(
                     value = profileLabel,
@@ -137,7 +98,7 @@ internal fun MachineSetupSheet(
                 )
                 SecondaryActionButton(
                     text = stringResource(R.string.setup_save_as_new),
-                    onClick = { onSaveAsNew(profileLabel.ifBlank { defaultLabel }, params()) },
+                    onClick = { onSaveAsNew(profileLabel.ifBlank { defaultLabel }, rows.toParams(), notes) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {

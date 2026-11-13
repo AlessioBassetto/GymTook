@@ -46,7 +46,7 @@ nessun permesso `REQUEST_INSTALL_PACKAGES` nel manifest.
    stessa chiave della versione installata. Crea la chiave di rilascio una volta con
    `powershell -ExecutionPolicy Bypass -File tools\crea-chiave-firma.ps1` (chiede la password e
    scrive `keystore.properties`; dettagli in `docs/rilascio.md`) e usala per tutte le release.
-   Gli APK in `dist/` fino alla 1.0.1 sono firmati con la chiave di debug di questo PC: chi li ha
+   Gli APK in `dist/` pubblicati finora sono firmati con la chiave di debug di questo PC: chi li ha
    installati deve disinstallarli prima di passare a un APK firmato con la chiave di rilascio
    (conviene esportare un backup da Impostazioni).
 2. **Aumenta la versione** in `gradle.properties`:
@@ -60,7 +60,7 @@ nessun permesso `REQUEST_INSTALL_PACKAGES` nel manifest.
    Finché non esiste `keystore.properties` la build release non è firmata: in quel caso usa
    `./gradlew :app:assembleBenchmarkRelease` (`app/build/outputs/apk/benchmarkRelease/`), la stessa
    build ottimizzata firmata con la chiave di debug di questo PC (`.android\debug.keystore` nella
-   cartella utente). È la chiave della release 1.0.1: conservane una copia, perché senza quel file
+   cartella utente). È la chiave delle release pubblicate finora: conservane una copia, perché senza quel file
    gli aggiornamenti successivi non si installano sopra quella versione.
 4. **Crea la release su GitHub** (Releases → *Draft a new release*):
    - **Tag**: la versione con la `v` davanti, es. `v1.0.2` (va bene anche `1.0.2`);

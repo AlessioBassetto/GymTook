@@ -1,8 +1,15 @@
 package com.example.sport.feature.exercises
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -16,9 +23,11 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.R
 import com.example.sport.core.data.CustomExerciseDraft
+import com.example.sport.core.designsystem.component.LocalInlineDialogs
 import com.example.sport.core.designsystem.theme.SportTheme
 import com.example.sport.core.model.Equipment
 import com.example.sport.core.model.ExerciseCategory
+import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.model.Muscle
 import com.example.sport.core.model.MuscleGroup
 import com.example.sport.core.ui.exercise.ExerciseRowUi
@@ -174,7 +183,15 @@ class ExercisesUiTest {
         userVideo = null,
         catalogVideo = null,
         setupHints = emptyList(),
-        savedSetups = listOf(SetupProfileSummaryUi("Palestra centro", "Altezza supporti 12")),
+        savedSetups = listOf(
+            SavedSetupUi(
+                id = 7L,
+                label = "Palestra centro",
+                params = listOf(MachineSetupParam("Altezza supporti", "12")),
+                notes = "Presa larga",
+                isLatest = true,
+            ),
+        ),
         instructions = listOf("Schiena neutra"),
         keyPoints = emptyList(),
         commonMistakes = emptyList(),
@@ -188,7 +205,7 @@ class ExercisesUiTest {
         composeRule.setContent { SportTheme { ExerciseDetailContent(ExerciseDetailUiState.Content(detail(custom = true)), detailActions()) } }
 
         composeRule.onNodeWithText("Esercizio creato da te").assertIsDisplayed()
-        composeRule.onNodeWithText("Altezza supporti 12").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Altezza supporti: 12").performScrollTo().assertIsDisplayed()
 
         composeRule.onNodeWithText("Aggiungi il tuo video").performScrollTo().performClick()
         composeRule.onNodeWithText("Scegli dalla galleria").performClick()
@@ -198,8 +215,74 @@ class ExercisesUiTest {
         composeRule.onNodeWithContentDescription("Altre opzioni").performClick()
         composeRule.onNodeWithText("Elimina esercizio").performClick()
 
-        composeRule.onNodeWithText("Stacco a gambe tese con bilanciere").performScrollTo().performClick()
+        // La sezione dei settaggi allunga la scheda: le alternative vanno portate in vista.
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Stacco a gambe tese con bilanciere"))
+        composeRule.onNodeWithText("Stacco a gambe tese con bilanciere").performClick()
         assertEquals(listOf("pick", "edit", "delete", "open:stiff_legged_barbell_deadlift"), clicks)
+    }
+
+    // ------------------------------------------------------------------ Settaggi "a freddo" e gestione dati
+
+    /** I dialoghi con campi di testo in linea: in Robolectric la finestra separata non arriva a riposo. */
+    private fun setInline(content: @Composable () -> Unit) = composeRule.setContent {
+        CompositionLocalProvider(LocalInlineDialogs provides true) { SportTheme { content() } }
+    }
+
+    private fun setupActions() = detailActions().copy(
+        onSaveSetup = { id, label, params, notes ->
+            clicks += "save:$id:$label:${params.joinToString { "${it.name}=${it.value}" }}:$notes"
+        },
+        onDeleteSetup = { clicks += "deleteSetup:$it" },
+        onResetHistory = { clicks += "reset" },
+    )
+
+    @Test
+    fun detail_setups_areEditedWithoutStartingAWorkout() {
+        setInline { ExerciseDetailContent(ExerciseDetailUiState.Content(detail(custom = false)), setupActions()) }
+
+        val list = composeRule.onNode(hasScrollToIndexAction())
+        list.performScrollToNode(hasText("Palestra centro · usato dal logger"))
+        composeRule.onNodeWithText("I miei settaggi / Note macchinario").assertIsDisplayed()
+        composeRule.onNodeWithText("Altezza supporti: 12").assertIsDisplayed()
+        composeRule.onNodeWithText("Presa larga").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription("Modifica settaggi Palestra centro").performClick()
+        composeRule.onNodeWithText("Modifica settaggi").assertIsDisplayed()
+        composeRule.onNode(hasText("12") and hasSetTextAction()).performTextReplacement("14")
+        composeRule.onNode(hasText("Presa larga") and hasSetTextAction()).performTextReplacement("Presa stretta")
+        composeRule.onNodeWithText("Salva").performClick()
+
+        composeRule.onNodeWithContentDescription("Modifica settaggi Palestra centro").performClick()
+        composeRule.onNodeWithText("Elimina profilo").performScrollTo().performClick()
+        composeRule.onNodeWithText("Eliminare il profilo «Palestra centro»?").assertIsDisplayed()
+        composeRule.onNode(hasText("Elimina") and hasClickAction()).performClick()
+
+        assertEquals(listOf("save:7:Palestra centro:Altezza supporti=14:Presa stretta", "deleteSetup:7"), clicks)
+    }
+
+    @Test
+    fun detail_withoutSetups_startsFromTheSuggestedFields_andCanResetTheHistory() {
+        val exercise = detail(custom = false).copy(savedSetups = emptyList(), setupHints = listOf("Schienale", "Sedile"))
+        setInline { ExerciseDetailContent(ExerciseDetailUiState.Content(exercise), setupActions(), hasHistory = true) }
+
+        val list = composeRule.onNode(hasScrollToIndexAction())
+        list.performScrollToNode(hasText("Aggiungi settaggi"))
+        composeRule.onNodeWithText("Voci suggerite: Schienale · Sedile").assertIsDisplayed()
+        composeRule.onNodeWithText("Aggiungi settaggi").performClick()
+        composeRule.onNodeWithText("Nuovi settaggi").assertIsDisplayed()
+        // Finché non c'è almeno un valore o una nota non c'è nulla da salvare.
+        composeRule.onNodeWithText("Salva").assertIsNotEnabled()
+        composeRule.onAllNodesWithText("Valore")[0].performTextInput("3")
+        composeRule.onNodeWithText("Note macchinario").performScrollTo().performTextInput("Carico abituale 40 kg")
+        composeRule.onNodeWithText("Salva").performClick()
+
+        list.performScrollToNode(hasText("Azzera storico esercizio"))
+        composeRule.onNodeWithText("Gestione dati").assertIsDisplayed()
+        composeRule.onNodeWithText("Azzera storico esercizio").performClick()
+        composeRule.onNodeWithText("Azzerare lo storico di Il mio stacco?").assertIsDisplayed()
+        composeRule.onNodeWithText("Azzera storico").performClick()
+
+        assertEquals(listOf("save:null:Predefinita:Schienale=3, Sedile=:Carico abituale 40 kg", "reset"), clicks)
     }
 
     @Test

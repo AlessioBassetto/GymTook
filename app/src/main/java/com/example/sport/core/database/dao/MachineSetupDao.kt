@@ -17,8 +17,9 @@ import java.time.Instant
  * Regolazioni macchinario ("Altezza sedile: 4, Schienale: foro 2...").
  *
  * Regola di memoria: per ogni esercizio l'app propone il profilo con `last_used_at` più recente.
- * `last_used_at` viene aggiornato quando l'utente salva/seleziona una regolazione nel logger e
- * quando conclude una sessione che la usa (vedi `WorkoutSessionDao.finishSession`).
+ * `last_used_at` viene aggiornato quando l'utente salva/seleziona una regolazione nel logger,
+ * quando la salva "a freddo" dalla scheda esercizio ([saveFromLibrary]) e quando conclude una
+ * sessione che la usa (vedi `WorkoutSessionDao.finishSession`).
  */
 @Dao
 interface MachineSetupDao {
@@ -46,6 +47,33 @@ interface MachineSetupDao {
 
     @Query("UPDATE machine_setups SET label = :label WHERE id = :id")
     suspend fun rename(id: Long, label: String)
+
+    @Query("UPDATE machine_setups SET notes = :notes WHERE id = :id")
+    suspend fun updateNotes(id: Long, notes: String?)
+
+    /** Elimina il profilo. Lo storico conserva lo snapshot dei valori usati in ogni sessione. */
+    @Query("DELETE FROM machine_setups WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    /** Allenamento in corso: gli esercizi che usano il profilo mostrano subito i valori nuovi. */
+    @Query(
+        """
+        UPDATE session_exercises SET machine_setup = :params
+        WHERE machine_setup_id = :setupId
+          AND session_id IN (SELECT id FROM workout_sessions WHERE status = 'IN_PROGRESS')
+        """,
+    )
+    suspend fun refreshActiveSnapshots(setupId: Long, params: List<MachineSetupParam>)
+
+    /** Allenamento in corso: un profilo appena creato viene agganciato agli esercizi che non ne hanno. */
+    @Query(
+        """
+        UPDATE session_exercises SET machine_setup_id = :setupId, machine_setup = :params
+        WHERE exercise_id = :exerciseId AND machine_setup_id IS NULL
+          AND session_id IN (SELECT id FROM workout_sessions WHERE status = 'IN_PROGRESS')
+        """,
+    )
+    suspend fun attachToActiveSession(exerciseId: String, setupId: Long, params: List<MachineSetupParam>)
 
     @Query("UPDATE machine_setups SET last_used_at = :usedAt WHERE id = :setupId")
     suspend fun touchLastUsed(setupId: Long, usedAt: Instant)
@@ -104,6 +132,65 @@ interface MachineSetupDao {
         return setupId
     }
 
+    /** Come [saveForSessionExercise], aggiornando anche le note del profilo (vuote = nessuna nota). */
+    @Transaction
+    suspend fun saveWithNotesForSessionExercise(
+        sessionExerciseId: Long,
+        params: List<MachineSetupParam>,
+        notes: String?,
+        defaultLabel: String,
+        usedAt: Instant,
+    ): Long {
+        val setupId = saveForSessionExercise(sessionExerciseId, params, defaultLabel, usedAt)
+        updateNotes(setupId, notes.cleanNotes())
+        return setupId
+    }
+
+    /**
+     * Salvataggio "a freddo" dalla scheda esercizio, senza un allenamento avviato: crea il profilo
+     * ([setupId] null) o lo aggiorna. Il profilo salvato diventa il più recente, quindi è quello
+     * che il logger richiama da solo al prossimo allenamento; se un allenamento è già in corso i
+     * valori nuovi compaiono subito anche lì.
+     *
+     * @return id del profilo salvato.
+     */
+    @Transaction
+    suspend fun saveFromLibrary(
+        exerciseId: String,
+        setupId: Long?,
+        label: String,
+        params: List<MachineSetupParam>,
+        notes: String?,
+        savedAt: Instant,
+    ): Long {
+        val cleanParams = params.normalized()
+        val cleanNotes = notes.cleanNotes()
+        val cleanLabel = label.trim()
+        require(cleanLabel.isNotEmpty()) { "Il profilo deve avere un nome" }
+        require(cleanParams.isNotEmpty() || cleanNotes != null) { "Regolazione senza voci né note" }
+        val existing = setupId?.let { getById(it) }
+        if (existing != null) {
+            require(existing.exerciseId == exerciseId) {
+                "La regolazione ${existing.id} appartiene a ${existing.exerciseId}, non a $exerciseId"
+            }
+            update(existing.copy(label = cleanLabel, params = cleanParams, notes = cleanNotes, lastUsedAt = savedAt))
+            refreshActiveSnapshots(existing.id, cleanParams)
+            return existing.id
+        }
+        val newId = insert(
+            MachineSetupEntity(
+                exerciseId = exerciseId,
+                label = cleanLabel,
+                params = cleanParams,
+                notes = cleanNotes,
+                createdAt = savedAt,
+                lastUsedAt = savedAt,
+            ),
+        )
+        attachToActiveSession(exerciseId, newId, cleanParams)
+        return newId
+    }
+
     /** "Salva come nuovo profilo" (es. palestra diversa): il profilo corrente resta invariato. */
     @Transaction
     suspend fun saveAsNewForSessionExercise(
@@ -148,3 +235,6 @@ interface MachineSetupDao {
         attachToSessionExercise(sessionExerciseId, setupId = null, params = emptyList())
     }
 }
+
+/** Note del profilo ripulite: spazi rimossi, testo vuoto = nessuna nota. */
+private fun String?.cleanNotes(): String? = this?.trim()?.takeIf { it.isNotEmpty() }

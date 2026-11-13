@@ -173,6 +173,9 @@ class RoutineBuilderRepositoryTest : DatabaseTest() {
     fun deleteRoutine_keepsTheWorkoutHistory() = runTest {
         val (routineId, dayId) = dayWith("barbell_bench_press")
         val sessionId = db.workoutSessionDao().startSessionFromRoutineDay(dayId, T0)
+        // Almeno una serie valida: una sessione senza dati verrebbe scartata come nulla.
+        val firstSet = db.workoutSessionDao().getSessionWithExercises(sessionId)!!.exercises.single().orderedSets.first()
+        db.workoutSessionDao().updateSet(firstSet.copy(weightKg = 60.0, reps = 8, isCompleted = true, completedAt = T0))
         db.workoutSessionDao().finishSession(sessionId, T0.plusSeconds(1_800), discardIncompleteSets = false)
 
         builder.deleteRoutine(routineId)

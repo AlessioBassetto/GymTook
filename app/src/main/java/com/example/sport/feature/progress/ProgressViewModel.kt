@@ -14,13 +14,16 @@ import com.example.sport.core.database.relation.SessionSummary
 import com.example.sport.core.ui.format.Formatters
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
@@ -114,6 +117,19 @@ class ProgressViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressUiState.Loading)
 
     fun onWeighIn() = entryEditor.open()
+
+    private val sessionDeletedChannel = Channel<Unit>(Channel.BUFFERED)
+
+    /** Conferma dell'eliminazione di un allenamento dallo storico. */
+    val sessionDeleted: Flow<Unit> = sessionDeletedChannel.receiveAsFlow()
+
+    /** Elimina un allenamento concluso: record, volumi e grafici si ricalcolano dal database. */
+    fun onDeleteSession(sessionId: Long) {
+        viewModelScope.launch {
+            repository.deleteSession(sessionId)
+            sessionDeletedChannel.send(Unit)
+        }
+    }
 
     private fun weightSummary(latest: BodyWeightEntryEntity, points: List<WeightTrendPoint>) = WeightSummaryUi(
         latestKg = latest.weightKg,

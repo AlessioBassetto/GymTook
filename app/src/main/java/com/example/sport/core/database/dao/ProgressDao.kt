@@ -62,7 +62,8 @@ interface ProgressDao {
                ws.id AS session_id,
                ws.started_at AS performed_at,
                es.weight_kg AS weight_kg,
-               es.reps AS reps
+               es.reps AS reps,
+               es.id AS set_id
         FROM exercise_sets es
         INNER JOIN session_exercises se ON se.id = es.session_exercise_id
         INNER JOIN workout_sessions ws ON ws.id = se.session_id

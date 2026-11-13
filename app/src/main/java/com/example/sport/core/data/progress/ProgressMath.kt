@@ -88,6 +88,8 @@ data class PersonalRecord(
     val reps: Int?,
     val sessionId: Long,
     val achievedAt: Instant,
+    /** Serie che ha stabilito il record; null per il volume, che riguarda l'intera sessione. */
+    val setId: Long? = null,
 )
 
 /** Record di un esercizio: la prima volta che è stato raggiunto il valore migliore. */
@@ -152,6 +154,7 @@ private fun CompletedSetRow.toRecord(kind: RecordKind, value: Double) = Personal
     reps = reps,
     sessionId = sessionId,
     achievedAt = performedAt,
+    setId = setId,
 )
 
 // ---------------------------------------------------------------------------- Riepilogo per esercizio

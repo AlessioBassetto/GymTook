@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -19,9 +20,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -63,6 +66,7 @@ data class ProgressActions(
     val onOpenBodyWeight: () -> Unit,
     val onOpenExercise: (String) -> Unit,
     val onOpenSession: (Long) -> Unit,
+    val onDeleteSession: (Long) -> Unit = {},
 )
 
 @Composable
@@ -79,6 +83,10 @@ fun ProgressScreen(
     LaunchedEffect(viewModel) {
         viewModel.weightSaved.collect { snackbarHostState.showSnackbar(savedMessage, duration = SnackbarDuration.Short) }
     }
+    val deletedMessage = stringResource(R.string.session_deleted)
+    LaunchedEffect(viewModel) {
+        viewModel.sessionDeleted.collect { snackbarHostState.showSnackbar(deletedMessage, duration = SnackbarDuration.Short) }
+    }
     ProgressContent(
         state = state,
         actions = ProgressActions(
@@ -86,6 +94,7 @@ fun ProgressScreen(
             onOpenBodyWeight = onOpenBodyWeight,
             onOpenExercise = onOpenExercise,
             onOpenSession = onOpenSession,
+            onDeleteSession = viewModel::onDeleteSession,
         ),
         entry = entry,
         entryActions = remember(viewModel) { BodyWeightEntryActions.of(viewModel.entryEditor) },
@@ -103,6 +112,19 @@ internal fun ProgressContent(
 ) {
     var showAllTrends by rememberSaveable { mutableStateOf(false) }
     var showAllRecords by rememberSaveable { mutableStateOf(false) }
+    var deletingSession by remember { mutableStateOf<SessionHistoryUi?>(null) }
+    deletingSession?.let { session ->
+        DestructiveConfirmDialog(
+            title = stringResource(R.string.session_delete_title, Formatters.shortDate(session.date)),
+            message = stringResource(R.string.session_delete_message),
+            confirmLabel = stringResource(R.string.session_delete_confirm),
+            onConfirm = {
+                deletingSession = null
+                actions.onDeleteSession(session.id)
+            },
+            onDismiss = { deletingSession = null },
+        )
+    }
     Box(Modifier.fillMaxSize()) {
         when (state) {
             ProgressUiState.Loading -> Column(Modifier.fillMaxSize()) {
@@ -148,7 +170,13 @@ internal fun ProgressContent(
                         )
                     }
                 } else {
-                    items(state.sessions, key = { "session-${it.id}" }) { SessionCard(it, onClick = { actions.onOpenSession(it.id) }) }
+                    items(state.sessions, key = { "session-${it.id}" }) { session ->
+                        SessionCard(
+                            session = session,
+                            onClick = { actions.onOpenSession(session.id) },
+                            onDelete = { deletingSession = session },
+                        )
+                    }
                 }
             }
         }
@@ -337,7 +365,7 @@ private fun RecordRow(record: ExerciseRecordUi, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SessionCard(session: SessionHistoryUi, onClick: () -> Unit) {
+private fun SessionCard(session: SessionHistoryUi, onClick: () -> Unit, onDelete: () -> Unit) {
     val unit = LocalWeightUnit.current
     val description = stringResource(R.string.session_open_description, session.title, Formatters.shortDate(session.date))
     Surface(
@@ -350,8 +378,8 @@ private fun SessionCard(session: SessionHistoryUi, onClick: () -> Unit) {
         Column(
             modifier = Modifier
                 .clickable(onClickLabel = description, onClick = onClick)
-                .padding(SportDimens.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingS),
+                .padding(start = SportDimens.CardPadding, bottom = SportDimens.CardPadding, top = SportDimens.SpacingXs),
+            verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingXs),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(session.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -360,6 +388,14 @@ private fun SessionCard(session: SessionHistoryUi, onClick: () -> Unit) {
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Allenamento registrato per errore: si elimina dallo storico senza aprirlo.
+                IconButton(onClick = onDelete, modifier = Modifier.size(SportDimens.TouchTargetMin)) {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = stringResource(R.string.session_delete_description, session.title, Formatters.shortDate(session.date)),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingXl)) {
                 StatValue(session.duration, stringResource(R.string.progress_duration))

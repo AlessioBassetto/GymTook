@@ -10,6 +10,7 @@ import com.example.sport.core.data.progress.movingAverage
 import com.example.sport.core.data.progress.personalRecords
 import com.example.sport.core.database.dao.BodyWeightDao
 import com.example.sport.core.database.dao.ExerciseDao
+import com.example.sport.core.database.dao.HistoryRemoval
 import com.example.sport.core.database.dao.ProgressDao
 import com.example.sport.core.database.dao.WorkoutSessionDao
 import com.example.sport.core.database.entity.BodyWeightEntryEntity
@@ -27,6 +28,29 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** Valori di una serie corretta a posteriori (peso sempre in kg, come nel database). */
+data class SetValues(
+    val weightKg: Double? = null,
+    val reps: Int? = null,
+    val durationSeconds: Int? = null,
+    val distanceMeters: Double? = null,
+) {
+    /** Stesse regole del logger: almeno un dato misurato e nessun valore fuori scala. */
+    val isValid: Boolean
+        get() = ((reps ?: 0) > 0 || (durationSeconds ?: 0) > 0 || (distanceMeters ?: 0.0) > 0.0) &&
+            (weightKg == null || weightKg in 0.0..MAX_WEIGHT_KG) &&
+            (reps == null || reps in 0..MAX_REPS) &&
+            (durationSeconds == null || durationSeconds in 0..MAX_DURATION_SECONDS) &&
+            (distanceMeters == null || distanceMeters in 0.0..MAX_DISTANCE_METERS)
+
+    companion object {
+        const val MAX_WEIGHT_KG = 2000.0
+        const val MAX_REPS = 999
+        const val MAX_DURATION_SECONDS = 36_000
+        const val MAX_DISTANCE_METERS = 300_000.0
+    }
+}
 
 /** Riepilogo per esercizio della schermata Progressi. */
 data class ExerciseOverview(val trends: List<ExerciseTrend>, val records: List<ExerciseRecords>)
@@ -57,8 +81,33 @@ class ProgressRepository @Inject constructor(
 
     suspend fun session(sessionId: Long): WorkoutSessionWithExercises? = sessionDao.getSessionWithExercises(sessionId)
 
+    /** Dettaglio "vivo" di un allenamento: si aggiorna quando una serie viene corretta o eliminata. */
+    fun observeSession(sessionId: Long): Flow<WorkoutSessionWithExercises?> = sessionDao.observeSession(sessionId)
+
     /** Elimina un allenamento concluso (es. registrato per errore): record e grafici si ricalcolano. */
     suspend fun deleteSession(sessionId: Long) = sessionDao.deleteSession(sessionId)
+
+    /**
+     * Corregge una serie già registrata (es. 1000 kg al posto di 100). Record, volumi e grafici
+     * leggono dal database: si ricalcolano da soli.
+     */
+    suspend fun updateSet(setId: Long, values: SetValues) {
+        require(values.isValid) { "Serie senza dati validi: $values" }
+        sessionDao.updateSetValues(setId, values.weightKg, values.reps, values.durationSeconds, values.distanceMeters)
+    }
+
+    /** Elimina una serie anomala; se l'esercizio o l'allenamento restano vuoti spariscono anche loro. */
+    suspend fun deleteSet(setId: Long): HistoryRemoval = sessionDao.removeHistorySet(setId)
+
+    /** Elimina da un allenamento tutte le serie di un esercizio (es. un record di volume falsato). */
+    suspend fun deleteExerciseFromSession(sessionId: Long, exerciseId: String): HistoryRemoval =
+        sessionDao.removeExerciseFromSession(sessionId, exerciseId)
+
+    /**
+     * Azzera lo storico di un solo esercizio, lasciando intatti tutti gli altri dati.
+     * @return numero di allenamenti da cui è stato rimosso.
+     */
+    suspend fun resetExerciseHistory(exerciseId: String): Int = sessionDao.resetExerciseHistory(exerciseId)
 
     // ------------------------------------------------------------------ Esercizi e record
 

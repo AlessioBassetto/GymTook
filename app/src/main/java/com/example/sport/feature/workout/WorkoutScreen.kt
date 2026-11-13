@@ -56,6 +56,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sport.R
+import com.example.sport.core.data.SessionVerdict
 import com.example.sport.core.data.SetMetric
 import com.example.sport.core.designsystem.component.EmptyState
 import com.example.sport.core.designsystem.component.SecondaryActionButton
@@ -112,7 +113,8 @@ fun WorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val setupSheet by viewModel.setupSheet.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var confirmFinish by rememberSaveable { mutableStateOf(false) }
+    // Conferma di "Termina": quale dialogo mostrare dipende dal giudizio sulla sessione.
+    var finishVerdict by rememberSaveable { mutableStateOf<SessionVerdict?>(null) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
@@ -135,7 +137,7 @@ fun WorkoutScreen(
         state = state,
         actions = WorkoutActions(
             onMinimize = onMinimize,
-            onFinishRequest = { confirmFinish = true },
+            onFinishRequest = { finishVerdict = viewModel.finishVerdict() },
             onFieldClick = viewModel::onFieldClick,
             onKey = viewModel::onKey,
             onNext = viewModel::onNext,
@@ -169,23 +171,48 @@ fun WorkoutScreen(
         MachineSetupSheet(
             sheet = sheet,
             onDismiss = viewModel::onCloseSetup,
-            onSave = { viewModel.onSaveSetup(it, defaultLabel) },
+            onSave = { params, notes -> viewModel.onSaveSetup(params, notes, defaultLabel) },
             onSaveAsNew = viewModel::onSaveSetupAsNew,
             onSelectProfile = viewModel::onSelectSetup,
         )
     }
-    if (confirmFinish) {
-        ConfirmDialog(
+    when (finishVerdict) {
+        SessionVerdict.VALID -> ConfirmDialog(
             title = stringResource(R.string.workout_finish_title),
             message = stringResource(R.string.workout_finish_message),
             confirm = stringResource(R.string.workout_finish),
             dismiss = stringResource(R.string.workout_continue),
             onConfirm = {
-                confirmFinish = false
+                finishVerdict = null
                 viewModel.onFinish()
             },
-            onDismiss = { confirmFinish = false },
+            onDismiss = { finishVerdict = null },
         )
+        // Nessuna serie valida: non c'è nulla da salvare, la sessione viene scartata.
+        SessionVerdict.EMPTY -> ConfirmDialog(
+            title = stringResource(R.string.workout_null_title),
+            message = stringResource(R.string.workout_null_message),
+            confirm = stringResource(R.string.workout_null_discard),
+            dismiss = stringResource(R.string.workout_continue),
+            onConfirm = {
+                finishVerdict = null
+                viewModel.onFinish()
+            },
+            onDismiss = { finishVerdict = null },
+        )
+        // Meno di un minuto: probabile tocco sbagliato, la scelta resta all'utente.
+        SessionVerdict.TOO_SHORT -> ShortSessionDialog(
+            onSave = {
+                finishVerdict = null
+                viewModel.onFinish()
+            },
+            onDiscard = {
+                finishVerdict = null
+                viewModel.onDiscard()
+            },
+            onDismiss = { finishVerdict = null },
+        )
+        null -> Unit
     }
     if (confirmDiscard) {
         ConfirmDialog(
@@ -462,15 +489,28 @@ private fun SetupSummary(exercise: WorkoutExerciseUi, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     val params = exercise.setup.params
-                    Text(
-                        text = if (params.isNotEmpty()) {
-                            params.joinToString(" · ") { "${it.name} ${it.value}" }
-                        } else {
-                            listOf(stringResource(R.string.setup_empty)).plus(exercise.setup.hints).joinToString(" · ")
-                        },
-                        style = if (params.isNotEmpty()) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
-                        color = if (params.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    val notes = exercise.setup.notes
+                    // Solo note, nessuna voce: bastano le note, senza l'invito a compilare.
+                    if (params.isNotEmpty() || notes == null) {
+                        Text(
+                            text = if (params.isNotEmpty()) {
+                                params.joinToString(" · ") { "${it.name} ${it.value}" }
+                            } else {
+                                listOf(stringResource(R.string.setup_empty)).plus(exercise.setup.hints).joinToString(" · ")
+                            },
+                            style = if (params.isNotEmpty()) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
+                            color = if (params.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (notes != null) {
+                        Text(
+                            text = notes,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
@@ -527,6 +567,25 @@ private fun ConfirmDialog(
         text = { Text(message) },
         confirmButton = { TextButton(onClick = onConfirm) { Text(confirm) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(dismiss) } },
+    )
+}
+
+/** Sessione con dati ma durata sotto il minuto: salvare, scartare o continuare ad allenarsi. */
+@Composable
+private fun ShortSessionDialog(onSave: () -> Unit, onDiscard: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workout_short_title)) },
+        text = { Text(stringResource(R.string.workout_short_message)) },
+        confirmButton = { TextButton(onClick = onSave) { Text(stringResource(R.string.workout_short_save)) } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.workout_continue)) }
+                TextButton(onClick = onDiscard) {
+                    Text(stringResource(R.string.workout_short_discard), color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
     )
 }
 

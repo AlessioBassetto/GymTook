@@ -4,6 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Relation
 import com.example.sport.core.database.entity.ExerciseEntity
 import com.example.sport.core.database.entity.ExerciseSetEntity
+import com.example.sport.core.database.entity.MachineSetupEntity
 import com.example.sport.core.database.entity.SessionExerciseEntity
 import com.example.sport.core.database.entity.WorkoutSessionEntity
 
@@ -17,6 +18,10 @@ data class SessionExerciseWithSets(
 
     @Relation(parentColumn = "id", entityColumn = "session_exercise_id")
     val sets: List<ExerciseSetEntity>,
+
+    /** Profilo di regolazione agganciato (null se nessuno o se è stato eliminato): porta le note. */
+    @Relation(parentColumn = "machine_setup_id", entityColumn = "id")
+    val setupProfile: MachineSetupEntity? = null,
 ) {
     val orderedSets: List<ExerciseSetEntity>
         get() = sets.sortedBy { it.setIndex }

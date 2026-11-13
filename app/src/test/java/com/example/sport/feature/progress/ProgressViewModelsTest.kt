@@ -2,8 +2,10 @@ package com.example.sport.feature.progress
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.sport.R
 import com.example.sport.core.data.LoggedSet
 import com.example.sport.core.data.ProgressRepository
+import com.example.sport.core.data.SetValues
 import com.example.sport.core.data.WorkoutRepository
 import com.example.sport.core.data.logSession
 import com.example.sport.core.data.progress.RecordKind
@@ -264,6 +266,66 @@ class ProgressViewModelsTest : DatabaseTest() {
         val open = workout.startFree("In corso")
         val viewModel = SessionDetailViewModel(SavedStateHandle(mapOf("sessionId" to open)), progress, settings)
         assertEquals(SessionDetailUiState.NotFound, viewModel.uiState.first { it !is SessionDetailUiState.Loading })
+    }
+
+    @Test
+    fun sessionDetail_fixesAndDeletesSets_andFollowsTheDatabase() = runTest {
+        val sessionId = log(0, BENCH to listOf(LoggedSet(1000.0, 5), LoggedSet(80.0, 8)))
+        val viewModel = SessionDetailViewModel(SavedStateHandle(mapOf("sessionId" to sessionId)), progress, settings)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+
+        val content = viewModel.uiState.first { it is SessionDetailUiState.Content } as SessionDetailUiState.Content
+        val typo = content.exercises.single().sets.first()
+        assertEquals("I valori salvati servono a precompilare la correzione", 1000.0, typo.weightKg!!, 0.0)
+
+        viewModel.onUpdateSet(typo.id, SetValues(weightKg = 100.0, reps = 5))
+        assertEquals(SessionDetailEvent.Message(R.string.set_updated), viewModel.events.first())
+        val fixed = viewModel.uiState.first { (it as? SessionDetailUiState.Content)?.volumeKg == 1140.0 } as SessionDetailUiState.Content
+        assertEquals(listOf("100 kg × 5", "80 kg × 8"), fixed.exercises.single().sets.map { it.description })
+
+        viewModel.onDeleteSet(typo.id)
+        assertEquals(SessionDetailEvent.Message(R.string.set_deleted), viewModel.events.first())
+        viewModel.onDeleteSet(fixed.exercises.single().sets.last().id)
+        assertEquals("Senza serie l'allenamento esce dallo storico", SessionDetailEvent.Emptied, viewModel.events.first())
+        assertNull(progress.session(sessionId))
+    }
+
+    @Test
+    fun exerciseProgress_deletesAnAnomalousRecord_andResetsOnlyThatExercise() = runTest {
+        clock.current = T0
+        log(0, BENCH to listOf(LoggedSet(100.0, 5)), SQUAT to listOf(LoggedSet(120.0, 5)))
+        log(7, BENCH to listOf(LoggedSet(1000.0, 5)))
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to BENCH)), progress)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+
+        fun ExerciseProgressUiState.heaviest() = (this as? ExerciseProgressUiState.Content)?.records?.firstOrNull { it.kind == RecordKind.HEAVIEST_SET }
+        val anomaly = viewModel.uiState.first { it.heaviest()?.valueKg == 1000.0 }.heaviest()!!
+
+        viewModel.onDeleteRecord(anomaly)
+        assertEquals(ExerciseProgressEvent.Message(R.string.record_deleted), viewModel.events.first())
+        val cleaned = viewModel.uiState.first { it.heaviest()?.valueKg == 100.0 } as ExerciseProgressUiState.Content
+        assertEquals("L'allenamento rimasto vuoto esce dallo storico", 1, cleaned.sessions.size)
+
+        viewModel.onResetHistory()
+        assertEquals(ExerciseProgressEvent.HistoryReset, viewModel.events.first())
+        assertNull(progress.observeExerciseRecords(BENCH).first())
+        assertEquals("Lo squat non viene toccato", 120.0, progress.observeExerciseRecords(SQUAT).first()!!.heaviestSet.valueKg, 0.0)
+    }
+
+    @Test
+    fun overview_deletesAWorkoutFromTheHistoryList() = runTest {
+        val kept = log(0, BENCH to listOf(LoggedSet(100.0, 5)))
+        val mistake = log(1, BENCH to listOf(LoggedSet(1000.0, 5)))
+        val viewModel = ProgressViewModel(progress, settings)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        viewModel.uiState.first { (it as? ProgressUiState.Content)?.sessions?.size == 2 }
+
+        viewModel.onDeleteSession(mistake)
+        viewModel.sessionDeleted.first()
+
+        val content = viewModel.uiState.first { (it as? ProgressUiState.Content)?.sessions?.size == 1 } as ProgressUiState.Content
+        assertEquals(kept, content.sessions.single().id)
+        assertEquals("Il record torna quello vero", 100.0, progress.observeExerciseRecords(BENCH).first()!!.heaviestSet.valueKg, 0.0)
     }
 
     private companion object {

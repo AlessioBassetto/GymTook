@@ -22,6 +22,21 @@ import com.example.sport.core.database.relation.WorkoutSessionWithExercises
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
+/** Cosa è sparito dallo storico insieme a una serie o a un esercizio eliminati a posteriori. */
+enum class HistoryRemoval {
+    /** Non c'era nulla da eliminare (dato già rimosso). */
+    NOTHING,
+
+    /** Solo la serie: l'esercizio ne ha ancora altre. */
+    SET,
+
+    /** Era l'ultima serie dell'esercizio: l'esercizio è uscito dall'allenamento. */
+    EXERCISE,
+
+    /** L'allenamento è rimasto senza esercizi ed è stato eliminato. */
+    SESSION,
+}
+
 /** Lanciata se si tenta di avviare una sessione mentre un'altra è ancora in corso. */
 class ActiveSessionExistsException(val activeSessionId: Long) :
     IllegalStateException("Esiste già una sessione in corso (id=$activeSessionId)")
@@ -277,6 +292,68 @@ interface WorkoutSessionDao {
     )
     suspend fun deleteEmptySessionExercises(sessionId: Long)
 
+    /**
+     * Serie spuntate ma senza alcun dato (né ripetizioni, né durata, né distanza): non descrivono
+     * un lavoro svolto e falserebbero conteggi e statistiche.
+     */
+    @Query(
+        """
+        DELETE FROM exercise_sets
+        WHERE is_completed = 1
+          AND NOT (COALESCE(reps, 0) > 0 OR COALESCE(duration_seconds, 0) > 0 OR COALESCE(distance_meters, 0) > 0)
+          AND session_exercise_id IN (SELECT id FROM session_exercises WHERE session_id = :sessionId)
+        """,
+    )
+    suspend fun deleteCompletedSetsWithoutData(sessionId: Long)
+
+    /** Serie completate con un dato valido: se sono zero la sessione è nulla (vedi [finishSession]). */
+    @Query(
+        """
+        SELECT COUNT(*) FROM exercise_sets es
+        INNER JOIN session_exercises se ON se.id = es.session_exercise_id
+        WHERE se.session_id = :sessionId AND es.is_completed = 1
+          AND (COALESCE(es.reps, 0) > 0 OR COALESCE(es.duration_seconds, 0) > 0 OR COALESCE(es.distance_meters, 0) > 0)
+        """,
+    )
+    suspend fun countValidCompletedSets(sessionId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM exercise_sets WHERE session_exercise_id = :sessionExerciseId")
+    suspend fun countSets(sessionExerciseId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM session_exercises WHERE session_id = :sessionId")
+    suspend fun countSessionExercises(sessionId: Long): Int
+
+    @Query("SELECT id FROM session_exercises WHERE session_id = :sessionId AND exercise_id = :exerciseId")
+    suspend fun getSessionExerciseIds(sessionId: Long, exerciseId: String): List<Long>
+
+    @Query(
+        """
+        SELECT DISTINCT se.session_id FROM session_exercises se
+        INNER JOIN workout_sessions ws ON ws.id = se.session_id
+        WHERE se.exercise_id = :exerciseId AND ws.status = 'COMPLETED'
+        """,
+    )
+    suspend fun getCompletedSessionIdsWithExercise(exerciseId: String): List<Long>
+
+    @Query(
+        """
+        DELETE FROM session_exercises
+        WHERE exercise_id = :exerciseId
+          AND session_id IN (SELECT id FROM workout_sessions WHERE status = 'COMPLETED')
+        """,
+    )
+    suspend fun deleteExerciseFromCompletedSessions(exerciseId: String)
+
+    /** Correzione di una serie già registrata (es. 1000 kg digitati al posto di 100). */
+    @Query(
+        """
+        UPDATE exercise_sets
+        SET weight_kg = :weightKg, reps = :reps, duration_seconds = :durationSeconds, distance_meters = :distanceMeters
+        WHERE id = :setId
+        """,
+    )
+    suspend fun updateSetValues(setId: Long, weightKg: Double?, reps: Int?, durationSeconds: Int?, distanceMeters: Double?)
+
     @Query("UPDATE workout_sessions SET status = :status, ended_at = :endedAt WHERE id = :sessionId")
     suspend fun updateStatus(sessionId: Long, status: SessionStatus, endedAt: Instant?)
 
@@ -498,18 +575,88 @@ interface WorkoutSessionDao {
 
     /**
      * Conclude la sessione.
-     * @param discardIncompleteSets se true elimina le serie non spuntate e gli esercizi rimasti vuoti.
+     *
+     * Una sessione senza nemmeno una serie completata con dati validi è nulla (avviata per errore):
+     * non viene salvata ma eliminata, così non entra nello storico né nelle statistiche.
+     *
+     * @param discardIncompleteSets se true elimina le serie non spuntate, quelle spuntate senza
+     *   dati e gli esercizi rimasti vuoti.
+     * @return true se la sessione è stata salvata nello storico, false se era nulla ed è stata scartata.
      */
     @Transaction
-    suspend fun finishSession(sessionId: Long, endedAt: Instant, discardIncompleteSets: Boolean) {
+    suspend fun finishSession(sessionId: Long, endedAt: Instant, discardIncompleteSets: Boolean): Boolean {
         val session = checkNotNull(getSession(sessionId)) { "Sessione $sessionId inesistente" }
         check(session.status == SessionStatus.IN_PROGRESS) { "La sessione $sessionId non è in corso" }
         if (discardIncompleteSets) {
             deleteIncompleteSets(sessionId)
+            deleteCompletedSetsWithoutData(sessionId)
             deleteEmptySessionExercises(sessionId)
+        }
+        if (countValidCompletedSets(sessionId) == 0) {
+            deleteSession(sessionId)
+            return false
         }
         touchMachineSetupsOfSession(sessionId, endedAt)
         updateStatus(sessionId, SessionStatus.COMPLETED, endedAt)
+        return true
+    }
+
+    // ---------------------------------------------------------------- Correzioni dello storico
+
+    /** Elimina l'allenamento se non contiene più esercizi. @return true se è stato eliminato. */
+    @Transaction
+    suspend fun deleteSessionIfEmpty(sessionId: Long): Boolean {
+        if (countSessionExercises(sessionId) > 0) return false
+        deleteSession(sessionId)
+        return true
+    }
+
+    /**
+     * Elimina una serie da un allenamento concluso (dato anomalo). Se era l'ultima dell'esercizio
+     * sparisce anche l'esercizio, e se l'allenamento resta vuoto viene eliminato: nello storico
+     * non restano gusci senza dati. Record e grafici leggono dal database e si ricalcolano da soli.
+     */
+    @Transaction
+    suspend fun removeHistorySet(setId: Long): HistoryRemoval {
+        val set = getSet(setId) ?: return HistoryRemoval.NOTHING
+        val owner = getSessionExercise(set.sessionExerciseId) ?: return HistoryRemoval.NOTHING
+        deleteSet(set)
+        compactSetIndexesAfter(set.sessionExerciseId, set.setIndex)
+        val isHistory = getSession(owner.sessionId)?.status == SessionStatus.COMPLETED
+        if (!isHistory || countSets(owner.id) > 0) return HistoryRemoval.SET
+        removeSessionExercise(owner.id)
+        return if (deleteSessionIfEmpty(owner.sessionId)) HistoryRemoval.SESSION else HistoryRemoval.EXERCISE
+    }
+
+    /** Elimina da un allenamento tutte le serie di [exerciseId] (es. il record di volume anomalo). */
+    @Transaction
+    suspend fun removeExerciseFromSession(sessionId: Long, exerciseId: String): HistoryRemoval {
+        val targets = getSessionExerciseIds(sessionId, exerciseId)
+        if (targets.isEmpty()) return HistoryRemoval.NOTHING
+        targets.forEach { removeSessionExercise(it) }
+        return if (deleteSessionIfEmpty(sessionId)) HistoryRemoval.SESSION else HistoryRemoval.EXERCISE
+    }
+
+    /**
+     * Azzera lo storico di un solo esercizio: lo toglie da tutti gli allenamenti conclusi (con le
+     * sue serie) ed elimina gli allenamenti rimasti vuoti. Schede, regolazioni, esercizio e tutti
+     * gli altri dati restano; l'allenamento in corso non viene toccato.
+     *
+     * @return numero di allenamenti da cui l'esercizio è stato rimosso.
+     */
+    @Transaction
+    suspend fun resetExerciseHistory(exerciseId: String): Int {
+        val sessions = getCompletedSessionIdsWithExercise(exerciseId)
+        if (sessions.isEmpty()) return 0
+        deleteExerciseFromCompletedSessions(exerciseId)
+        sessions.forEach { sessionId ->
+            if (!deleteSessionIfEmpty(sessionId)) {
+                updateSessionExercises(
+                    getSessionExercises(sessionId).mapIndexed { index, item -> item.copy(position = index) },
+                )
+            }
+        }
+        return sessions.size
     }
 
     /** Annulla la sessione (soft delete, permette un "Annulla" via snackbar). */

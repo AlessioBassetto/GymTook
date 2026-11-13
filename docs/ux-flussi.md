@@ -107,6 +107,8 @@ flowchart TD
 - Card espansa di default sui macchinari, valori dell'ultima volta già compilati (es. *Schienale 3 · Rullo tibie 5*).
 - Modifica di un valore → salvata sul profilo e sullo storico della sessione.
 - Altra palestra → "Salva come nuovo profilo"; in seguito si sceglie il profilo dal menu.
+- **Fuori allenamento ("a freddo")**: scheda esercizio → sezione **I miei settaggi / Note macchinario**, sempre presente. Matita = modifica di voci, note e nome del profilo; **Aggiungi settaggi** / **Aggiungi profilo** per crearne uno; **Elimina profilo** nell'editor (lo storico conserva i valori usati in ogni sessione). Non serve avviare un allenamento.
+- Il profilo salvato per ultimo è quello marcato "usato dal logger": al prossimo allenamento voci e note compaiono già nella card. Se un allenamento è in corso, la card si aggiorna subito.
 
 ### 4. Macchina occupata → sostituzione al volo
 - Menu esercizio → **Sostituisci esercizio** → alternative ordinate per somiglianza: muscoli coinvolti, meccanica, metriche registrabili, nome, esercizi base e preferiti. Per lo stacco rumeno: stacco rumeno in deficit, stacco a gambe tese con bilanciere / manubri / al multipower; girate e salti finiscono in fondo.
@@ -156,7 +158,11 @@ flowchart TD
 - Record di sempre: la data è la **prima volta** che il valore è stato raggiunto; tocco = l'allenamento in cui è successo.
 
 ### 12. Correggere lo storico
-- Storico → allenamento → menu ⋮ → **Elimina allenamento** → conferma: record, grafici e riepiloghi si ricalcolano subito.
+Record, volumi e grafici non sono salvati a parte: si calcolano dalle serie nel database, quindi ogni correzione li aggiorna da sola.
+- **Allenamento sbagliato**: Storico → cestino sulla riga, oppure allenamento → menu ⋮ → **Elimina allenamento** → conferma.
+- **Serie sbagliata** (es. 1000 kg al posto di 100): allenamento → tocco sulla serie → **Correggi serie** (stessi campi del logger, nell'unità scelta) oppure **Elimina serie** con conferma. Eliminata l'ultima serie di un esercizio, l'esercizio esce dall'allenamento; rimasto vuoto, l'allenamento esce dallo storico.
+- **Record anomalo**: Progressi dell'esercizio → cestino sul record → conferma. Per carico massimo e 1RM si elimina la serie che lo ha stabilito, per il volume tutte le serie dell'esercizio in quell'allenamento; compare subito il record successivo.
+- **Azzerare un solo esercizio**: Progressi dell'esercizio → menu ⋮ → **Azzera storico esercizio**, oppure scheda esercizio → **Gestione dati**. Spariscono le sue serie da tutti gli allenamenti conclusi; schede, settaggi, altri esercizi e allenamento in corso restano.
 - Pesata sbagliata: tocco sulla riga per correggerla, cestino per eliminarla (**Annulla** nella barra in basso).
 
 ### 13. Dieta: spuntare un pasto
@@ -186,6 +192,16 @@ flowchart TD
 | Proposta | Download | Conferma di Android |
 |---|---|---|
 | ![Aggiornamento disponibile](screenshots/27-aggiornamento-disponibile.png) | ![Download in corso](screenshots/28-aggiornamento-download.png) | ![Installer di sistema](screenshots/29-aggiornamento-installer.png) |
+
+### 17. Allenamento avviato per errore
+- **Termina** senza nessuna serie completata con dati validi → "Nessuna serie da salvare": la sessione viene scartata e non entra nello storico né nelle statistiche (vale anche dopo mezz'ora: conta il contenuto, non il tempo).
+- **Termina** entro un minuto con almeno una serie valida → "Vuoi davvero salvare questa sessione o annullarla?": **Salva**, **Scarta** o **Continua**.
+- Alla chiusura vengono eliminate anche le serie spuntate senza dati (né ripetizioni, né durata, né distanza) e gli esercizi rimasti vuoti.
+- La regola è applicata dal database (`WorkoutSessionDao.finishSession`), non solo dall'interfaccia; le sessioni annullate vengono rimosse del tutto all'avvio dell'allenamento successivo.
+
+| Settaggi nella scheda esercizio | Editor "a freddo" | Sessione di meno di un minuto | Correzione di una serie |
+|---|---|---|---|
+| ![Settaggi salvati](screenshots/30-settaggi-a-freddo.png) | ![Editor dei settaggi](screenshots/31-settaggi-editor.png) | ![Salvare o scartare](screenshots/32-sessione-breve.png) | ![Correggi serie](screenshots/33-correggi-serie.png) |
 
 ## Stati di ogni schermata
 

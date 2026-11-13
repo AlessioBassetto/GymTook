@@ -54,6 +54,10 @@ data class CompletedSetRow(
     val weightKg: Double,
 
     val reps: Int,
+
+    /** Id della serie: permette di eliminare il singolo dato anomalo che ha generato un record. */
+    @ColumnInfo(name = "set_id")
+    val setId: Long = 0,
 )
 
 /** Riepilogo di una sessione per la lista dello storico. */

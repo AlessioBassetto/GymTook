@@ -1,12 +1,16 @@
 package com.example.sport.feature.progress
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.example.sport.R
 import com.example.sport.core.data.ProgressRepository
+import com.example.sport.core.data.SetValues
 import com.example.sport.core.data.loadVolumeKg
+import com.example.sport.core.database.dao.HistoryRemoval
 import com.example.sport.core.database.entity.ExerciseSetEntity
 import com.example.sport.core.database.relation.WorkoutSessionWithExercises
 import com.example.sport.core.model.ExerciseTrackingType
@@ -20,10 +24,11 @@ import com.example.sport.navigation.SessionDetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
@@ -40,6 +45,11 @@ data class SessionSetUi(
     val description: String,
     val rpe: Double?,
     val rir: Int?,
+    /** Valori salvati (kg, secondi, metri): servono a correggere la serie a posteriori. */
+    val weightKg: Double? = null,
+    val reps: Int? = null,
+    val durationSeconds: Int? = null,
+    val distanceMeters: Double? = null,
 )
 
 @Immutable
@@ -70,7 +80,13 @@ sealed interface SessionDetailUiState {
 }
 
 sealed interface SessionDetailEvent {
+    /** Allenamento eliminato dall'utente. */
     data object Deleted : SessionDetailEvent
+
+    /** Eliminata l'ultima serie: l'allenamento è rimasto vuoto ed è uscito dallo storico. */
+    data object Emptied : SessionDetailEvent
+
+    data class Message(@StringRes val messageRes: Int) : SessionDetailEvent
 }
 
 @HiltViewModel
@@ -81,26 +97,43 @@ class SessionDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val sessionId = savedStateHandle.toRoute<SessionDetailRoute>().sessionId
-    private val _uiState = MutableStateFlow<SessionDetailUiState>(SessionDetailUiState.Loading)
-    val uiState: StateFlow<SessionDetailUiState> = _uiState.asStateFlow()
+
+    /** Lettura "viva": dopo una correzione o un'eliminazione serie, volume e totali si aggiornano. */
+    val uiState: StateFlow<SessionDetailUiState> = combine(
+        repository.observeSession(sessionId),
+        settingsRepository.settings,
+    ) { session, settings ->
+        // Solo allenamenti conclusi: quello in corso si apre nel logger.
+        session?.takeIf { it.session.status == SessionStatus.COMPLETED }?.toUi(settings.weightUnit)
+            ?: SessionDetailUiState.NotFound
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SessionDetailUiState.Loading)
 
     private val eventChannel = Channel<SessionDetailEvent>(Channel.BUFFERED)
     val events: Flow<SessionDetailEvent> = eventChannel.receiveAsFlow()
-
-    init {
-        viewModelScope.launch {
-            val session = repository.session(sessionId)
-            val unit = settingsRepository.current().weightUnit
-            // Solo allenamenti conclusi: quello in corso si apre nel logger.
-            _uiState.value = session?.takeIf { it.session.status == SessionStatus.COMPLETED }?.toUi(unit)
-                ?: SessionDetailUiState.NotFound
-        }
-    }
 
     fun onDelete() {
         viewModelScope.launch {
             repository.deleteSession(sessionId)
             eventChannel.send(SessionDetailEvent.Deleted)
+        }
+    }
+
+    /** Correzione di una serie registrata male: record, volumi e grafici si ricalcolano dal database. */
+    fun onUpdateSet(setId: Long, values: SetValues) {
+        if (!values.isValid) return
+        viewModelScope.launch {
+            repository.updateSet(setId, values)
+            eventChannel.send(SessionDetailEvent.Message(R.string.set_updated))
+        }
+    }
+
+    fun onDeleteSet(setId: Long) {
+        viewModelScope.launch {
+            when (repository.deleteSet(setId)) {
+                HistoryRemoval.SESSION -> eventChannel.send(SessionDetailEvent.Emptied)
+                HistoryRemoval.SET, HistoryRemoval.EXERCISE -> eventChannel.send(SessionDetailEvent.Message(R.string.set_deleted))
+                HistoryRemoval.NOTHING -> Unit
+            }
         }
     }
 
@@ -143,6 +176,10 @@ class SessionDetailViewModel @Inject constructor(
         description = describe(type, unit),
         rpe = rpe,
         rir = rir,
+        weightKg = weightKg,
+        reps = reps,
+        durationSeconds = durationSeconds,
+        distanceMeters = distanceMeters,
     )
 
     /** "100 kg × 5" per i pesi; per gli altri tipi lo stesso formato della colonna "Precedente". */

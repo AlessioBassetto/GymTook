@@ -5,8 +5,11 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sport.core.data.ExerciseRepository
+import com.example.sport.core.data.SessionVerdict
 import com.example.sport.core.data.SetMetric
 import com.example.sport.core.data.WorkoutRepository
+import com.example.sport.core.data.hasValidData
+import com.example.sport.core.data.sessionVerdict
 import com.example.sport.core.database.entity.ExerciseSetEntity
 import com.example.sport.core.database.relation.SessionExerciseWithSets
 import com.example.sport.core.database.relation.WorkoutSessionWithExercises
@@ -39,6 +42,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 
@@ -59,6 +63,8 @@ data class SetRowUi(
 data class SetupUi(
     val params: List<MachineSetupParam>,
     val hints: List<String>,
+    /** Note del profilo agganciato (anche scritte "a freddo" dalla scheda esercizio). */
+    val notes: String? = null,
 )
 
 @Immutable
@@ -106,6 +112,8 @@ sealed interface WorkoutUiState {
         val rest: RestTimerState?,
         /** Durante il recupero: invito a concedere le sveglie esatte (avviso puntuale a schermo spento). */
         val exactAlarmHint: Boolean = false,
+        /** Serie spuntate con dati validi: se sono zero, a "Termina" la sessione risulta nulla. */
+        val validCompletedSets: Int = completedSets,
     ) : WorkoutUiState
 }
 
@@ -128,6 +136,8 @@ data class SetupSheetUi(
     val hints: List<String>,
     val currentSetupId: Long?,
     val profiles: List<SetupProfileUi>,
+    /** Note del profilo in uso. */
+    val notes: String = "",
 )
 
 private data class EditingField(val setId: Long, val metric: SetMetric, val input: NumericInputState, val unit: WeightUnit)
@@ -217,6 +227,7 @@ class WorkoutViewModel @Inject constructor(
                     profiles = profiles.map { profile ->
                         SetupProfileUi(profile.id, profile.label, profile.params.joinToString(" · ") { "${it.name} ${it.value}" })
                     },
+                    notes = profiles.firstOrNull { it.id == item.sessionExercise.machineSetupId }?.notes.orEmpty(),
                 )
             }
         }
@@ -305,16 +316,16 @@ class WorkoutViewModel @Inject constructor(
         setupSheetTarget.value = null
     }
 
-    fun onSaveSetup(params: List<MachineSetupParam>, defaultLabel: String) {
+    fun onSaveSetup(params: List<MachineSetupParam>, notes: String, defaultLabel: String) {
         val target = setupSheetTarget.value ?: return
         setupSheetTarget.value = null
-        viewModelScope.launch { workoutRepository.saveSetup(target, params, defaultLabel) }
+        viewModelScope.launch { workoutRepository.saveSetup(target, params, notes, defaultLabel) }
     }
 
-    fun onSaveSetupAsNew(label: String, params: List<MachineSetupParam>) {
+    fun onSaveSetupAsNew(label: String, params: List<MachineSetupParam>, notes: String) {
         val target = setupSheetTarget.value ?: return
         setupSheetTarget.value = null
-        viewModelScope.launch { workoutRepository.saveSetupAsNew(target, label, params) }
+        viewModelScope.launch { workoutRepository.saveSetupAsNew(target, label, params, notes) }
     }
 
     fun onSelectSetup(setupId: Long) {
@@ -344,12 +355,22 @@ class WorkoutViewModel @Inject constructor(
 
     // ------------------------------------------------------------------ Fine sessione
 
+    /**
+     * Giudizio sulla sessione al momento di "Termina": decide quale conferma mostrare (salvataggio
+     * normale, sessione vuota da scartare, sessione di meno di un minuto su cui chiedere).
+     */
+    fun finishVerdict(): SessionVerdict {
+        val current = latest ?: return SessionVerdict.VALID
+        return sessionVerdict(current.validCompletedSets(), Duration.between(current.session.startedAt, now()))
+    }
+
     fun onFinish() {
         val sessionId = latest?.session?.id ?: return
         viewModelScope.launch {
             restTimer.cancel()
-            workoutRepository.finish(sessionId)
-            eventChannel.send(WorkoutEvent.Finished(sessionId))
+            // Senza serie valide il database scarta la sessione: non c'è un riepilogo da mostrare.
+            val saved = workoutRepository.finish(sessionId)
+            eventChannel.send(if (saved) WorkoutEvent.Finished(sessionId) else WorkoutEvent.Discarded)
         }
     }
 
@@ -385,6 +406,7 @@ class WorkoutViewModel @Inject constructor(
             startedAt = session.startedAt,
             exercises = exercises,
             completedSets = allSets.count { it.isCompleted },
+            validCompletedSets = validCompletedSets(),
             totalSets = allSets.size,
             editing = edit?.let { field ->
                 val owner = exercises.firstOrNull { e -> e.sets.any { it.setId == field.setId } } ?: return@let null
@@ -440,10 +462,12 @@ class WorkoutViewModel @Inject constructor(
             metrics = metrics,
             showSetup = exercise.supportsMachineSetup ||
                 sessionExercise.machineSetup.isNotEmpty() ||
+                !setupProfile?.notes.isNullOrBlank() ||
                 sessionExerciseId in deco.setupShown,
             setup = SetupUi(
                 params = sessionExercise.machineSetup,
                 hints = exercise.setupParamHints,
+                notes = setupProfile?.notes?.takeIf { it.isNotBlank() },
             ),
             showRpe = showRpe,
             wasReplaced = sessionExercise.replacedExerciseId != null,
@@ -452,6 +476,9 @@ class WorkoutViewModel @Inject constructor(
     }
 
     // ------------------------------------------------------------------ Supporto
+
+    private fun WorkoutSessionWithExercises.validCompletedSets(): Int =
+        exercises.sumOf { item -> item.sets.count { it.isCompleted && it.hasValidData() } }
 
     private fun loadHistory(current: WorkoutSessionWithExercises) {
         val missing = current.exercises.map { it.exercise.id }.filter { historyRequested.add(it) }

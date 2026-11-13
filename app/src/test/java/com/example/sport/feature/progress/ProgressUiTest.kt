@@ -6,6 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -303,4 +306,116 @@ class ProgressUiTest {
         assertTrue(composeRule.onAllNodes(hasText("Eliminare l'allenamento del lun 2 nov?")).fetchSemanticsNodes().isEmpty())
     }
 
+    // ------------------------------------------------------------------ Correzioni dello storico
+
+    @Test
+    fun sessionDetail_tappingASet_fixesOrDeletesIt() {
+        val state = SessionDetailUiState.Content(
+            title = "Spinta A",
+            date = today,
+            startTime = LocalTime.of(7, 0),
+            endTime = LocalTime.of(8, 5),
+            duration = "1 h 5 min",
+            workingSets = 2,
+            volumeKg = 5640.0,
+            exercises = listOf(
+                SessionExerciseUi(
+                    id = 1L,
+                    exerciseId = "barbell_bench_press",
+                    name = "Panca piana",
+                    trackingType = ExerciseTrackingType.WEIGHT_REPS,
+                    sets = listOf(
+                        SessionSetUi(2L, SetType.WORKING, 1, "1.000 kg × 5", null, null, weightKg = 1000.0, reps = 5),
+                        SessionSetUi(3L, SetType.WORKING, 2, "80 kg × 8", null, null, weightKg = 80.0, reps = 8),
+                    ),
+                    volumeKg = 5640.0,
+                ),
+            ),
+            notes = null,
+        )
+        setContent {
+            SessionDetailContent(
+                state,
+                SessionDetailActions(
+                    onBack = {},
+                    onOpenExercise = {},
+                    onDelete = {},
+                    onUpdateSet = { id, values -> calls += "update:$id:${values.weightKg}x${values.reps}" },
+                    onDeleteSet = { calls += "deleteSet:$it" },
+                ),
+            )
+        }
+
+        composeRule.onNodeWithText("Tocca una serie per correggerla o eliminarla.").assertIsDisplayed()
+        composeRule.onNodeWithText("1.000 kg × 5").performClick()
+        composeRule.onNodeWithText("Correggi serie").assertIsDisplayed()
+        composeRule.onNodeWithText("Valore registrato: 1.000 kg × 5").assertIsDisplayed()
+        composeRule.onNode(hasText("1000") and hasSetTextAction()).performTextReplacement("100")
+        composeRule.onNodeWithText("Salva").performClick()
+
+        composeRule.onNodeWithText("80 kg × 8").performClick()
+        // Zero ripetizioni non è una serie: la correzione non si può salvare.
+        composeRule.onNode(hasText("8") and hasSetTextAction()).performTextReplacement("0")
+        composeRule.onNodeWithText("Salva").assertIsNotEnabled()
+        composeRule.onNodeWithText("Elimina serie").performClick()
+        composeRule.onNodeWithText("Eliminare la serie 80 kg × 8?").assertIsDisplayed()
+        composeRule.onNode(hasText("Elimina") and hasClickAction()).performClick()
+
+        assertEquals(listOf("update:2:100.0x5", "deleteSet:3"), calls)
+    }
+
+    @Test
+    fun exerciseProgress_deletesARecord_andResetsTheHistory_afterConfirmation() {
+        val state = ExerciseProgressUiState.Content(
+            exerciseId = "barbell_bench_press",
+            name = "Panca piana con bilanciere",
+            metrics = ProgressMetric.availableFor(ExerciseTrackingType.WEIGHT_REPS),
+            metric = ProgressMetric.ONE_REP_MAX,
+            range = TimeRange.HALF_YEAR,
+            points = listOf(MetricPoint(today.minusDays(7), 116.7), MetricPoint(today, 1166.7)),
+            sessions = listOf(ExerciseSessionUi(9L, today, 1, 5, 1000.0, 5000.0, 1166.7)),
+            records = listOf(
+                RecordTileUi(RecordKind.HEAVIEST_SET, 1000.0, 1000.0, 5, today, 9L, setId = 31L),
+                RecordTileUi(RecordKind.SESSION_VOLUME, 5000.0, null, null, today, 9L),
+            ),
+        )
+        setContent {
+            ExerciseProgressContent(
+                state,
+                exerciseActions().copy(
+                    onDeleteRecord = { calls += "deleteRecord:${it.kind}:${it.setId}" },
+                    onResetHistory = { calls += "reset" },
+                ),
+            )
+        }
+
+        val list = composeRule.onNode(hasScrollToIndexAction())
+        list.performScrollToNode(hasText("1.000 kg × 5"))
+        composeRule.onNodeWithContentDescription("Elimina il record: Carico massimo").performClick()
+        composeRule.onNodeWithText("Eliminare questo record?").assertIsDisplayed()
+        composeRule.onNode(hasText("Elimina") and hasClickAction()).performClick()
+
+        list.performScrollToNode(hasText("Volume in una sessione"))
+        composeRule.onNodeWithContentDescription("Elimina il record: Volume in una sessione").performClick()
+        composeRule.onNode(hasText("Elimina") and hasClickAction()).performClick()
+
+        composeRule.onNodeWithContentDescription("Opzioni esercizio").performClick()
+        composeRule.onNodeWithText("Azzera storico esercizio").performClick()
+        composeRule.onNodeWithText("Azzerare lo storico di Panca piana con bilanciere?").assertIsDisplayed()
+        composeRule.onNodeWithText("Azzera storico").performClick()
+
+        assertEquals(listOf("deleteRecord:HEAVIEST_SET:31", "deleteRecord:SESSION_VOLUME:null", "reset"), calls)
+    }
+
+    @Test
+    fun overview_deletesAWorkoutFromTheHistory_afterConfirmation() {
+        setContent { ProgressContent(overview(), overviewActions().copy(onDeleteSession = { calls += "deleteSession:$it" })) }
+
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("Spinta A"))
+        composeRule.onNodeWithContentDescription("Elimina l'allenamento Spinta A del lun 2 nov").performClick()
+        composeRule.onNodeWithText("Eliminare l'allenamento del lun 2 nov?").assertIsDisplayed()
+        composeRule.onNode(hasText("Elimina") and hasClickAction()).performClick()
+
+        assertEquals(listOf("deleteSession:7"), calls)
+    }
 }
