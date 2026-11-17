@@ -73,6 +73,7 @@ data class BodyWeightActions(
     val onAdd: () -> Unit,
     val onEdit: (LocalDate) -> Unit,
     val onDelete: (LocalDate) -> Unit,
+    val onEditProfile: () -> Unit = {},
 )
 
 @Composable
@@ -82,10 +83,12 @@ fun BodyWeightScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val entry by viewModel.entryEditor.state.collectAsStateWithLifecycle()
+    val profileEditorOpen by viewModel.profileEditorOpen.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val savedMessage = stringResource(R.string.weight_saved)
     val deletedMessage = stringResource(R.string.weight_deleted)
     val undoLabel = stringResource(R.string.weight_undo)
+    val profileSavedMessage = stringResource(R.string.body_profile_saved)
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -94,6 +97,7 @@ fun BodyWeightScreen(
                     val result = snackbarHostState.showSnackbar(deletedMessage, actionLabel = undoLabel, duration = SnackbarDuration.Long)
                     if (result == SnackbarResult.ActionPerformed) viewModel.onUndoDelete(event.entry)
                 }
+                BodyWeightEvent.ProfileSaved -> snackbarHostState.showSnackbar(profileSavedMessage, duration = SnackbarDuration.Short)
             }
         }
     }
@@ -105,11 +109,20 @@ fun BodyWeightScreen(
             onAdd = viewModel::onAdd,
             onEdit = viewModel::onEdit,
             onDelete = viewModel::onDelete,
+            onEditProfile = viewModel::onEditProfile,
         ),
         entry = entry,
         entryActions = remember(viewModel) { BodyWeightEntryActions.of(viewModel.entryEditor) },
         snackbarHostState = snackbarHostState,
     )
+    if (profileEditorOpen) {
+        BodyProfileDialog(
+            profile = (state as? BodyWeightUiState.Content)?.profile ?: BodyProfileUi(),
+            birthYears = viewModel.birthYears,
+            onSave = viewModel::onSaveProfile,
+            onDismiss = viewModel::onDismissProfile,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,6 +150,8 @@ internal fun BodyWeightContent(
                 is BodyWeightUiState.Content -> if (state.hasAnyEntry) {
                     BodyWeightBody(state, actions)
                 } else {
+                    // Il profilo corporeo resta raggiungibile anche prima della prima pesata.
+                    BodyProfileCard(state.profile, actions.onEditProfile, Modifier.padding(top = SportDimens.SpacingS))
                     EmptyState(
                         icon = Icons.Outlined.MonitorWeight,
                         title = stringResource(R.string.weight_empty_title),
@@ -187,6 +202,7 @@ private fun BodyWeightBody(state: BodyWeightUiState.Content, actions: BodyWeight
         verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingM),
     ) {
         item { WeightStats(state) }
+        item { BodyProfileCard(state.profile, actions.onEditProfile) }
         item { RangeChips(state.range, actions.onSelectRange) }
         item { WeightChartCard(state) }
         if (state.points.isNotEmpty()) {

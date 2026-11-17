@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.database.entity.ExerciseUserVideoEntity
+import com.example.sport.core.database.migration.MANUAL_MIGRATIONS
 import com.example.sport.core.database.seed.AssetExerciseCatalogSource
 import com.example.sport.core.database.seed.CatalogSeedResult
 import com.example.sport.core.database.seed.ExerciseCatalogSeeder
@@ -52,6 +53,7 @@ class MigrationTest {
         createV1Database()
 
         val db = Room.databaseBuilder(context, SportDatabase::class.java, databaseName)
+            .addMigrations(*MANUAL_MIGRATIONS)
             .allowMainThreadQueries()
             .build()
         try {
@@ -113,6 +115,7 @@ class MigrationTest {
         }
 
         val db = Room.databaseBuilder(context, SportDatabase::class.java, databaseName)
+            .addMigrations(*MANUAL_MIGRATIONS)
             .allowMainThreadQueries()
             .build()
         try {
@@ -134,6 +137,70 @@ class MigrationTest {
             assertEquals("Il catalogo v3 compila la categoria", ExerciseCategory.OLYMPIC, upgraded.exercise.category)
             assertTrue(upgraded.exercise.isFavorite)
             assertEquals("L'aggiornamento del catalogo non tocca i video dell'utente", "video.mp4", upgraded.userVideo!!.fileName)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun v3ToV4_keepsTheHistory_thenEstimatesTheCaloriesOfPastWorkouts() = runTest {
+        createDatabase(version = 3) { db ->
+            val start = T0.toEpochMilli()
+            val end = T0.plusSeconds(45 * 60).toEpochMilli()
+            db.execSQL(
+                """
+                INSERT INTO exercises (id, name, name_en, aliases, search_text, equipment, primary_muscle,
+                    primary_muscle_group, tracking_type, category, mechanic, force, level, is_unilateral, instructions,
+                    key_points, common_mistakes, content_locale, supports_machine_setup, setup_param_hints,
+                    default_rest_seconds, is_custom, is_favorite, is_hidden, is_retired, catalog_version,
+                    created_at, updated_at)
+                VALUES ('barbell_back_squat', 'Squat con bilanciere', 'Barbell Back Squat', '[]', 'squat', 'BARBELL',
+                    'QUADRICEPS', 'QUADRICEPS', 'WEIGHT_REPS', 'STRENGTH', 'COMPOUND', 'PUSH', 'INTERMEDIATE', 0, '[]',
+                    '[]', '[]', 'it', 0, '[]', 180, 0, 0, 0, 0, 3, $start, $start)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "INSERT INTO workout_sessions (id, routine_id, routine_day_id, title, status, started_at, ended_at, body_weight_kg, notes) " +
+                    "VALUES (1, NULL, NULL, 'Gambe', 'COMPLETED', $start, $end, NULL, 'Ottima giornata')",
+            )
+            db.execSQL(
+                "INSERT INTO session_exercises (id, session_id, exercise_id, routine_exercise_id, position, superset_group, " +
+                    "rest_seconds, machine_setup_id, machine_setup, replaced_exercise_id, notes) " +
+                    "VALUES (1, 1, 'barbell_back_squat', NULL, 0, NULL, 180, NULL, '[]', NULL, NULL)",
+            )
+            (0 until 4).forEach { index ->
+                db.execSQL(
+                    "INSERT INTO exercise_sets (session_exercise_id, set_index, set_type, weight_kg, reps, rpe, rir, " +
+                        "duration_seconds, distance_meters, is_completed, completed_at, notes) " +
+                        "VALUES (1, $index, 'WORKING', 100.0, 5, 8.0, NULL, NULL, NULL, 1, $end, NULL)",
+                )
+            }
+            db.execSQL(
+                "INSERT INTO body_weight_entries (date, weight_kg, body_fat_percent, note, recorded_at) " +
+                    "VALUES (${T0.atZone(ZoneOffset.UTC).toLocalDate().toEpochDay()}, 81.5, NULL, NULL, $start)",
+            )
+        }
+
+        val db = Room.databaseBuilder(context, SportDatabase::class.java, databaseName)
+            .addMigrations(*MANUAL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            // Apertura = MIGRATION_3_4 + validazione dello schema v4 da parte di Room.
+            val migrated = db.workoutSessionDao().getSessionWithExercises(1)!!
+            assertEquals("Ottima giornata", migrated.session.notes)
+            assertEquals(4, migrated.exercises.single().sets.size)
+            assertNull("Le sessioni salvate prima della v4 non hanno ancora una stima", migrated.session.caloriesBurned)
+            assertNull("Profilo corporeo vuoto", db.bodyProfileDao().get())
+            assertEquals(81.5, db.bodyWeightDao().getLatest()!!.weightKg, 0.0)
+
+            // Primo avvio dopo l'aggiornamento: le stime mancanti si calcolano con le pesate esistenti.
+            db.calorieRepository(Clock.fixed(T0, ZoneOffset.UTC)).recalculateMissing()
+
+            val estimated = db.workoutSessionDao().getSession(1)!!
+            assertTrue("Stima ${estimated.caloriesBurned}", (estimated.caloriesBurned ?: 0) > 100)
+            assertEquals(81.5, estimated.bodyWeightKg!!, 0.0)
+            assertEquals("Storico intatto", 4, db.workoutSessionDao().getSessionWithExercises(1)!!.exercises.single().sets.size)
         } finally {
             db.close()
         }

@@ -81,6 +81,9 @@ object Formatters {
     /** Valore grande senza decimali superflui per volumi e massimali ("1.395 kg"). */
     fun wholeKg(value: Double, unit: WeightUnit = WeightUnit.KG): String = "${integer(unit.fromKg(value))} ${unit.symbol}"
 
+    /** 1250 → "1.250 kcal". */
+    fun kcal(value: Int): String = "${integer(value.toDouble())} kcal"
+
     /** Serie in forma compatta: 100 kg × 5 (220,5 lb × 5). */
     fun setLabel(weightKg: Double, reps: Int, unit: WeightUnit = WeightUnit.KG): String =
         "${weightNumber(weightKg, unit)} ${unit.symbol} × $reps"

@@ -95,6 +95,8 @@ data class WorkoutSummary(
     val endedAt: Instant?,
     val completedSets: Int,
     val totalVolumeKg: Double,
+    /** Stima in kcal; null se manca una pesata. */
+    val caloriesBurned: Int?,
     val exercises: List<ExerciseSummary>,
 ) {
     val records: List<ExerciseSummary> get() = exercises.filter { it.isWeightRecord }
@@ -105,6 +107,7 @@ data class WorkoutSummary(
 class WorkoutRepository @Inject constructor(
     private val sessionDao: WorkoutSessionDao,
     private val setupDao: MachineSetupDao,
+    private val calories: CalorieRepository,
     private val clock: Clock,
 ) {
     fun now(): Instant = Instant.now(clock)
@@ -198,10 +201,15 @@ class WorkoutRepository @Inject constructor(
         setupDao.selectForSessionExercise(sessionExerciseId, setupId, now())
 
     /**
-     * Conclude la sessione eliminando le serie non spuntate o senza dati e gli esercizi rimasti vuoti.
+     * Conclude la sessione eliminando le serie non spuntate o senza dati e gli esercizi rimasti vuoti,
+     * poi ne stima le calorie (il riepilogo le mostra subito).
      * @return false se non restava nessuna serie valida: la sessione era nulla ed è stata scartata.
      */
-    suspend fun finish(sessionId: Long): Boolean = sessionDao.finishSession(sessionId, now(), discardIncompleteSets = true)
+    suspend fun finish(sessionId: Long): Boolean {
+        val saved = sessionDao.finishSession(sessionId, now(), discardIncompleteSets = true)
+        if (saved) calories.recalculate(sessionId)
+        return saved
+    }
 
     suspend fun discard(sessionId: Long) = sessionDao.discardSession(sessionId, now())
 
@@ -218,6 +226,7 @@ class WorkoutRepository @Inject constructor(
             endedAt = session.session.endedAt,
             completedSets = countedSets.sumOf { (_, sets) -> sets.size },
             totalVolumeKg = countedSets.sumOf { (item, sets) -> loadVolumeKg(item.exercise.trackingType, sets) },
+            caloriesBurned = session.session.caloriesBurned,
             exercises = exercises.map { item ->
                 val done = item.orderedSets.filter { it.isCompleted && it.setType != SetType.WARMUP }
                 val best = done.maxWithOrNull(compareBy<ExerciseSetEntity>({ it.weightKg ?: 0.0 }, { it.reps ?: 0 }, { it.durationSeconds ?: 0 }))

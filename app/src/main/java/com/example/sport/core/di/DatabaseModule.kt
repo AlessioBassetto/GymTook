@@ -2,7 +2,9 @@ package com.example.sport.core.di
 
 import android.content.Context
 import com.example.sport.core.database.SportDatabase
+import com.example.sport.core.database.dao.BodyProfileDao
 import com.example.sport.core.database.dao.BodyWeightDao
+import com.example.sport.core.database.dao.CalorieDao
 import com.example.sport.core.database.dao.CatalogDao
 import com.example.sport.core.database.dao.DietDao
 import com.example.sport.core.database.dao.ExerciseDao
@@ -49,6 +51,12 @@ object DatabaseModule {
 
     @Provides
     fun provideBodyWeightDao(database: SportDatabase): BodyWeightDao = database.bodyWeightDao()
+
+    @Provides
+    fun provideBodyProfileDao(database: SportDatabase): BodyProfileDao = database.bodyProfileDao()
+
+    @Provides
+    fun provideCalorieDao(database: SportDatabase): CalorieDao = database.calorieDao()
 
     @Provides
     fun provideDietDao(database: SportDatabase): DietDao = database.dietDao()

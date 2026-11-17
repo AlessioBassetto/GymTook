@@ -65,6 +65,7 @@ class ProgressRepository @Inject constructor(
     private val bodyWeightDao: BodyWeightDao,
     private val progressDao: ProgressDao,
     private val exerciseDao: ExerciseDao,
+    private val calories: CalorieRepository,
     private val clock: Clock,
 ) {
     fun today(): LocalDate = LocalDate.now(clock)
@@ -84,30 +85,41 @@ class ProgressRepository @Inject constructor(
     /** Dettaglio "vivo" di un allenamento: si aggiorna quando una serie viene corretta o eliminata. */
     fun observeSession(sessionId: Long): Flow<WorkoutSessionWithExercises?> = sessionDao.observeSession(sessionId)
 
-    /** Elimina un allenamento concluso (es. registrato per errore): record e grafici si ricalcolano. */
+    /**
+     * Elimina un allenamento concluso (es. registrato per errore): record e grafici si ricalcolano.
+     * Le sue calorie spariscono con la riga, quindi anche i totali calorici.
+     */
     suspend fun deleteSession(sessionId: Long) = sessionDao.deleteSession(sessionId)
 
     /**
      * Corregge una serie già registrata (es. 1000 kg al posto di 100). Record, volumi e grafici
-     * leggono dal database: si ricalcolano da soli.
+     * leggono dal database e si ricalcolano da soli; la stima calorica dell'allenamento si riscrive.
      */
     suspend fun updateSet(setId: Long, values: SetValues) {
         require(values.isValid) { "Serie senza dati validi: $values" }
         sessionDao.updateSetValues(setId, values.weightKg, values.reps, values.durationSeconds, values.distanceMeters)
+        sessionDao.getSessionIdOfSet(setId)?.let { calories.recalculate(it) }
     }
 
     /** Elimina una serie anomala; se l'esercizio o l'allenamento restano vuoti spariscono anche loro. */
-    suspend fun deleteSet(setId: Long): HistoryRemoval = sessionDao.removeHistorySet(setId)
+    suspend fun deleteSet(setId: Long): HistoryRemoval {
+        val sessionId = sessionDao.getSessionIdOfSet(setId)
+        return sessionDao.removeHistorySet(setId).also { sessionId?.let { calories.recalculate(it) } }
+    }
 
     /** Elimina da un allenamento tutte le serie di un esercizio (es. un record di volume falsato). */
     suspend fun deleteExerciseFromSession(sessionId: Long, exerciseId: String): HistoryRemoval =
-        sessionDao.removeExerciseFromSession(sessionId, exerciseId)
+        sessionDao.removeExerciseFromSession(sessionId, exerciseId).also { calories.recalculate(sessionId) }
 
     /**
      * Azzera lo storico di un solo esercizio, lasciando intatti tutti gli altri dati.
      * @return numero di allenamenti da cui è stato rimosso.
      */
-    suspend fun resetExerciseHistory(exerciseId: String): Int = sessionDao.resetExerciseHistory(exerciseId)
+    suspend fun resetExerciseHistory(exerciseId: String): Int {
+        val touched = sessionDao.getCompletedSessionIdsWithExercise(exerciseId)
+        // Gli allenamenti rimasti vuoti spariscono; gli altri perdono l'esercizio e le sue calorie.
+        return sessionDao.resetExerciseHistory(exerciseId).also { calories.recalculate(touched) }
+    }
 
     // ------------------------------------------------------------------ Esercizi e record
 
@@ -162,12 +174,20 @@ class ProgressRepository @Inject constructor(
                 recordedAt = now(),
             ),
         )
+        // Il peso entra nella stima calorica degli allenamenti vicini a questa data.
+        calories.recalculateAll()
     }
 
     /** Ripristina una pesata eliminata (annulla), identica all'originale. */
-    suspend fun restoreBodyWeight(entry: BodyWeightEntryEntity) = bodyWeightDao.upsert(entry)
+    suspend fun restoreBodyWeight(entry: BodyWeightEntryEntity) {
+        bodyWeightDao.upsert(entry)
+        calories.recalculateAll()
+    }
 
-    suspend fun deleteBodyWeight(date: LocalDate) = bodyWeightDao.deleteByDate(date)
+    suspend fun deleteBodyWeight(date: LocalDate) {
+        bodyWeightDao.deleteByDate(date)
+        calories.recalculateAll()
+    }
 
     suspend fun bodyWeightOn(date: LocalDate): BodyWeightEntryEntity? = bodyWeightDao.getByDate(date)
 

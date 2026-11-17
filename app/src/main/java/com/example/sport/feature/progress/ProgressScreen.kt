@@ -170,6 +170,7 @@ internal fun ProgressContent(
                         )
                     }
                 } else {
+                    state.calorieTotals?.let { totals -> item(key = "calorie-totals") { CalorieTotalsCard(totals) } }
                     items(state.sessions, key = { "session-${it.id}" }) { session ->
                         SessionCard(
                             session = session,
@@ -287,10 +288,9 @@ private fun BodyWeightCard(summary: WeightSummaryUi?, actions: ProgressActions) 
                     icon = Icons.Filled.Add,
                     modifier = Modifier.weight(1f),
                 )
-                if (summary != null) {
-                    TextButton(onClick = actions.onOpenBodyWeight, modifier = Modifier.heightIn(min = SportDimens.TouchTargetMin)) {
-                        Text(stringResource(R.string.progress_body_weight_open))
-                    }
+                // Senza pesate la schermata del peso serve comunque per il profilo corporeo (altezza, età, sesso).
+                TextButton(onClick = actions.onOpenBodyWeight, modifier = Modifier.heightIn(min = SportDimens.TouchTargetMin)) {
+                    Text(stringResource(if (summary != null) R.string.progress_body_weight_open else R.string.body_profile_title))
                 }
             }
         }
@@ -397,10 +397,11 @@ private fun SessionCard(session: SessionHistoryUi, onClick: () -> Unit, onDelete
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingXl)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingL)) {
                 StatValue(session.duration, stringResource(R.string.progress_duration))
                 StatValue(session.sets.toString(), stringResource(R.string.progress_sets))
                 StatValue(Formatters.weightKg(session.volumeKg, unit), stringResource(R.string.progress_volume))
+                StatValue(session.caloriesBurned?.let(Formatters::kcal) ?: "—", stringResource(R.string.progress_calories))
             }
         }
     }
@@ -425,5 +426,33 @@ private fun ListCard(onClick: () -> Unit, description: String, content: @Composa
             horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingS),
             content = content,
         )
+    }
+}
+
+/** Totali calorici sopra lo storico: settimana in corso e ultimi 30 giorni. */
+@Composable
+private fun CalorieTotalsCard(totals: CalorieTotalsUi) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = SportDimens.ScreenPadding),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(Modifier.padding(SportDimens.CardPadding), verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingS)) {
+            Text(
+                stringResource(R.string.calories_totals_title),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (totals.hasEstimates) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingXl)) {
+                    StatValue(Formatters.kcal(totals.weekKcal), stringResource(R.string.calories_this_week))
+                    StatValue(Formatters.kcal(totals.monthKcal), stringResource(R.string.calories_last_30_days))
+                }
+            } else {
+                Text(stringResource(R.string.calories_missing_weight), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }

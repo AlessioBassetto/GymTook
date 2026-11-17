@@ -67,16 +67,16 @@ flowchart TD
 | Oggi | Oggi | Allenamento previsto oggi dalla scheda attiva, riposo con prossimo allenamento, oppure invito a scegliere una scheda; "Inizia" / "Riprendi allenamento", "Allenamento libero" nei giorni senza allenamento | 3 ✅ 4 ✅ |
 | Oggi | Workout Logger | Card esercizio: regolazione macchinario, righe serie (peso, reps, RPE, spunta), tastierino, timer di recupero, sostituzione al volo | 4 ✅ |
 | Oggi | Selettore esercizi | Alternative ordinate per somiglianza (sostituzione) o usati di recente (aggiunta), ricerca | 4 ✅ |
-| Oggi | Riepilogo | Durata, serie, volume, record di carico, miglior serie per esercizio | 4 ✅ |
+| Oggi | Riepilogo | Durata, serie, volume, calorie bruciate (stima), record di carico, miglior serie per esercizio | 4 ✅ calorie ✅ |
 | Schede | Elenco | Schede con calendario settimanale, scheda attiva, varianti, modelli PPL / Upper-Lower / Full body, "Nuova scheda" | 3 ✅ 6 ✅ |
 | Schede | Builder | Calendario della settimana, giorni (aggiungi, rinomina, duplica, sposta, elimina), esercizi riordinabili trascinando, obiettivi serie/ripetizioni/recupero, superserie, spostamento tra giorni, duplicazione e settimana di scarico | 6 ✅ |
 | Esercizi | Libreria | Ricerca italiano/inglese senza accenti, chip Preferiti e gruppo muscolare, pannello filtri (attrezzatura, tipo di esercizio, muscolo specifico, muscoli secondari, solo i miei), "Nuovo esercizio" | 3 ✅ 5 ✅ |
 | Esercizi | Scheda esercizio | Video loop (personale o di catalogo, rallentatore 0,5×) o fotogrammi animati, mappa muscolare, le tue regolazioni salvate, esecuzione, punti chiave, errori comuni, alternative, preferiti | 3 ✅ 5 ✅ |
 | Esercizi | Editor esercizio | Nome, attrezzatura, cosa registrare, muscoli principali (il primo è il target) e secondari, movimento, un lato alla volta, recupero, regolazioni da annotare, note | 5 ✅ |
-| Progressi | Panoramica | Peso corporeo (ultima pesata, media 7 giorni, variazione settimanale, mini-grafico 90 giorni, "Registra peso"), andamento del 1RM stimato per esercizio, record personali, storico allenamenti | 3 ✅ 7 ✅ |
-| Progressi | Peso corporeo | Periodo 1 mese–Tutto, grafico pesate + media mobile 7 giorni, statistiche, elenco pesate (modifica, elimina con Annulla) | 7 ✅ |
+| Progressi | Panoramica | Peso corporeo (ultima pesata, media 7 giorni, variazione settimanale, mini-grafico 90 giorni, "Registra peso"), andamento del 1RM stimato per esercizio, record personali, calorie della settimana e degli ultimi 30 giorni, storico allenamenti con le kcal di ciascuno | 3 ✅ 7 ✅ calorie ✅ |
+| Progressi | Peso corporeo | Profilo corporeo (altezza, anno di nascita, sesso biologico), periodo 1 mese–Tutto, grafico pesate + media mobile 7 giorni, statistiche, elenco pesate (modifica, elimina con Annulla) | 7 ✅ calorie ✅ |
 | Progressi | Esercizio | 1RM stimato / carico massimo / volume / ripetizioni per periodo, ultima e migliore, variazione, record di sempre, sessioni | 7 ✅ |
-| Progressi | Dettaglio allenamento | Data e orari, durata, serie, volume, serie per esercizio (R, D, C, RPE/RIR), "Elimina allenamento" | 7 ✅ |
+| Progressi | Dettaglio allenamento | Data e orari, durata, serie, volume, calorie con il peso usato per la stima, serie per esercizio (R, D, C, RPE/RIR), "Elimina allenamento" | 7 ✅ |
 | Dieta | Oggi | Pasti del piano attivo con spunta, calorie e macro rispetto ai target; "Crea un piano" se manca, scorciatoie a editor e piani | 3 ✅ 8 ✅ |
 | Dieta | Piani alimentari | Elenco con piano attivo e kcal obiettivo, "Nuovo piano" | 8 ✅ |
 | Dieta | Editor piano | Obiettivi giornalieri a confronto con il totale del piano, pasti (tipo, nome, orario, sposta, elimina), alimenti con quantità e macro (kcal calcolate dai macro), note, attiva / duplica / elimina | 8 ✅ |
@@ -202,6 +202,18 @@ Record, volumi e grafici non sono salvati a parte: si calcolano dalle serie nel 
 | Settaggi nella scheda esercizio | Editor "a freddo" | Sessione di meno di un minuto | Correzione di una serie |
 |---|---|---|---|
 | ![Settaggi salvati](screenshots/30-settaggi-a-freddo.png) | ![Editor dei settaggi](screenshots/31-settaggi-editor.png) | ![Salvare o scartare](screenshots/32-sessione-breve.png) | ![Correggi serie](screenshots/33-correggi-serie.png) |
+
+### 18. Calorie bruciate
+- **Profilo corporeo**: Progressi → card del peso → **Storico del peso** (prima di ogni pesata il pulsante si chiama **Profilo corporeo**) → card **Profilo corporeo** → **Aggiungi**/**Modifica** → altezza in cm, anno di nascita, sesso biologico. Tutti facoltativi: se un dato manca si usa un valore medio (30 anni, media fra uomo e donna; senza altezza la convenzione standard del MET).
+- **Fine allenamento**: il riepilogo mostra le **kcal** accanto a durata, serie e volume. Senza nessuna pesata compare "Registra il tuo peso per stimare le calorie bruciate"; senza altezza un invito a completare il profilo.
+- **Storico**: kcal su ogni riga, totale della settimana in corso e degli ultimi 30 giorni sopra l'elenco; nel dettaglio dell'allenamento anche il peso corporeo usato.
+- **Coerenza**: le calorie sono salvate in ogni allenamento ma si ricalcolano da sole quando si corregge o si elimina una serie, si azzera un esercizio, si registra/modifica/elimina una pesata o si cambia il profilo; un allenamento eliminato esce dai totali. Il peso usato è quello del giorno dell'allenamento (l'ultima pesata fino a quel giorno, altrimenti la prima disponibile).
+- **Come si stima** (`core/data/calories/WorkoutCalorieCalculator.kt`): metabolismo a riposo con Mifflin-St Jeor (peso, altezza, età, sesso); MET diversi per serie e recupero secondo il tipo di esercizio (multiarticolari delle gambe > multiarticolari del busto > isolamento > piccoli distretti; esplosivi, isometrie e cardio a parte); lavoro meccanico = massa × g × corsa del movimento (scalata sull'altezza) × ripetizioni, con rendimento muscolare del 20% e +30% per la fase eccentrica; a corpo libero con 0 kg la massa è una quota del peso corporeo (trazioni e dip 100%, piegamenti 65%, squat 50%); RPE/RIR ±5% per punto; cardio dalla velocità (ACSM per camminata e corsa, Compendium per la bici, potenza al vogatore). Un allenamento dimenticato aperto conta solo per una durata plausibile. L'EPOC (consumo nelle ore successive) non è incluso.
+- **Aggiornamento dalla 1.0.2**: la migrazione Room v3 → v4 aggiunge la colonna delle calorie e la tabella del profilo senza toccare i dati; al primo avvio gli allenamenti già salvati ricevono la stima con le pesate esistenti.
+
+| Profilo corporeo | Riepilogo con le kcal | Storico e totali | Dettaglio dopo una correzione |
+|---|---|---|---|
+| ![Profilo corporeo](screenshots/34-profilo-corporeo.png) | ![Riepilogo](screenshots/35-riepilogo-kcal.png) | ![Storico](screenshots/36-storico-kcal.png) | ![Dettaglio](screenshots/37-dettaglio-kcal.png) |
 
 ## Stati di ogni schermata
 

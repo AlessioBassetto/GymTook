@@ -80,6 +80,10 @@ data class SessionSummary(
 
     @ColumnInfo(name = "total_volume_kg")
     val totalVolumeKg: Double,
+
+    /** Stima in kcal (null se non ancora calcolabile, es. nessuna pesata registrata). */
+    @ColumnInfo(name = "calories_burned")
+    val caloriesBurned: Int? = null,
 )
 
 /** Intestazione della sessione in corso (banner "Riprendi"), senza caricare esercizi e serie. */

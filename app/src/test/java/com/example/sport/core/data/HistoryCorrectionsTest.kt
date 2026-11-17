@@ -1,5 +1,6 @@
 package com.example.sport.core.data
 
+import com.example.sport.core.database.calorieRepository
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.database.DatabaseTest
 import com.example.sport.core.database.T0
@@ -35,8 +36,8 @@ class HistoryCorrectionsTest : DatabaseTest() {
     @Before
     fun setUp() = runTest {
         seedBundledCatalog()
-        workout = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), clock)
-        progress = ProgressRepository(db.workoutSessionDao(), db.bodyWeightDao(), db.progressDao(), db.exerciseDao(), clock)
+        workout = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), db.calorieRepository(clock), clock)
+        progress = ProgressRepository(db.workoutSessionDao(), db.bodyWeightDao(), db.progressDao(), db.exerciseDao(), db.calorieRepository(clock), clock)
     }
 
     private suspend fun log(dayOffset: Long, vararg exercises: Pair<String, List<LoggedSet>>) =

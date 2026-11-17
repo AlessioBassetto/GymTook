@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.sport.core.data.CalorieRepository
 import com.example.sport.core.database.SportDatabase
 import com.example.sport.core.di.IoDispatcher
 import com.example.sport.core.settings.SettingsRepository
@@ -65,13 +66,14 @@ class InvalidBackupException(message: String, cause: Throwable? = null) : Except
 
 /**
  * Esportazione e ripristino di tutti i dati dell'utente: schede, allenamenti, regolazioni,
- * peso corporeo, piani alimentari, esercizi personalizzati, preferiti e impostazioni.
+ * peso corporeo e profilo corporeo, piani alimentari, esercizi personalizzati, preferiti e impostazioni.
  * Restano fuori il catalogo (è nell'app) e i video personali (file pesanti, solo su questo telefono).
  */
 @Singleton
 class BackupRepository @Inject constructor(
     private val database: SportDatabase,
     private val settingsRepository: SettingsRepository,
+    private val calories: CalorieRepository,
     private val clock: Clock,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
@@ -163,6 +165,8 @@ class BackupRepository @Inject constructor(
             }
         }
         settingsRepository.replace(file.settings)
+        // I backup precedenti alla v4 non hanno le calorie; quelli nuovi le ricalcolano con le pesate ripristinate.
+        calories.recalculateAll()
         return summaryOf(file)
     }
 
@@ -264,6 +268,7 @@ class BackupRepository @Inject constructor(
             "session_exercises",
             "exercise_sets",
             BODY_WEIGHTS,
+            "body_profile",
             DIET_PLANS,
             "meals",
             "meal_items",

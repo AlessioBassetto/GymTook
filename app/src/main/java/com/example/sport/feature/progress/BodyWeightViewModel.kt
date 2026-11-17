@@ -2,6 +2,7 @@ package com.example.sport.feature.progress
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sport.core.data.CalorieRepository
 import com.example.sport.core.data.ProgressRepository
 import com.example.sport.core.settings.SettingsRepository
 import com.example.sport.core.data.progress.WeightTrendPoint
@@ -38,6 +39,7 @@ sealed interface BodyWeightUiState {
         val points: List<WeightTrendPoint>,
         val weeklyChange: Double?,
         val periodChange: Double?,
+        val profile: BodyProfileUi = BodyProfileUi(),
     ) : BodyWeightUiState {
         val hasAnyEntry: Boolean get() = latest != null
         val latestAverageKg: Double? get() = points.lastOrNull()?.takeIf { it.date == latest?.date }?.averageKg
@@ -47,18 +49,28 @@ sealed interface BodyWeightUiState {
 sealed interface BodyWeightEvent {
     data object Saved : BodyWeightEvent
     data class Deleted(val entry: BodyWeightEntryEntity) : BodyWeightEvent
+    data object ProfileSaved : BodyWeightEvent
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BodyWeightViewModel @Inject constructor(
     private val repository: ProgressRepository,
+    private val calories: CalorieRepository,
     settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     val entryEditor = BodyWeightEntryEditor(repository, settingsRepository, viewModelScope)
 
     private val range = MutableStateFlow(TimeRange.QUARTER)
+
+    /** Anni di nascita accettati dal profilo (età fra 10 e 100 anni). */
+    val birthYears: IntRange = calories.birthYearRange()
+
+    private val profileEditor = MutableStateFlow(false)
+
+    /** true mentre il dialogo del profilo corporeo è aperto. */
+    val profileEditorOpen: StateFlow<Boolean> = profileEditor
     private val eventChannel = Channel<BodyWeightEvent>(Channel.BUFFERED)
 
     val events: Flow<BodyWeightEvent> = merge(
@@ -71,13 +83,15 @@ class BodyWeightViewModel @Inject constructor(
             combine(
                 repository.observeBodyWeightTrend(selected.startDate(repository.today())),
                 repository.observeLatestBodyWeight(),
-            ) { points, latest ->
+                calories.observeProfile(),
+            ) { points, latest, profile ->
                 BodyWeightUiState.Content(
                     range = selected,
                     latest = latest,
                     points = points,
                     weeklyChange = weeklyChange(points),
                     periodChange = periodChange(points),
+                    profile = BodyProfileUi.of(profile, repository.today()),
                 )
             }
         }
@@ -101,6 +115,23 @@ class BodyWeightViewModel @Inject constructor(
 
     fun onUndoDelete(entry: BodyWeightEntryEntity) {
         viewModelScope.launch { repository.restoreBodyWeight(entry) }
+    }
+
+    fun onEditProfile() {
+        profileEditor.value = true
+    }
+
+    fun onDismissProfile() {
+        profileEditor.value = false
+    }
+
+    /** Salva altezza, anno di nascita e sesso: le calorie di tutto lo storico si ricalcolano. */
+    fun onSaveProfile(input: BodyProfileInput) {
+        profileEditor.value = false
+        viewModelScope.launch {
+            calories.saveProfile(input.heightCm, input.birthYear, input.sex)
+            eventChannel.send(BodyWeightEvent.ProfileSaved)
+        }
     }
 
     private fun periodChange(points: List<WeightTrendPoint>): Double? =

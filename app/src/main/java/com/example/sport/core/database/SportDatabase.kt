@@ -7,7 +7,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.sport.core.database.converter.Converters
+import com.example.sport.core.database.dao.BodyProfileDao
 import com.example.sport.core.database.dao.BodyWeightDao
+import com.example.sport.core.database.dao.CalorieDao
 import com.example.sport.core.database.dao.CatalogDao
 import com.example.sport.core.database.dao.DietDao
 import com.example.sport.core.database.dao.ExerciseDao
@@ -17,12 +19,14 @@ import com.example.sport.core.database.dao.ProgressDao
 import com.example.sport.core.database.dao.RoutineDao
 import com.example.sport.core.database.dao.WorkoutSessionDao
 import com.example.sport.core.database.entity.AppMetadataEntity
+import com.example.sport.core.database.entity.BodyProfileEntity
 import com.example.sport.core.database.entity.BodyWeightEntryEntity
 import com.example.sport.core.database.entity.DietPlanEntity
 import com.example.sport.core.database.entity.ExerciseEntity
 import com.example.sport.core.database.entity.ExerciseMediaEntity
 import com.example.sport.core.database.entity.ExerciseMuscleEntity
 import com.example.sport.core.database.entity.ExerciseUserVideoEntity
+import com.example.sport.core.database.migration.MANUAL_MIGRATIONS
 import com.example.sport.core.database.migration.Migration1To2
 import com.example.sport.core.database.entity.ExerciseSetEntity
 import com.example.sport.core.database.entity.MachineSetupEntity
@@ -63,14 +67,16 @@ import com.example.sport.core.database.entity.WorkoutSessionEntity
         MealLogEntity::class,
         AppMetadataEntity::class,
         ExerciseUserVideoEntity::class,
+        BodyProfileEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = Migration1To2::class),
         // v2 → v3 (Fase 5): colonna `exercises.category` (default 'STRENGTH', il catalogo v3 la
         // compila all'avvio) e tabella `exercise_user_videos`. Solo aggiunte: nessuna spec.
         AutoMigration(from = 2, to = 3),
+        // v3 → v4 (calorie): Migration scritta a mano, vedi MIGRATION_3_4 in Migrations.kt.
     ],
 )
 @TypeConverters(Converters::class)
@@ -90,6 +96,10 @@ abstract class SportDatabase : RoomDatabase() {
 
     abstract fun bodyWeightDao(): BodyWeightDao
 
+    abstract fun bodyProfileDao(): BodyProfileDao
+
+    abstract fun calorieDao(): CalorieDao
+
     abstract fun dietDao(): DietDao
 
     abstract fun mediaDao(): MediaDao
@@ -99,6 +109,7 @@ abstract class SportDatabase : RoomDatabase() {
 
         fun build(context: Context): SportDatabase =
             Room.databaseBuilder(context.applicationContext, SportDatabase::class.java, DATABASE_NAME)
+                .addMigrations(*MANUAL_MIGRATIONS)
                 .build()
     }
 }

@@ -1,5 +1,6 @@
 package com.example.sport.feature.workout
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.sport.R
+import com.example.sport.core.data.CalorieRepository
 import com.example.sport.core.data.WorkoutRepository
 import com.example.sport.core.data.WorkoutSummary
 import com.example.sport.core.database.entity.ExerciseSetEntity
@@ -66,6 +68,10 @@ sealed interface WorkoutSummaryUiState {
         val duration: String,
         val sets: String,
         val volume: String,
+        /** "312 kcal"; null se manca una pesata (la stima non è possibile). */
+        val calories: String?,
+        /** Nessuna altezza nel profilo: la stima usa valori medi, si suggerisce di completarlo. */
+        val suggestProfile: Boolean,
         val records: List<SummaryRecordUi>,
         val exercises: List<SummaryExerciseUi>,
     ) : WorkoutSummaryUiState
@@ -76,19 +82,23 @@ class WorkoutSummaryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     workoutRepository: WorkoutRepository,
     settingsRepository: SettingsRepository,
+    calories: CalorieRepository,
 ) : ViewModel() {
     private val sessionId = savedStateHandle.toRoute<WorkoutSummaryRoute>().sessionId
 
     val uiState: StateFlow<WorkoutSummaryUiState> = flow {
         val unit = settingsRepository.current().weightUnit
-        workoutRepository.summary(sessionId)?.let { emit(it.toUi(unit)) }
+        val hasHeight = calories.profile()?.heightCm != null
+        workoutRepository.summary(sessionId)?.let { emit(it.toUi(unit, hasHeight)) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorkoutSummaryUiState.Loading)
 
-    private fun WorkoutSummary.toUi(unit: WeightUnit) = WorkoutSummaryUiState.Content(
+    private fun WorkoutSummary.toUi(unit: WeightUnit, hasHeight: Boolean) = WorkoutSummaryUiState.Content(
         title = title,
         duration = endedAt?.let { Formatters.durationHuman(Duration.between(startedAt, it)) } ?: "—",
         sets = completedSets.toString(),
         volume = Formatters.weightKg(totalVolumeKg, unit),
+        calories = caloriesBurned?.let(Formatters::kcal),
+        suggestProfile = caloriesBurned != null && !hasHeight,
         records = records.map { record ->
             SummaryRecordUi(
                 name = record.name,
@@ -143,7 +153,13 @@ internal fun WorkoutSummaryContent(state: WorkoutSummaryUiState.Content, onDone:
                         StatValue(state.duration, stringResource(R.string.summary_duration))
                         StatValue(state.sets, stringResource(R.string.summary_sets))
                         StatValue(state.volume, stringResource(R.string.summary_volume))
+                        StatValue(state.calories ?: "—", stringResource(R.string.summary_calories))
                     }
+                }
+            }
+            caloriesNoteRes(state)?.let { note ->
+                item {
+                    Text(stringResource(note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (state.records.isNotEmpty()) {
@@ -190,4 +206,12 @@ internal fun WorkoutSummaryContent(state: WorkoutSummaryUiState.Content, onDone:
             modifier = Modifier.padding(SportDimens.ScreenPadding),
         )
     }
+}
+
+/** Nota sotto i numeri: perché manca la stima, o come renderla più precisa. */
+@StringRes
+internal fun caloriesNoteRes(state: WorkoutSummaryUiState.Content): Int? = when {
+    state.calories == null -> R.string.calories_missing_weight
+    state.suggestProfile -> R.string.calories_add_profile_hint
+    else -> null
 }

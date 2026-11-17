@@ -79,7 +79,7 @@ interface WorkoutSessionDao {
 
     @Query(
         """
-        SELECT ws.id, ws.title, ws.started_at, ws.ended_at,
+        SELECT ws.id, ws.title, ws.started_at, ws.ended_at, ws.calories_burned,
                COUNT(DISTINCT se.id) AS exercise_count,
                COUNT(es.id) AS working_set_count,
                COALESCE(SUM(CASE WHEN e.tracking_type = 'ASSISTED_BODYWEIGHT' THEN 0.0
@@ -353,6 +353,10 @@ interface WorkoutSessionDao {
         """,
     )
     suspend fun updateSetValues(setId: Long, weightKg: Double?, reps: Int?, durationSeconds: Int?, distanceMeters: Double?)
+
+    /** Allenamento a cui appartiene una serie (per ricalcolarne le calorie dopo una correzione). */
+    @Query("SELECT se.session_id FROM exercise_sets es INNER JOIN session_exercises se ON se.id = es.session_exercise_id WHERE es.id = :setId")
+    suspend fun getSessionIdOfSet(setId: Long): Long?
 
     @Query("UPDATE workout_sessions SET status = :status, ended_at = :endedAt WHERE id = :sessionId")
     suspend fun updateStatus(sessionId: Long, status: SessionStatus, endedAt: Instant?)

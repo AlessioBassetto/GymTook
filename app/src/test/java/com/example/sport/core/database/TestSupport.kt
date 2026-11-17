@@ -3,6 +3,7 @@ package com.example.sport.core.database
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.example.sport.core.data.CalorieRepository
 import com.example.sport.core.database.entity.ExerciseSetEntity
 import com.example.sport.core.database.entity.RoutineExerciseEntity
 import com.example.sport.core.database.entity.WorkoutRoutineEntity
@@ -26,6 +27,10 @@ import java.time.ZoneOffset
 val T0: Instant = Instant.parse("2026-11-02T07:00:00Z")
 
 fun hoursAfterT0(hours: Long): Instant = T0.plus(Duration.ofHours(hours))
+
+/** Repository delle calorie sul database di test (stesso orologio dei repository che lo usano). */
+fun SportDatabase.calorieRepository(clock: Clock): CalorieRepository =
+    CalorieRepository(calorieDao(), bodyProfileDao(), bodyWeightDao(), clock)
 
 /** Database Room in memoria con lo schema reale; un'istanza nuova per ogni test. */
 abstract class DatabaseTest {

@@ -24,6 +24,10 @@ interface BodyWeightDao {
     @Query("SELECT * FROM body_weight_entries WHERE date BETWEEN :from AND :to ORDER BY date ASC")
     suspend fun getBetween(from: LocalDate, to: LocalDate): List<BodyWeightEntryEntity>
 
+    /** Tutte le pesate in ordine cronologico (poche centinaia al massimo): base del calcolo calorico. */
+    @Query("SELECT * FROM body_weight_entries ORDER BY date ASC")
+    suspend fun getAll(): List<BodyWeightEntryEntity>
+
     @Query("SELECT * FROM body_weight_entries ORDER BY date DESC LIMIT 1")
     fun observeLatest(): Flow<BodyWeightEntryEntity?>
 

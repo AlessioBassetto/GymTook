@@ -26,7 +26,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
+import java.time.DayOfWeek
 import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
 /** Riquadro del peso corporeo nella panoramica: ultima pesata, media e mini-grafico. */
@@ -72,6 +74,20 @@ data class SessionHistoryUi(
     val duration: String,
     val sets: Int,
     val volumeKg: Double,
+    /** Stima in kcal; null se non calcolabile (nessuna pesata). */
+    val caloriesBurned: Int? = null,
+)
+
+/**
+ * Totali calorici dello storico. Si calcolano dalle righe degli allenamenti: eliminare un
+ * allenamento, correggerne le serie o azzerare un esercizio li aggiorna da soli.
+ */
+@Immutable
+data class CalorieTotalsUi(
+    val weekKcal: Int,
+    val monthKcal: Int,
+    /** false se nessun allenamento ha ancora una stima (manca una pesata). */
+    val hasEstimates: Boolean,
 )
 
 sealed interface ProgressUiState {
@@ -82,6 +98,7 @@ sealed interface ProgressUiState {
         val trends: List<ExerciseTrendUi>,
         val records: List<ExerciseRecordUi>,
         val sessions: List<SessionHistoryUi>,
+        val calorieTotals: CalorieTotalsUi? = null,
     ) : ProgressUiState
 }
 
@@ -113,6 +130,7 @@ class ProgressViewModel @Inject constructor(
             trends = overview.trends.map { it.toUi(zone) },
             records = overview.records.map { it.toUi(zone) },
             sessions = sessions.map { it.toUi(zone) },
+            calorieTotals = calorieTotals(sessions, repository.today(), zone),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressUiState.Loading)
 
@@ -165,6 +183,7 @@ class ProgressViewModel @Inject constructor(
         duration = endedAt?.let { Formatters.durationHuman(Duration.between(startedAt, it)) } ?: "—",
         sets = workingSetCount,
         volumeKg = totalVolumeKg,
+        caloriesBurned = caloriesBurned,
     )
 
     companion object {
@@ -175,3 +194,23 @@ class ProgressViewModel @Inject constructor(
         const val PREVIEW_ROWS = 5
     }
 }
+
+/**
+ * Calorie della settimana in corso (da lunedì) e degli ultimi 30 giorni, oggi compreso.
+ * Gli allenamenti senza stima non contano. null se lo storico è vuoto.
+ */
+internal fun calorieTotals(sessions: List<SessionSummary>, today: LocalDate, zone: ZoneId): CalorieTotalsUi? {
+    if (sessions.isEmpty()) return null
+    val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val monthStart = today.minusDays(TOTALS_DAYS - 1L)
+    fun sumFrom(start: LocalDate) = sessions
+        .filter { it.startedAt.toLocalDate(zone) in start..today }
+        .sumOf { it.caloriesBurned ?: 0 }
+    return CalorieTotalsUi(
+        weekKcal = sumFrom(weekStart),
+        monthKcal = sumFrom(monthStart),
+        hasEstimates = sessions.any { it.caloriesBurned != null },
+    )
+}
+
+private const val TOTALS_DAYS = 30

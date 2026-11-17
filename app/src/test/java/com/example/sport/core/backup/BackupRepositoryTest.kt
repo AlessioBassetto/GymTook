@@ -1,5 +1,6 @@
 package com.example.sport.core.backup
 
+import com.example.sport.core.database.calorieRepository
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.data.CustomExerciseDraft
@@ -56,7 +57,7 @@ class BackupRepositoryTest : DatabaseTest() {
     fun setUp() = runTest {
         seedBundledCatalog()
         settings = testSettingsRepository(context.filesDir)
-        backup = BackupRepository(db, settings, clock, Dispatchers.IO)
+        backup = BackupRepository(db, settings, db.calorieRepository(clock), clock, Dispatchers.IO)
         // Secondo telefono: database nuovo con il solo catalogo.
         target = Room.inMemoryDatabaseBuilder(context, SportDatabase::class.java).allowMainThreadQueries().build()
         ExerciseCatalogSeeder(
@@ -66,7 +67,7 @@ class BackupRepositoryTest : DatabaseTest() {
             applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         ).seedIfNeeded()
         targetSettings = testSettingsRepository(context.filesDir)
-        targetBackup = BackupRepository(target, targetSettings, clock, Dispatchers.IO)
+        targetBackup = BackupRepository(target, targetSettings, target.calorieRepository(clock), clock, Dispatchers.IO)
     }
 
     @After
@@ -76,14 +77,15 @@ class BackupRepositoryTest : DatabaseTest() {
 
     /** Una settimana tipo: scheda, due allenamenti (uno con un esercizio personalizzato), pesate, dieta, preferito. */
     private suspend fun fillSource(): String {
-        val workout = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), clock)
+        val workout = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), db.calorieRepository(clock), clock)
         val custom = CustomExerciseRepository(db.exerciseDao(), UserVideoStore(File(context.filesDir, "backup-videos"), context, Dispatchers.IO), clock)
         val customId = custom.create(CustomExerciseDraft(name = "Pressa a pendolo", primaryMuscles = listOf(Muscle.QUADRICEPS)))
         createRoutineWithDay("Gambe", listOf("barbell_back_squat" to 3, customId to 3))
         logSession(workout, db.workoutSessionDao(), clock, 0, "barbell_bench_press" to listOf(LoggedSet(100.0, 5), LoggedSet(102.5, 4)))
         logSession(workout, db.workoutSessionDao(), clock, 2, customId to listOf(LoggedSet(120.0, 10)))
         db.exerciseDao().setFavorite("barbell_bench_press", true, T0)
-        val progress = ProgressRepository(db.workoutSessionDao(), db.bodyWeightDao(), db.progressDao(), db.exerciseDao(), Clock.fixed(T0.plusSeconds(5 * 86_400), ZoneOffset.UTC))
+        val laterClock = Clock.fixed(T0.plusSeconds(5 * 86_400), ZoneOffset.UTC)
+        val progress = ProgressRepository(db.workoutSessionDao(), db.bodyWeightDao(), db.progressDao(), db.exerciseDao(), db.calorieRepository(laterClock), laterClock)
         progress.saveBodyWeight(today, 80.4)
         progress.saveBodyWeight(today.plusDays(1), 80.1)
         val diet = DietPlanRepository(db, clock)
@@ -127,7 +129,7 @@ class BackupRepositoryTest : DatabaseTest() {
         val json = backup.export()
         // Sul telefono di destinazione c'erano già dati diversi.
         target.exerciseDao().setFavorite("barbell_back_squat", true, T0)
-        ProgressRepository(target.workoutSessionDao(), target.bodyWeightDao(), target.progressDao(), target.exerciseDao(), clock)
+        ProgressRepository(target.workoutSessionDao(), target.bodyWeightDao(), target.progressDao(), target.exerciseDao(), target.calorieRepository(clock), clock)
             .saveBodyWeight(today.minusDays(30), 90.0)
         val catalogSize = target.exerciseDao().count()
 
@@ -147,7 +149,7 @@ class BackupRepositoryTest : DatabaseTest() {
         expectThrows<InvalidBackupException> { targetBackup.parse(json.replace("\"version\": 1", "\"version\": 99")) }
 
         // Un allenamento con un esercizio che sul telefono di destinazione non esiste: niente viene scritto.
-        ProgressRepository(target.workoutSessionDao(), target.bodyWeightDao(), target.progressDao(), target.exerciseDao(), clock)
+        ProgressRepository(target.workoutSessionDao(), target.bodyWeightDao(), target.progressDao(), target.exerciseDao(), target.calorieRepository(clock), clock)
             .saveBodyWeight(today.minusDays(30), 90.0)
         val broken = targetBackup.parse(json.replace("\"barbell_bench_press\"", "\"esercizio_inesistente\""))
         expectThrows<InvalidBackupException> { targetBackup.restore(broken) }

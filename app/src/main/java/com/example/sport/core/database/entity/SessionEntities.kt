@@ -57,11 +57,22 @@ data class WorkoutSessionEntity(
     @ColumnInfo(name = "ended_at")
     val endedAt: Instant? = null,
 
-    /** Peso corporeo del giorno: serve al volume degli esercizi a corpo libero. */
+    /**
+     * Peso corporeo con cui sono state stimate le [caloriesBurned]: la pesata del giorno
+     * dell'allenamento o la più vicina. Null finché la stima non è possibile.
+     */
     @ColumnInfo(name = "body_weight_kg")
     val bodyWeightKg: Double? = null,
 
     val notes: String? = null,
+
+    /**
+     * Calorie totali stimate (kcal lorde: metabolismo a riposo + lavoro) da `WorkoutCalorieCalculator`.
+     * Null per la sessione in corso e quando manca una pesata. È un dato derivato: si ricalcola
+     * quando cambiano le serie della sessione, le pesate o il profilo corporeo.
+     */
+    @ColumnInfo(name = "calories_burned")
+    val caloriesBurned: Int? = null,
 )
 
 /**

@@ -76,6 +76,10 @@ sealed interface SessionDetailUiState {
         val volumeKg: Double,
         val exercises: List<SessionExerciseUi>,
         val notes: String?,
+        /** Stima in kcal; null se manca una pesata. */
+        val caloriesBurned: Int? = null,
+        /** Peso corporeo usato per la stima. */
+        val caloriesBodyWeightKg: Double? = null,
     ) : SessionDetailUiState
 }
 
@@ -166,6 +170,8 @@ class SessionDetailViewModel @Inject constructor(
             volumeKg = exercises.sumOf { it.volumeKg },
             exercises = exercises,
             notes = session.notes?.takeIf { it.isNotBlank() },
+            caloriesBurned = session.caloriesBurned,
+            caloriesBodyWeightKg = session.bodyWeightKg.takeIf { session.caloriesBurned != null },
         )
     }
 

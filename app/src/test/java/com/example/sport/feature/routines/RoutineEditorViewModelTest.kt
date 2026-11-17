@@ -1,5 +1,6 @@
 package com.example.sport.feature.routines
 
+import com.example.sport.core.database.calorieRepository
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.data.ExerciseRepository
@@ -135,7 +136,7 @@ class RoutineEditorViewModelTest : DatabaseTest() {
     fun picker_inRoutineMode_addsAndReplacesInTheDay() = runTest {
         val routineId = builder.createRoutine("Gambe", "Giorno A")
         val dayId = db.routineDao().getDays(routineId).single().id
-        val workoutRepository = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), clock)
+        val workoutRepository = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), db.calorieRepository(clock), clock)
         fun picker(vararg args: Pair<String, Any?>) =
             ExercisePickerViewModel(SavedStateHandle(mapOf(*args)), workoutRepository, builder, exerciseRepository, mediaRepository)
 

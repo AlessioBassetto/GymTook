@@ -754,4 +754,33 @@
     <string name="record_delete_set_message">Verrà eliminata la serie %1$s del %2$s che lo ha stabilito; record, volumi e grafici si ricalcolano. Per correggerla invece di eliminarla, apri l\'allenamento e tocca la serie.</string>
     <string name="record_delete_volume_message">Verranno eliminate tutte le serie di questo esercizio nell\'allenamento del %1$s; record, volumi e grafici si ricalcolano. Per correggere una singola serie, apri l\'allenamento e toccala.</string>
     <string name="record_deleted">Record eliminato: statistiche ricalcolate</string>
+
+    <!-- Calorie bruciate -->
+    <string name="summary_calories">Calorie</string>
+    <string name="progress_calories">calorie</string>
+    <string name="calories_missing_weight">Registra il tuo peso per stimare le calorie bruciate.</string>
+    <string name="calories_estimated_with">Stima calcolata con un peso corporeo di %1$s.</string>
+    <string name="calories_add_profile_hint">Aggiungi l\'altezza nel profilo corporeo (Peso corporeo) per una stima più precisa.</string>
+    <string name="calories_totals_title">Calorie bruciate (stima)</string>
+    <string name="calories_this_week">questa settimana</string>
+    <string name="calories_last_30_days">ultimi 30 giorni</string>
+
+    <!-- Profilo corporeo -->
+    <string name="body_profile_title">Profilo corporeo</string>
+    <string name="body_profile_empty">Aggiungi altezza, anno di nascita e sesso: rendono più precisa la stima delle calorie bruciate.</string>
+    <string name="body_profile_add">Aggiungi</string>
+    <string name="body_profile_edit">Modifica</string>
+    <string name="body_profile_edit_description">Modifica il profilo corporeo</string>
+    <string name="body_profile_height_value">%1$s cm</string>
+    <string name="body_profile_age_value">%1$d anni</string>
+    <string name="body_profile_sex_male">Uomo</string>
+    <string name="body_profile_sex_female">Donna</string>
+    <string name="body_profile_sex_unset">Non indicato</string>
+    <string name="body_profile_height_field">Altezza (cm)</string>
+    <string name="body_profile_birth_year_field">Anno di nascita</string>
+    <string name="body_profile_sex_field">Sesso biologico</string>
+    <string name="body_profile_height_error">Inserisci un\'altezza tra %1$d e %2$d cm</string>
+    <string name="body_profile_birth_year_error">Inserisci un anno tra %1$d e %2$d</string>
+    <string name="body_profile_note">Servono solo alla stima delle calorie: metabolismo a riposo e ampiezza dei movimenti. Se un dato manca si usa un valore medio.</string>
+    <string name="body_profile_saved">Profilo salvato: calorie ricalcolate</string>
 </resources>

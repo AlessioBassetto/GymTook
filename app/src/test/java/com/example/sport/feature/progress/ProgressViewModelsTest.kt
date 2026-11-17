@@ -1,5 +1,6 @@
 package com.example.sport.feature.progress
 
+import com.example.sport.core.database.calorieRepository
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.R
@@ -51,8 +52,8 @@ class ProgressViewModelsTest : DatabaseTest() {
     fun setUp() = runTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         seedBundledCatalog()
-        workout = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), clock)
-        progress = ProgressRepository(db.workoutSessionDao(), db.bodyWeightDao(), db.progressDao(), db.exerciseDao(), clock)
+        workout = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), db.calorieRepository(clock), clock)
+        progress = ProgressRepository(db.workoutSessionDao(), db.bodyWeightDao(), db.progressDao(), db.exerciseDao(), db.calorieRepository(clock), clock)
         settings = testSettingsRepository(context.filesDir)
     }
 
@@ -138,7 +139,7 @@ class ProgressViewModelsTest : DatabaseTest() {
         clock.current = T0.plusSeconds(120L * 24 * 3600)
         // Una pesata al giorno per 100 giorni, in calo di 0,1 kg al giorno.
         (0L until 100L).forEach { weigh(today.minusDays(99 - it), 90.0 - it * 0.1) }
-        val viewModel = BodyWeightViewModel(progress, settings)
+        val viewModel = BodyWeightViewModel(progress, db.calorieRepository(clock), settings)
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
 
         val quarter = viewModel.uiState.first { it is BodyWeightUiState.Content } as BodyWeightUiState.Content
@@ -161,7 +162,7 @@ class ProgressViewModelsTest : DatabaseTest() {
     @Test
     fun bodyWeight_deleteAndUndo() = runTest {
         weigh(today, 80.0)
-        val viewModel = BodyWeightViewModel(progress, settings)
+        val viewModel = BodyWeightViewModel(progress, db.calorieRepository(clock), settings)
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
 
         viewModel.onDelete(today)

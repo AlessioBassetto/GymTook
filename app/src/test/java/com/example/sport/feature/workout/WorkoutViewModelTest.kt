@@ -1,5 +1,6 @@
 package com.example.sport.feature.workout
 
+import com.example.sport.core.database.calorieRepository
 import android.Manifest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.data.ExerciseRepository
@@ -55,7 +56,7 @@ class WorkoutViewModelTest : DatabaseTest() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         shadowOf(context as android.app.Application).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         seedBundledCatalog()
-        workoutRepository = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), clock)
+        workoutRepository = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), db.calorieRepository(clock), clock)
         restTimer = RestTimerController(context, clock, RestTimerNotifier(context))
         restTimer.cancel()
         settings = testSettingsRepository(context.filesDir)

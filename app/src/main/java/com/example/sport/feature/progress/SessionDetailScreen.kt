@@ -242,8 +242,21 @@ private fun SessionDetailBody(
                     StatValue(state.duration, stringResource(R.string.progress_duration))
                     StatValue(state.workingSets.toString(), stringResource(R.string.progress_sets))
                     StatValue(Formatters.weightKg(state.volumeKg, unit), stringResource(R.string.progress_volume))
+                    StatValue(state.caloriesBurned?.let(Formatters::kcal) ?: "—", stringResource(R.string.progress_calories))
                 }
             }
+        }
+        item {
+            val weight = state.caloriesBodyWeightKg
+            Text(
+                if (weight != null) {
+                    stringResource(R.string.calories_estimated_with, Formatters.bodyWeightKg(weight, unit))
+                } else {
+                    stringResource(R.string.calories_missing_weight)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         state.notes?.let { notes ->
             item { Text(notes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }

@@ -1,5 +1,6 @@
 package com.example.sport.core.data
 
+import com.example.sport.core.database.calorieRepository
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.database.DatabaseTest
 import com.example.sport.core.database.T0
@@ -22,7 +23,7 @@ class WorkoutRepositoryTest : DatabaseTest() {
     @Before
     fun setUp() = runTest {
         seedBundledCatalog()
-        repository = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), clock)
+        repository = WorkoutRepository(db.workoutSessionDao(), db.machineSetupDao(), db.calorieRepository(clock), clock)
     }
 
     private suspend fun logBench(weightKg: Double, reps: Int): Long {
