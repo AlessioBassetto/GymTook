@@ -14,12 +14,17 @@ import com.example.sport.core.model.catalog.ExerciseCatalogDto
 import com.example.sport.core.model.catalog.validate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ExerciseCatalogTest : DatabaseTest() {
@@ -59,9 +64,14 @@ class ExerciseCatalogTest : DatabaseTest() {
         val withMedia = withOrigin.count { it.media.isNotEmpty() }
         assertTrue("Copertura media insufficiente: $withMedia/${withOrigin.size}", withMedia >= withOrigin.size * 0.99)
 
-        val curatedMachines = catalog.exercises.filter {
-            it.equipment == Equipment.MACHINE && it.contentLocale == CatalogExerciseDto.CONTENT_LOCALE_IT
-        }
+        // Ora anche gli esercizi importati sono in italiano (tradotti): "curati" sono solo quelli scritti a
+        // mano in curated_it.json, gli unici con regolazioni dei macchinari verificate una per una.
+        val curatedIds = Json.parseToJsonElement(File("../tools/catalog-importer/data/curated_it.json").readText())
+            .jsonObject.getValue("exercises").jsonArray
+            .map { it.jsonObject.getValue("id").jsonPrimitive.content }
+            .toSet()
+        val curatedMachines = catalog.exercises.filter { it.equipment == Equipment.MACHINE && it.id in curatedIds }
+        assertTrue("I macchinari curati devono esserci", curatedMachines.size >= 5)
         curatedMachines.forEach {
             assertTrue("${it.id}: i macchinari curati devono suggerire le regolazioni", it.setupParams.isNotEmpty())
         }

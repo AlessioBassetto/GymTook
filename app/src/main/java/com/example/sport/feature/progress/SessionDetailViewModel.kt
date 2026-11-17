@@ -50,6 +50,7 @@ data class SessionSetUi(
     val reps: Int? = null,
     val durationSeconds: Int? = null,
     val distanceMeters: Double? = null,
+    val inclinePercent: Double? = null,
 )
 
 @Immutable
@@ -186,6 +187,7 @@ class SessionDetailViewModel @Inject constructor(
         reps = reps,
         durationSeconds = durationSeconds,
         distanceMeters = distanceMeters,
+        inclinePercent = inclinePercent,
     )
 
     /** "100 kg × 5" per i pesi; per gli altri tipi lo stesso formato della colonna "Precedente". */

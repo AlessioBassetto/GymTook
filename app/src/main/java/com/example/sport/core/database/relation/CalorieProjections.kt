@@ -82,6 +82,9 @@ data class CalorieSetRow(
 
     @ColumnInfo(name = "distance_meters")
     val distanceMeters: Double?,
+
+    @ColumnInfo(name = "incline_percent")
+    val inclinePercent: Double? = null,
 )
 
 /** Esito della stima per un allenamento, da scrivere nella sua riga. */

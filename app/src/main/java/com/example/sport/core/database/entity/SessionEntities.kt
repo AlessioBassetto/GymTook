@@ -209,6 +209,10 @@ data class ExerciseSetEntity(
     @ColumnInfo(name = "distance_meters")
     val distanceMeters: Double? = null,
 
+    /** Pendenza del tapis roulant in percentuale (0–40, mezzi punti), per gli esercizi INCLINE_TIME. */
+    @ColumnInfo(name = "incline_percent")
+    val inclinePercent: Double? = null,
+
     @ColumnInfo(name = "is_completed")
     val isCompleted: Boolean = false,
 

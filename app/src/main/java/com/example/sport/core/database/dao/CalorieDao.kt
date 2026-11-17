@@ -37,7 +37,7 @@ interface CalorieDao {
                e.mechanic AS mechanic, e.force AS force, e.is_unilateral AS is_unilateral,
                es.set_index AS set_index, es.set_type AS set_type, es.weight_kg AS weight_kg, es.reps AS reps,
                es.rpe AS rpe, es.rir AS rir, es.duration_seconds AS duration_seconds,
-               es.distance_meters AS distance_meters
+               es.distance_meters AS distance_meters, es.incline_percent AS incline_percent
         FROM exercise_sets es
         INNER JOIN session_exercises se ON se.id = es.session_exercise_id
         INNER JOIN workout_sessions ws ON ws.id = se.session_id

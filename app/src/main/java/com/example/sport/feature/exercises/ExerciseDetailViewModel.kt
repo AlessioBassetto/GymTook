@@ -15,8 +15,11 @@ import com.example.sport.core.data.RoutineBuilderRepository
 import com.example.sport.core.data.WorkoutRepository
 import com.example.sport.core.database.dao.CustomExerciseRemoval
 import com.example.sport.core.media.MediaRepository
+import com.example.sport.core.media.NetworkMonitor
 import com.example.sport.core.media.UserVideoStore
 import com.example.sport.core.media.VideoImportResult
+import com.example.sport.core.media.VideoDataSources
+import com.example.sport.core.media.isRemote
 import com.example.sport.core.model.ExerciseCategory
 import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.model.Muscle
@@ -26,13 +29,16 @@ import com.example.sport.core.ui.labels.labelRes
 import com.example.sport.feature.progress.ProgressMetric
 import com.example.sport.navigation.ExerciseDetailRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -75,6 +81,11 @@ data class ExerciseDetailUi(
     val userVideo: String?,
     /** Video loop di catalogo (URL CDN o file offline). */
     val catalogVideo: String?,
+    /**
+     * Il video di catalogo esiste ma ora non si può vedere: niente rete e non è in cache. La scheda
+     * mostra fotogrammi o mappa muscolare con il badge "Video disponibile online", mai un errore.
+     */
+    val catalogVideoOnlineOnly: Boolean = false,
     val setupHints: List<String>,
     val savedSetups: List<SavedSetupUi>,
     val instructions: List<String>,
@@ -112,6 +123,8 @@ class ExerciseDetailViewModel @Inject constructor(
     private val routineBuilder: RoutineBuilderRepository,
     private val mediaRepository: MediaRepository,
     private val progressRepository: ProgressRepository,
+    networkMonitor: NetworkMonitor,
+    private val videoDataSources: VideoDataSources,
 ) : ViewModel() {
 
     val routineTargets: StateFlow<List<RoutineTargetUi>> = routineBuilder.observeRoutines()
@@ -145,6 +158,20 @@ class ExerciseDetailViewModel @Inject constructor(
     private val eventChannel = Channel<ExerciseDetailEvent>(Channel.BUFFERED)
     val events: Flow<ExerciseDetailEvent> = eventChannel.receiveAsFlow()
 
+    /**
+     * Video di catalogo remoto, senza rete e non in cache: si vedrà solo online. Il controllo della
+     * cache legge il disco, quindi gira su Dispatchers.IO; si ripete quando cambia la connessione.
+     */
+    private val videoOnlineOnly: Flow<Boolean> = combine(
+        exerciseRepository.observeDetails(exerciseId).map { details -> details?.videoLoop?.path }.distinctUntilChanged(),
+        networkMonitor.isOnline,
+    ) { path, online -> path to online }
+        .map { (path, online) ->
+            val uri = path?.let { mediaRepository.resolve(it)?.toString() }
+            uri != null && isRemote(uri) && !online && !videoDataSources.isPlayableOffline(uri)
+        }
+        .flowOn(Dispatchers.IO)
+
     private val alternatives: Flow<List<ExerciseRowUi>> = combine(
         flow { emit(exerciseRepository.alternatives(exerciseId, ALTERNATIVES_LIMIT)) },
         exerciseRepository.observeThumbnailPaths(),
@@ -157,7 +184,8 @@ class ExerciseDetailViewModel @Inject constructor(
         workoutRepository.observeSetups(exerciseId),
         alternatives,
         importingVideo,
-    ) { details, setups, alternativeRows, importing ->
+        videoOnlineOnly,
+    ) { details, setups, alternativeRows, importing, onlineOnly ->
         if (details == null) return@combine ExerciseDetailUiState.NotFound
         val exercise = details.exercise
         val firstMedia = details.media.firstOrNull()
@@ -179,6 +207,7 @@ class ExerciseDetailViewModel @Inject constructor(
                 frames = details.frames.mapNotNull { mediaRepository.resolve(it.path) },
                 userVideo = details.userVideo?.let { customExerciseRepository.videoUri(it.fileName) },
                 catalogVideo = details.videoLoop?.let { mediaRepository.resolve(it.path)?.toString() },
+                catalogVideoOnlineOnly = onlineOnly,
                 setupHints = exercise.setupParamHints,
                 // Già ordinati dal più recente: il primo è quello proposto dal logger.
                 savedSetups = setups.mapIndexed { index, setup ->

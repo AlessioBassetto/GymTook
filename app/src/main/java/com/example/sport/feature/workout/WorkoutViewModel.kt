@@ -14,10 +14,12 @@ import com.example.sport.core.database.entity.ExerciseSetEntity
 import com.example.sport.core.database.relation.SessionExerciseWithSets
 import com.example.sport.core.database.relation.WorkoutSessionWithExercises
 import com.example.sport.core.designsystem.input.KeypadKey
+import com.example.sport.core.designsystem.input.NumericInputConfig
 import com.example.sport.core.designsystem.input.NumericInputState
 import com.example.sport.core.media.MediaRepository
 import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.core.model.MachineSetupParam
+import com.example.sport.core.model.Muscle
 import com.example.sport.core.model.SetType
 import com.example.sport.core.model.WeightUnit
 import com.example.sport.core.settings.SettingsRepository
@@ -75,6 +77,8 @@ data class WorkoutExerciseUi(
     @StringRes val muscleLabelRes: Int,
     val thumbnail: Any?,
     val restLabel: String,
+    /** Muscolo principale: ripiego della miniatura (mappa anatomica). */
+    val muscle: Muscle? = null,
     val trackingType: ExerciseTrackingType,
     val metrics: List<SetMetric>,
     val showSetup: Boolean,
@@ -85,6 +89,13 @@ data class WorkoutExerciseUi(
     /** Lettera della superserie (A, B…) se l'esercizio è collegato ad altri. */
     val supersetLabel: String? = null,
 )
+
+/** Cronometro del tempo di corsa acceso su una serie (tapis roulant). */
+@Immutable
+data class StopwatchUi(val setId: Long, val startedAt: Instant, val baseSeconds: Long) {
+    /** Secondi totali a [now]: quelli già scritti nel campo all'avvio più quelli trascorsi. */
+    fun secondsAt(now: Instant): Long = baseSeconds + Duration.between(startedAt, now).seconds.coerceAtLeast(0)
+}
 
 @Immutable
 data class EditingUi(
@@ -114,6 +125,8 @@ sealed interface WorkoutUiState {
         val exactAlarmHint: Boolean = false,
         /** Serie spuntate con dati validi: se sono zero, a "Termina" la sessione risulta nulla. */
         val validCompletedSets: Int = completedSets,
+        /** Cronometro acceso (al massimo uno): la riga e il tastierino mostrano il tempo che scorre. */
+        val stopwatch: StopwatchUi? = null,
     ) : WorkoutUiState
 }
 
@@ -177,6 +190,7 @@ class WorkoutViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, UserSettings())
 
     private val editing = MutableStateFlow<EditingField?>(null)
+    private val stopwatch = MutableStateFlow<StopwatchUi?>(null)
     private val rpeEnabled = MutableStateFlow<Set<Long>>(emptySet())
     private val setupShown = MutableStateFlow<Set<Long>>(emptySet())
     private val previousSets = MutableStateFlow<Map<String, List<ExerciseSetEntity>>>(emptyMap())
@@ -196,20 +210,27 @@ class WorkoutViewModel @Inject constructor(
             if (editedSet != null && current?.exercises?.none { e -> e.sets.any { it.id == editedSet } } != false) {
                 editing.value = null
             }
+            // Serie eliminata con il cronometro acceso: il cronometro si spegne.
+            val timedSet = stopwatch.value?.setId
+            if (timedSet != null && current?.exercises?.none { e -> e.sets.any { it.id == timedSet } } != false) {
+                stopwatch.value = null
+            }
         }
 
     private val decorations = combine(rpeEnabled, setupShown, previousSets, bestWeights, settings, ::Decorations)
 
     private val restPanel = combine(restTimer.state, restTimer.exactAlarmHint, ::RestPanel)
 
+    private val keypad = combine(editing, stopwatch, ::Pair)
+
     val uiState: StateFlow<WorkoutUiState> = combine(
         session,
         exerciseRepository.observeThumbnailPaths(),
-        editing,
+        keypad,
         decorations,
         restPanel,
-    ) { current, thumbnails, edit, deco, rest ->
-        if (current == null) WorkoutUiState.NoActiveSession else current.toUiState(thumbnails, edit, deco, rest)
+    ) { current, thumbnails, (edit, watch), deco, rest ->
+        if (current == null) WorkoutUiState.NoActiveSession else current.toUiState(thumbnails, edit, watch, deco, rest)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WorkoutUiState.Loading)
 
     private val setupSheetTarget = MutableStateFlow<Long?>(null)
@@ -245,6 +266,8 @@ class WorkoutViewModel @Inject constructor(
 
     fun onKey(key: KeypadKey) {
         val current = editing.value ?: return
+        // Il tempo scritto a mano vince sul cronometro acceso per la stessa serie.
+        if (current.metric == SetMetric.DURATION_CLOCK && stopwatch.value?.setId == current.setId) stopwatch.value = null
         val next = current.input.reduce(key)
         editing.value = current.copy(input = next)
         val stored = next.value?.let { current.metric.toStorage(it, current.unit) }
@@ -264,6 +287,32 @@ class WorkoutViewModel @Inject constructor(
         editing.value = null
     }
 
+    /**
+     * Cronometro del tempo di corsa (campo "Tempo" degli esercizi INCLINE_TIME): parte dal tempo già
+     * scritto, così si può riprendere dopo una pausa; fermato, salva il totale nella serie. Resta acceso
+     * anche chiudendo il tastierino e si ferma da solo spuntando la serie o terminando l'allenamento.
+     */
+    fun onToggleStopwatch() {
+        if (stopwatch.value != null) {
+            viewModelScope.launch { stopStopwatch() }
+            return
+        }
+        val field = editing.value?.takeIf { it.metric == SetMetric.DURATION_CLOCK } ?: return
+        stopwatch.value = StopwatchUi(field.setId, now(), field.input.value?.toLong() ?: 0L)
+    }
+
+    /** Ferma il cronometro (se acceso) e scrive il tempo nella sua serie. */
+    private suspend fun stopStopwatch() {
+        val running = stopwatch.value ?: return
+        stopwatch.value = null
+        val seconds = running.secondsAt(now()).coerceAtMost(NumericInputConfig.Clock.max.toLong())
+        workoutRepository.updateMetric(running.setId, SetMetric.DURATION_CLOCK, seconds.toDouble())
+        val field = editing.value
+        if (field != null && field.setId == running.setId && field.metric == SetMetric.DURATION_CLOCK) {
+            editing.value = field.copy(input = NumericInputState.of(seconds.toDouble(), NumericInputConfig.Clock))
+        }
+    }
+
     // ------------------------------------------------------------------ Serie
 
     fun onToggleComplete(setId: Long) {
@@ -272,7 +321,10 @@ class WorkoutViewModel @Inject constructor(
         val completing = !set.isCompleted
         if (completing && editing.value?.setId == setId) editing.value = null
         viewModelScope.launch {
-            if (completing) fillMissingFromPrevious(exercise, set)
+            // Cronometro acceso su questa serie: il suo tempo è il valore della serie, non va ricopiato dallo storico.
+            val timed = completing && stopwatch.value?.setId == setId
+            if (timed) stopStopwatch()
+            if (completing) fillMissingFromPrevious(exercise, set, skip = if (timed) setOf(SetMetric.DURATION_CLOCK) else emptySet())
             workoutRepository.setCompleted(setId, completing)
             if (completing) {
                 when (val plan = restPlanAfter(setId)) {
@@ -368,6 +420,7 @@ class WorkoutViewModel @Inject constructor(
         val sessionId = latest?.session?.id ?: return
         viewModelScope.launch {
             restTimer.cancel()
+            stopStopwatch()
             // Senza serie valide il database scarta la sessione: non c'è un riepilogo da mostrare.
             val saved = workoutRepository.finish(sessionId)
             eventChannel.send(if (saved) WorkoutEvent.Finished(sessionId) else WorkoutEvent.Discarded)
@@ -376,6 +429,7 @@ class WorkoutViewModel @Inject constructor(
 
     fun onDiscard() {
         val sessionId = latest?.session?.id ?: return
+        stopwatch.value = null
         viewModelScope.launch {
             restTimer.cancel()
             workoutRepository.discard(sessionId)
@@ -388,6 +442,7 @@ class WorkoutViewModel @Inject constructor(
     private fun WorkoutSessionWithExercises.toUiState(
         thumbnails: Map<String, String>,
         edit: EditingField?,
+        watch: StopwatchUi?,
         deco: Decorations,
         rest: RestPanel,
     ): WorkoutUiState.Active {
@@ -417,11 +472,12 @@ class WorkoutViewModel @Inject constructor(
                     exerciseName = owner.name,
                     setPosition = owner.sets.first { it.setId == field.setId }.position,
                     allowDecimal = field.input.config.allowDecimal,
-                    stepLabel = Formatters.number(field.input.config.step),
+                    stepLabel = if (field.input.config.clock) Formatters.clock(field.input.config.step.toLong()) else Formatters.number(field.input.config.step),
                 )
             },
             rest = rest.timer,
             exactAlarmHint = rest.timer != null && rest.exactAlarmHint,
+            stopwatch = watch?.takeIf { w -> allSets.any { it.setId == w.setId } },
         )
     }
 
@@ -457,6 +513,7 @@ class WorkoutViewModel @Inject constructor(
             name = exercise.name,
             muscleLabelRes = exercise.primaryMuscle.labelRes(),
             thumbnail = thumbnails[exercise.id]?.let(mediaRepository::resolve),
+            muscle = exercise.primaryMuscle,
             restLabel = Formatters.duration(sessionExercise.restSeconds.toLong()),
             trackingType = exercise.trackingType,
             metrics = metrics,
@@ -495,7 +552,11 @@ class WorkoutViewModel @Inject constructor(
      * Spunta su una riga vuota = "come prima": ogni valore mancante viene copiato dalla serie
      * precedente di oggi (60 kg sulla 1ª → 60 kg sulla 2ª) e, se oggi non c'è, dallo storico.
      */
-    private suspend fun fillMissingFromPrevious(exercise: SessionExerciseWithSets, set: ExerciseSetEntity) {
+    private suspend fun fillMissingFromPrevious(
+        exercise: SessionExerciseWithSets,
+        set: ExerciseSetEntity,
+        skip: Set<SetMetric> = emptySet(),
+    ) {
         if (set.setType == SetType.WARMUP) return
         val working = exercise.orderedSets.filter { it.setType != SetType.WARMUP }
         val ordinal = working.indexOfFirst { it.id == set.id }
@@ -504,6 +565,7 @@ class WorkoutViewModel @Inject constructor(
         val history = previousSets.value[exercise.exercise.id].orEmpty()
         val fromHistory = history.getOrNull(ordinal) ?: history.lastOrNull()
         SetMetric.forTracking(exercise.exercise.trackingType, withRpe = false).forEach { metric ->
+            if (metric in skip) return@forEach
             if (metric.read(set) != null) return@forEach
             val value = earlierToday.firstNotNullOfOrNull { metric.read(it) } ?: fromHistory?.let { metric.read(it) }
             if (value != null) workoutRepository.updateMetric(set.id, metric, value)
@@ -565,6 +627,8 @@ class WorkoutViewModel @Inject constructor(
         SetMetric.REPS, SetMetric.RIR, SetMetric.DURATION_SECONDS, SetMetric.DURATION_MINUTES -> value.toLong().toString()
         SetMetric.WEIGHT -> Formatters.weightNumber(value, unit)
         SetMetric.RPE, SetMetric.DISTANCE_KM -> Formatters.number(value)
+        SetMetric.INCLINE_PERCENT -> Formatters.number(value)
+        SetMetric.DURATION_CLOCK -> Formatters.clock(value.toLong())
     }
 }
 
@@ -582,6 +646,13 @@ internal object SetFormat {
             ExerciseTrackingType.DISTANCE_DURATION -> listOfNotNull(
                 set.distanceMeters?.let { "${Formatters.number(it / 1000)} km" },
                 set.durationSeconds?.let { "${it / 60} min" },
+            ).joinToString(" · ").ifEmpty { null }
+            // Tapis roulant: "8,5% · 25:00", il riferimento rapido della volta scorsa. Le serie registrate
+            // prima della v5 (distanza e tempo) mostrano anche la distanza: il dato resta visibile.
+            ExerciseTrackingType.INCLINE_TIME -> listOfNotNull(
+                set.inclinePercent?.let(Formatters::incline),
+                set.durationSeconds?.let { Formatters.clock(it.toLong()) },
+                set.distanceMeters?.takeIf { it > 0 }?.let { "${Formatters.number(it / 1000)} km" },
             ).joinToString(" · ").ifEmpty { null }
         }
     }

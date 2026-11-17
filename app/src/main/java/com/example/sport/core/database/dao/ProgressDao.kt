@@ -5,6 +5,7 @@ import androidx.room.Query
 import com.example.sport.core.database.entity.ExerciseEntity
 import com.example.sport.core.database.relation.CompletedSetRow
 import com.example.sport.core.database.relation.ExerciseProgressPoint
+import com.example.sport.core.database.relation.InclineSetRow
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -46,6 +47,28 @@ interface ProgressDao {
         """,
     )
     fun observeExerciseProgress(exerciseId: String, from: Instant): Flow<List<ExerciseProgressPoint>>
+
+    /**
+     * Serie a tempo di un esercizio INCLINE_TIME (tapis roulant), una riga per serie: pendenza e
+     * tempo per il confronto sessione per sessione. Il riscaldamento conta: sul tapis roulant è parte
+     * del lavoro (es. 5 minuti in piano prima della salita).
+     */
+    @Query(
+        """
+        SELECT ws.id AS session_id, ws.started_at AS performed_at,
+               es.incline_percent AS incline_percent, es.duration_seconds AS duration_seconds
+        FROM exercise_sets es
+        INNER JOIN session_exercises se ON se.id = es.session_exercise_id
+        INNER JOIN workout_sessions ws ON ws.id = se.session_id
+        WHERE se.exercise_id = :exerciseId
+          AND ws.status = 'COMPLETED'
+          AND ws.started_at >= :from
+          AND es.is_completed = 1
+          AND COALESCE(es.duration_seconds, 0) > 0
+        ORDER BY ws.started_at ASC, se.position ASC, es.set_index ASC
+        """,
+    )
+    fun observeInclineSets(exerciseId: String, from: Instant): Flow<List<InclineSetRow>>
 
     /**
      * Tutte le serie allenanti completate con carico e ripetizioni, in ordine cronologico:

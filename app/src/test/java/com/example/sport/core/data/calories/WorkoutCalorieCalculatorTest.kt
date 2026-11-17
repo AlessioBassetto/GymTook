@@ -206,6 +206,59 @@ class WorkoutCalorieCalculatorTest {
         assertNull(calculator.estimate(athlete, CalorieSession(Duration.ofMinutes(30), emptyList())))
     }
 
+    // ------------------------------------------------------------------ Tapis roulant in salita
+
+    @Test
+    fun acsmGradeTerm_isTheInclineMultiplier() {
+        // Camminata 80 m/min al 10%: 3,5 + 0,1 × 80 + 1,8 × 80 × 0,10 = 25,9 ml/kg/min.
+        assertEquals(25.9, calculator.runOrWalkVo2(80.0, grade = 0.10), 1e-9)
+        assertEquals("In piano resta l'equazione orizzontale", 11.5, calculator.runOrWalkVo2(80.0), 1e-9)
+        // Corsa 160 m/min al 5%: 3,5 + 0,2 × 160 + 0,9 × 160 × 0,05 = 42,7.
+        assertEquals(42.7, calculator.runOrWalkVo2(160.0, grade = 0.05), 1e-9)
+    }
+
+    @Test
+    fun inclineWalk_usesBodyWeightExactTimeAndGrade() {
+        // 30 minuti al 12% a 5 km/h (83,3 m/min): VO₂ = 3,5 + 8,33 + 1,8 × 83,3 × 0,12 = 29,83 → 8,52 MET.
+        val walk = CalorieSet(INCLINE_WALK, durationSeconds = 30 * 60, inclinePercent = 12.0)
+        val result = calculator.estimate(athlete, CalorieSession(Duration.ofMinutes(30), listOf(walk)))!!
+        val metersPerMinute = 5000.0 / 60
+        val met = (3.5 + 0.1 * metersPerMinute + 1.8 * metersPerMinute * 0.12) / 3.5
+        assertEquals((met - 1) * 0.0175 * 80 * 30, result.activeKcal, 1e-6)
+        assertEquals(1800.0, result.activeSeconds, 1e-9)
+        assertEquals(0.0, result.mechanicalWorkKcal, 0.0)
+        assertEquals(353, result.totalKcal)
+    }
+
+    @Test
+    fun inclineWalk_scalesWithGradeTimeAndWeight_notWithRpe() {
+        fun kcal(incline: Double, minutes: Int, body: BodyMetrics = athlete, rpe: Double? = null) = calculator.estimate(
+            body,
+            CalorieSession(Duration.ofMinutes(minutes.toLong()), listOf(CalorieSet(INCLINE_WALK, durationSeconds = minutes * 60, inclinePercent = incline, rpe = rpe))),
+        )!!.totalKcal
+
+        val reference = kcal(10.0, 30)
+        assertTrue("Più pendenza", kcal(15.0, 30) > reference)
+        assertTrue("In piano costa meno", kcal(0.0, 30) < reference)
+        assertTrue("Più tempo", kcal(10.0, 40) > reference)
+        assertTrue("Più peso corporeo", kcal(10.0, 30, athlete.copy(weightKg = 95.0)) > reference)
+        assertEquals("La pendenza misura già lo sforzo: l'RPE non si somma", reference, kcal(10.0, 30, rpe = 10.0))
+        assertEquals("Oltre il 40% si considera il 40%", kcal(40.0, 30), kcal(60.0, 30))
+    }
+
+    @Test
+    fun inclineRun_usesTheRunningEquation_andAKnownDistanceWins() {
+        val run = CalorieSet(INCLINE_RUN, durationSeconds = 20 * 60, inclinePercent = 4.0)
+        val result = calculator.estimate(athlete, CalorieSession(Duration.ofMinutes(20), listOf(run)))!!
+        // 9 km/h = 150 m/min: 3,5 + 0,2 × 150 + 0,9 × 150 × 0,04 = 38,9 ml/kg/min.
+        assertEquals((38.9 / 3.5 - 1) * 0.0175 * 80 * 20, result.activeKcal, 1e-6)
+
+        // Vecchie serie con la distanza (prima della v5 il tapis registrava distanza e tempo).
+        val measured = CalorieSet(INCLINE_WALK, durationSeconds = 30 * 60, distanceMeters = 3000.0, inclinePercent = 0.0)
+        val flat = calculator.estimate(athlete, CalorieSession(Duration.ofMinutes(30), listOf(measured)))!!
+        assertEquals((calculator.runOrWalkVo2(100.0) / 3.5 - 1) * 0.0175 * 80 * 30, flat.activeKcal, 1e-6)
+    }
+
     private companion object {
         fun strength(
             id: String,
@@ -234,6 +287,14 @@ class WorkoutCalorieCalculatorTest {
         val TREADMILL = CalorieExercise(
             "treadmill_running", "Corsa sul tapis roulant", "Treadmill Running", Equipment.CARDIO_MACHINE, Muscle.CARDIO,
             ExerciseTrackingType.DISTANCE_DURATION, ExerciseCategory.CARDIO,
+        )
+        val INCLINE_WALK = CalorieExercise(
+            "walking_treadmill", "Camminata in salita sul tapis roulant", "Walking, Treadmill", Equipment.CARDIO_MACHINE, Muscle.CARDIO,
+            ExerciseTrackingType.INCLINE_TIME, ExerciseCategory.CARDIO,
+        )
+        val INCLINE_RUN = CalorieExercise(
+            "custom_incline_run", "Corsa in salita sul tapis", null, Equipment.CARDIO_MACHINE, Muscle.CARDIO,
+            ExerciseTrackingType.INCLINE_TIME, ExerciseCategory.CARDIO,
         )
     }
 }

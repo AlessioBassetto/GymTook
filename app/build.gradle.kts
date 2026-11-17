@@ -164,6 +164,8 @@ dependencies {
     // Media: immagini con cache su disco, download offline in background
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    // GIF e WebP animati come "video" dimostrativi (decoder nativo da Android 9, software prima).
+    implementation(libs.coil.gif)
     implementation(libs.okhttp)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.media3.exoplayer)

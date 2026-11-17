@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.sport.R
 import com.example.sport.core.database.entity.ExerciseEntity
+import com.example.sport.core.model.Muscle
 import com.example.sport.core.designsystem.theme.SportDimens
 import com.example.sport.core.ui.labels.labelRes
 import com.example.sport.core.ui.media.ExerciseThumbnail
@@ -35,12 +36,15 @@ data class ExerciseRowUi(
     val thumbnail: Any?,
     val isFavorite: Boolean,
     val isCustom: Boolean = false,
+    /** Muscolo principale: senza immagine la miniatura mostra la sua mappa anatomica. */
+    val muscle: Muscle? = null,
 ) {
     companion object {
         fun from(exercise: ExerciseEntity, thumbnail: Any?) = ExerciseRowUi(
             id = exercise.id,
             name = exercise.name,
             muscleLabelRes = exercise.primaryMuscle.labelRes(),
+            muscle = exercise.primaryMuscle,
             equipmentLabelRes = exercise.equipment.labelRes(),
             thumbnail = thumbnail,
             isFavorite = exercise.isFavorite,
@@ -64,7 +68,7 @@ fun ExerciseListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingM),
         ) {
-            ExerciseThumbnail(model = exercise.thumbnail)
+            ExerciseThumbnail(model = exercise.thumbnail, muscle = exercise.muscle)
             Column(Modifier.weight(1f)) {
                 Text(exercise.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingS)) {

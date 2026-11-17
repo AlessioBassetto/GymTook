@@ -84,6 +84,22 @@ class DataUtilsTest {
     }
 
     @Test
+    fun prefilledTreadmillSets_recallInclineAndTime_butNotALegacyDistance() {
+        // Serie del tapis registrata prima della v5 (distanza e tempo) e una nuova (pendenza e tempo).
+        val previous = listOf(
+            ExerciseSetEntity(sessionExerciseId = 1, setIndex = 0, durationSeconds = 1800, distanceMeters = 3000.0),
+            ExerciseSetEntity(sessionExerciseId = 1, setIndex = 1, durationSeconds = 600, inclinePercent = 12.5),
+        )
+        val sets = buildPrefilledSets(9, count = 2, previous = previous, fallbackReps = null, trackingType = ExerciseTrackingType.INCLINE_TIME)
+        assertEquals(listOf(1800, 600), sets.map { it.durationSeconds })
+        assertEquals(listOf(null, 12.5), sets.map { it.inclinePercent })
+        assertTrue("La distanza non si vede nel logger: non va ricopiata", sets.all { it.distanceMeters == null })
+
+        val running = buildPrefilledSets(9, count = 1, previous = previous, fallbackReps = null, trackingType = ExerciseTrackingType.DISTANCE_DURATION)
+        assertEquals(3000.0, running.single().distanceMeters!!, 0.0)
+    }
+
+    @Test
     fun defaultRest_dependsOnMechanicAndTracking() {
         assertEquals(150, defaultRestSecondsFor(Mechanic.COMPOUND, ExerciseTrackingType.WEIGHT_REPS))
         assertEquals(90, defaultRestSecondsFor(Mechanic.ISOLATION, ExerciseTrackingType.WEIGHT_REPS))

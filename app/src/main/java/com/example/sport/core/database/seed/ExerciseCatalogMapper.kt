@@ -14,7 +14,8 @@ import java.time.Instant
 /** Recupero di default: 150 s multiarticolari, 90 s complementari, 60 s cardio/isometrie. */
 internal fun defaultRestSecondsFor(mechanic: Mechanic?, trackingType: ExerciseTrackingType): Int = when {
     trackingType == ExerciseTrackingType.DURATION ||
-        trackingType == ExerciseTrackingType.DISTANCE_DURATION -> 60
+        trackingType == ExerciseTrackingType.DISTANCE_DURATION ||
+        trackingType == ExerciseTrackingType.INCLINE_TIME -> 60
     mechanic == Mechanic.COMPOUND -> 150
     else -> 90
 }

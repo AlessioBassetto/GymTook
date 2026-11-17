@@ -81,6 +81,15 @@ object Formatters {
     /** Valore grande senza decimali superflui per volumi e massimali ("1.395 kg"). */
     fun wholeKg(value: Double, unit: WeightUnit = WeightUnit.KG): String = "${integer(unit.fromKg(value))} ${unit.symbol}"
 
+    /** Tempo di corsa: 1500 s → "25:00", 75 s → "1:15". */
+    fun clock(seconds: Long): String {
+        val safe = seconds.coerceAtLeast(0)
+        return "${safe / 60}:${(safe % 60).toString().padStart(2, '0')}"
+    }
+
+    /** Pendenza del tapis roulant: 8.5 → "8,5%", 10.0 → "10%". */
+    fun incline(percent: Double): String = "${number(percent)}%"
+
     /** 1250 → "1.250 kcal". */
     fun kcal(value: Int): String = "${integer(value.toDouble())} kcal"
 

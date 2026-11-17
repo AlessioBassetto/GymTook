@@ -11,6 +11,7 @@ import com.example.sport.core.database.seed.AssetExerciseCatalogSource
 import com.example.sport.core.database.seed.CatalogSeedResult
 import com.example.sport.core.database.seed.ExerciseCatalogSeeder
 import com.example.sport.core.model.ExerciseCategory
+import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.core.model.MachineSetupParam
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -201,6 +202,77 @@ class MigrationTest {
             assertTrue("Stima ${estimated.caloriesBurned}", (estimated.caloriesBurned ?: 0) > 100)
             assertEquals(81.5, estimated.bodyWeightKg!!, 0.0)
             assertEquals("Storico intatto", 4, db.workoutSessionDao().getSessionWithExercises(1)!!.exercises.single().sets.size)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun v4ToV5_addsTheIncline_thenTheItalianCatalogTurnsTheTreadmillWalkIntoInclineAndTime() = runTest {
+        createDatabase(version = 4) { db ->
+            val start = T0.toEpochMilli()
+            val end = T0.plusSeconds(40 * 60).toEpochMilli()
+            db.execSQL(
+                """
+                INSERT INTO exercises (id, name, name_en, aliases, search_text, equipment, primary_muscle,
+                    primary_muscle_group, tracking_type, category, mechanic, force, level, is_unilateral, instructions,
+                    key_points, common_mistakes, content_locale, supports_machine_setup, setup_param_hints,
+                    default_rest_seconds, is_custom, is_favorite, is_hidden, is_retired, catalog_version,
+                    created_at, updated_at)
+                VALUES ('walking_treadmill', 'Camminata su tapis roulant', 'Walking, Treadmill', '[]', 'walking treadmill',
+                    'CARDIO_MACHINE', 'CARDIO', 'CARDIO_FULL_BODY', 'DISTANCE_DURATION', 'CARDIO', NULL, NULL, 'BEGINNER', 0,
+                    '["To begin, step onto the treadmill"]', '[]', '[]', 'en', 0, '[]', 60, 0, 1, 0, 0, 3, $start, $start)
+                """.trimIndent(),
+            )
+            db.execSQL("INSERT INTO exercise_muscles (exercise_id, muscle, muscle_group, role) VALUES ('walking_treadmill', 'CARDIO', 'CARDIO_FULL_BODY', 'PRIMARY')")
+            db.execSQL(
+                "INSERT INTO workout_sessions (id, routine_id, routine_day_id, title, status, started_at, ended_at, body_weight_kg, notes) " +
+                    "VALUES (1, NULL, NULL, 'Cardio', 'COMPLETED', $start, $end, NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO session_exercises (id, session_id, exercise_id, routine_exercise_id, position, superset_group, " +
+                    "rest_seconds, machine_setup_id, machine_setup, replaced_exercise_id, notes) " +
+                    "VALUES (1, 1, 'walking_treadmill', NULL, 0, NULL, 60, NULL, '[]', NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO exercise_sets (id, session_exercise_id, set_index, set_type, weight_kg, reps, rpe, rir, " +
+                    "duration_seconds, distance_meters, is_completed, completed_at, notes) " +
+                    "VALUES (1, 1, 0, 'WORKING', NULL, NULL, NULL, NULL, 1800, 3000.0, 1, $end, NULL)",
+            )
+            db.execSQL("INSERT INTO app_metadata (`key`, `value`) VALUES ('exercise_catalog_version', '3')")
+        }
+
+        val db = Room.databaseBuilder(context, SportDatabase::class.java, databaseName)
+            .addMigrations(*MANUAL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            // Apertura = MIGRATION_4_5 + validazione dello schema v5 da parte di Room.
+            val set = db.workoutSessionDao().getSets(1).single()
+            assertNull("Le serie esistenti non hanno una pendenza", set.inclinePercent)
+            assertEquals(1800, set.durationSeconds)
+            assertEquals(3000.0, set.distanceMeters!!, 0.0)
+            db.workoutSessionDao().updateSetIncline(1, 7.5)
+            assertEquals(7.5, db.workoutSessionDao().getSets(1).single().inclinePercent!!, 0.0)
+
+            // Primo avvio: il catalogo v4 in italiano sostituisce i testi inglesi.
+            val result = ExerciseCatalogSeeder(
+                database = db,
+                source = AssetExerciseCatalogSource(context, Dispatchers.IO),
+                clock = Clock.fixed(T0, ZoneOffset.UTC),
+                applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            ).seedIfNeeded()
+            assertEquals(3, (result as CatalogSeedResult.Installed).previousVersion)
+
+            val treadmill = db.exerciseDao().getDetails("walking_treadmill")!!.exercise
+            assertEquals(ExerciseTrackingType.INCLINE_TIME, treadmill.trackingType)
+            assertEquals("Camminata in salita sul tapis roulant", treadmill.name)
+            assertEquals("it", treadmill.contentLocale)
+            assertTrue(treadmill.instructions.first().startsWith("Sali sul tapis roulant"))
+            assertTrue("Il preferito sopravvive", treadmill.isFavorite)
+            val kept = db.workoutSessionDao().getSets(1).single()
+            assertEquals("Lo storico resta intatto", 1800, kept.durationSeconds)
+            assertEquals(3000.0, kept.distanceMeters!!, 0.0)
         } finally {
             db.close()
         }

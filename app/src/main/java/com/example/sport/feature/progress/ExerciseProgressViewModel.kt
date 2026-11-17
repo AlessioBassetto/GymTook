@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.sport.R
 import com.example.sport.core.data.ProgressRepository
+import com.example.sport.core.data.progress.InclineSession
 import com.example.sport.core.data.progress.PersonalRecord
 import com.example.sport.core.data.progress.RecordKind
 import com.example.sport.core.database.dao.HistoryRemoval
@@ -56,11 +57,12 @@ enum class ProgressMetric(@StringRes val labelRes: Int) {
             ExerciseTrackingType.WEIGHT_REPS -> listOf(ONE_REP_MAX, MAX_WEIGHT, VOLUME, REPS)
             ExerciseTrackingType.BODYWEIGHT_REPS -> listOf(REPS, MAX_WEIGHT)
             ExerciseTrackingType.ASSISTED_BODYWEIGHT -> listOf(REPS)
-            ExerciseTrackingType.DURATION, ExerciseTrackingType.DISTANCE_DURATION -> emptyList()
+            // Il tapis roulant ha una vista dedicata (pendenza e tempo), non queste grandezze.
+            ExerciseTrackingType.DURATION, ExerciseTrackingType.DISTANCE_DURATION, ExerciseTrackingType.INCLINE_TIME -> emptyList()
         }
 
-        /** Esercizi con un grafico dei progressi (serie a ripetizioni). */
-        fun hasChart(type: ExerciseTrackingType): Boolean = availableFor(type).isNotEmpty()
+        /** Esercizi con una pagina dei progressi: serie a ripetizioni e tapis roulant in salita. */
+        fun hasChart(type: ExerciseTrackingType): Boolean = availableFor(type).isNotEmpty() || type == ExerciseTrackingType.INCLINE_TIME
     }
 }
 
@@ -113,12 +115,21 @@ sealed interface ExerciseProgressUiState {
         val points: List<MetricPoint>,
         val sessions: List<ExerciseSessionUi>,
         val records: List<RecordTileUi>,
+        /** Solo per gli esercizi INCLINE_TIME: confronto pendenza/tempo sessione per sessione. */
+        val incline: InclineProgressUi? = null,
     ) : ExerciseProgressUiState {
         val latest: Double? get() = points.lastOrNull()?.value
         val best: Double? get() = points.maxOfOrNull { it.value }
         val change: Double? get() = if (points.size < 2) null else points.last().value - points.first().value
     }
 }
+
+/** Dati del periodo scelto: serie a ripetizioni e sessioni di tapis roulant. */
+private data class RangeData(
+    val range: TimeRange,
+    val rows: List<ExerciseProgressPoint>,
+    val inclineSessions: List<InclineSession>,
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -133,7 +144,10 @@ class ExerciseProgressViewModel @Inject constructor(
 
     private val rowsInRange = range.flatMapLatest { selected ->
         val from = selected.startDate(repository.today()).atStartOfDay(repository.zone()).toInstant()
-        repository.observeExerciseProgress(exerciseId, from).map { rows -> selected to rows }
+        combine(
+            repository.observeExerciseProgress(exerciseId, from),
+            repository.observeInclineSessions(exerciseId, from),
+        ) { rows, inclineSessions -> RangeData(selected, rows, inclineSessions) }
     }
 
     val uiState: StateFlow<ExerciseProgressUiState> = combine(
@@ -141,7 +155,7 @@ class ExerciseProgressViewModel @Inject constructor(
         rowsInRange,
         repository.observeExerciseRecords(exerciseId),
         chosenMetric,
-    ) { exercise, (selected, rows), records, chosen ->
+    ) { exercise, (selected, rows, inclineSessions), records, chosen ->
         if (exercise == null) return@combine ExerciseProgressUiState.NotFound
         val zone = repository.zone()
         val metrics = ProgressMetric.availableFor(exercise.trackingType)
@@ -157,6 +171,7 @@ class ExerciseProgressViewModel @Inject constructor(
             records = records?.let { listOfNotNull(it.heaviestSet, it.bestOneRepMax, it.bestSessionVolume) }
                 .orEmpty()
                 .map { it.toUi(zone) },
+            incline = if (exercise.trackingType == ExerciseTrackingType.INCLINE_TIME) inclineProgressUi(inclineSessions, zone) else null,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExerciseProgressUiState.Loading)
 

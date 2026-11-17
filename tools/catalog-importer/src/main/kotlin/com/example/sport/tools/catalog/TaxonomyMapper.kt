@@ -185,6 +185,8 @@ class TaxonomyMapper {
     }
 
     internal fun trackingTypeOf(source: SourceExercise, name: String, equipment: Equipment): ExerciseTrackingType = when {
+        // Camminata sul tapis roulant: si allena la pendenza, si registrano inclinazione (%) e tempo.
+        source.category == "cardio" && "treadmill" in name && "walk" in name -> ExerciseTrackingType.INCLINE_TIME
         source.category == "cardio" ->
             if (DISTANCE_CARDIO.containsMatchIn(name)) ExerciseTrackingType.DISTANCE_DURATION else ExerciseTrackingType.DURATION
         STATIC_HOLD.containsMatchIn(name) && (source.force == "static" || "isometric" in name) -> ExerciseTrackingType.DURATION

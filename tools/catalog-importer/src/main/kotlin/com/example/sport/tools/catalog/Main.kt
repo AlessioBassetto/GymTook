@@ -15,6 +15,9 @@ Comandi:
             [--batch-size 8] [--parallel 4] [--model claude-opus-5-5] [--effort medium]
             Richiede ANTHROPIC_API_KEY (o un profilo `ant auth login`).
   mirror-media --out DIR          Scarica tutti i media del manifest in DIR, pronti per la CDN
+  pending-translations --out FILE Elenca gli esercizi ancora senza traduzione (nome, attrezzo, istruzioni EN)
+  merge-translations --in FILE[,FILE...] [--by NOME]
+                                  Unisce traduzioni scritte nel formato testuale (vedi TranslationText)
 
 Opzioni comuni:
   --root DIR                      Radice del repository (default: cartella corrente)
@@ -49,6 +52,18 @@ fun main(args: Array<String>) {
                 parallelism = options["parallel"]?.toIntOrNull() ?: 4,
             )
             println("Tradotti $count esercizi → ${paths.translationsFile}. Esegui `build` per aggiornare il catalogo.")
+        }
+        "pending-translations" -> {
+            val out = options["out"] ?: fail("--out FILE obbligatorio")
+            val text = TranslationText.pending(paths, FreeExerciseDb.load(paths.sourceCacheDir))
+            writeAtomically(Path.of(out), text)
+            println("Esercizi da tradurre: ${text.lines().count { it.startsWith("## ") }} → $out")
+        }
+        "merge-translations" -> {
+            val files = (options["in"] ?: fail("--in FILE obbligatorio")).split(',').map { Path.of(it.trim()) }
+            val sources = FreeExerciseDb.load(paths.sourceCacheDir).map { it.name }.toSet()
+            val count = TranslationText.merge(paths, files, options["by"] ?: "manuale", sources)
+            println("Traduzioni unite: $count → ${paths.translationsFile}. Esegui `build` per aggiornare il catalogo.")
         }
         "mirror-media" -> {
             val out = options["out"] ?: fail("--out DIR obbligatorio")

@@ -44,5 +44,20 @@ val MIGRATION_3_4: Migration = object : Migration(3, 4) {
     }
 }
 
+/**
+ * v4 → v5 (tapis roulant in salita):
+ * - `exercise_sets.incline_percent`: pendenza in % delle serie INCLINE_TIME. Nullable e senza
+ *   default: le serie esistenti restano identiche (NULL = nessuna pendenza registrata).
+ *
+ * Il nuovo tipo di registrazione `INCLINE_TIME` non tocca lo schema (gli enum sono TEXT); il tempo
+ * usa la colonna esistente `duration_seconds`. I media restano in `exercise_media` (IMAGE_FRAME =
+ * anteprima, VIDEO_LOOP = video o GIF, locali o remoti): nessuna colonna duplicata su `exercises`.
+ */
+val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `exercise_sets` ADD COLUMN `incline_percent` REAL")
+    }
+}
+
 /** Migrazioni scritte a mano, da registrare in ogni builder del database (app e test). */
-val MANUAL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_3_4)
+val MANUAL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_3_4, MIGRATION_4_5)

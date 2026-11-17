@@ -9,6 +9,7 @@ import com.example.sport.core.data.ProgressRepository
 import com.example.sport.core.data.SetValues
 import com.example.sport.core.data.WorkoutRepository
 import com.example.sport.core.data.logSession
+import com.example.sport.core.data.progress.InclineTrend
 import com.example.sport.core.data.progress.RecordKind
 import com.example.sport.core.database.DatabaseTest
 import com.example.sport.core.database.T0
@@ -329,7 +330,65 @@ class ProgressViewModelsTest : DatabaseTest() {
         assertEquals("Il record torna quello vero", 100.0, progress.observeExerciseRecords(BENCH).first()!!.heaviestSet.valueKg, 0.0)
     }
 
+    // ------------------------------------------------------------------ Tapis roulant in salita
+
+    /** Allenamento con il tapis in salita: (pendenza %, secondi) per serie, poi "Termina" dopo 40 minuti. */
+    private suspend fun logIncline(dayOffset: Long, vararg sets: Pair<Double, Int>): Long {
+        clock.current = T0.plus(java.time.Duration.ofDays(dayOffset))
+        val dao = db.workoutSessionDao()
+        val sessionId = workout.startFree("Tapis")
+        val sessionExerciseId = workout.addExercise(sessionId, TREADMILL)
+        while (dao.getSets(sessionExerciseId).size < sets.size) workout.addSet(sessionExerciseId)
+        dao.getSets(sessionExerciseId).sortedBy { it.setIndex }.zip(sets).forEach { (set, spec) ->
+            workout.updateMetric(set.id, com.example.sport.core.data.SetMetric.INCLINE_PERCENT, spec.first)
+            workout.updateMetric(set.id, com.example.sport.core.data.SetMetric.DURATION_CLOCK, spec.second.toDouble())
+            workout.setCompleted(set.id, true)
+        }
+        clock.current = clock.current.plus(java.time.Duration.ofMinutes(40))
+        workout.finish(sessionId)
+        return sessionId
+    }
+
+    @Test
+    fun treadmill_recallsTheLastIncline_comparesSessions_andEstimatesCalories() = runTest {
+        weigh(today, 80.0)
+        val first = logIncline(0, 10.0 to 25 * 60)
+
+        // Nuova sessione: la serie parte da pendenza e tempo della volta scorsa.
+        clock.current = T0.plus(java.time.Duration.ofDays(2))
+        val draft = workout.startFree("Tapis")
+        val prefilled = db.workoutSessionDao().getSets(workout.addExercise(draft, TREADMILL)).first()
+        assertEquals(10.0, prefilled.inclinePercent!!, 0.0)
+        assertEquals(25 * 60, prefilled.durationSeconds)
+        workout.discard(draft)
+
+        logIncline(3, 10.0 to 30 * 60) // stessa pendenza, più a lungo
+        logIncline(6, 12.0 to 30 * 60) // più pendenza, stesso tempo
+        logIncline(9, 8.0 to 20 * 60) // calo
+
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to TREADMILL)), progress)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        val content = viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.incline?.sessions?.size == 4 } as ExerciseProgressUiState.Content
+        val incline = content.incline!!
+        assertEquals(
+            listOf(InclineTrend.FIRST, InclineTrend.LONGER_SAME_INCLINE, InclineTrend.STEEPER_SAME_TIME, InclineTrend.LOWER),
+            incline.sessions.map { it.trend },
+        )
+        assertEquals(2, incline.improvements)
+        assertEquals(30 * 60, incline.longestSeconds)
+        assertEquals(12.0, incline.steepest!!, 0.0)
+        assertEquals(5 * 60, incline.sessions[1].secondsDelta)
+
+        // Calorie: peso corporeo, durata registrata e pendenza (più pendenza = più calorie a parità di tempo).
+        val sessions = incline.sessions.map { db.workoutSessionDao().getSession(it.sessionId)!! }
+        assertEquals(80.0, sessions[0].bodyWeightKg!!, 0.0)
+        assertTrue(sessions.all { (it.caloriesBurned ?: 0) > 100 })
+        assertTrue("12% batte 10% sugli stessi 30 minuti", sessions[2].caloriesBurned!! > sessions[1].caloriesBurned!!)
+        assertEquals(first, incline.sessions.first().sessionId)
+    }
+
     private companion object {
+        const val TREADMILL = "walking_treadmill"
         const val BENCH = "barbell_bench_press"
         const val SQUAT = "barbell_back_squat"
         const val PULL_UP = "pull_up"

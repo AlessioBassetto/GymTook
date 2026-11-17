@@ -60,6 +60,18 @@ class TaxonomyMapperTest {
     }
 
     @Test
+    fun treadmillWalking_tracksInclineAndTime_whileRunningKeepsDistance() {
+        fun tracking(name: String) = mapper.trackingTypeOf(
+            source(name, equipment = "machine", primary = listOf("quadriceps"), category = "cardio"),
+            name.lowercase(),
+            Equipment.CARDIO_MACHINE,
+        )
+        assertEquals(ExerciseTrackingType.INCLINE_TIME, tracking("Walking, Treadmill"))
+        assertEquals(ExerciseTrackingType.DISTANCE_DURATION, tracking("Running, Treadmill"))
+        assertEquals(ExerciseTrackingType.DISTANCE_DURATION, tracking("Jogging, Treadmill"))
+    }
+
+    @Test
     fun secondaryMuscles_excludeDuplicatesOfPrimary() {
         val mapped = mapper.map(
             source("Dumbbell Bench Press", primary = listOf("chest"), secondary = listOf("chest", "triceps", "shoulders")),

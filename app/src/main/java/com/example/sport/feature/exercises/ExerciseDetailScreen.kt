@@ -570,20 +570,31 @@ private fun MediaSection(exercise: ExerciseDetailUi, isImportingVideo: Boolean, 
             }
         }
         val userVideo = exercise.userVideo?.takeIf { source == MediaSource.MINE && it !in failedVideos }
-        val catalogVideo = exercise.catalogVideo?.takeIf { it !in failedVideos }
+        val framesDescription = stringResource(R.string.exercise_frames_description, exercise.name)
         when {
             userVideo != null -> VideoLoop(uri = userVideo, contentDescription = description, onError = { failedVideos = failedVideos + userVideo })
             // Video personale illeggibile: avviso, e sotto i fotogrammi del catalogo se ci sono.
             exercise.userVideo != null && source == MediaSource.MINE -> {
                 VideoUnavailable()
                 if (exercise.frames.isNotEmpty()) {
-                    FrameLoop(frames = exercise.frames, contentDescription = stringResource(R.string.exercise_frames_description, exercise.name))
+                    FrameLoop(
+                        frames = exercise.frames,
+                        contentDescription = framesDescription,
+                        fallback = { ExerciseAnatomy(exercise, framesDescription) },
+                    )
                 }
             }
-            catalogVideo != null -> VideoLoop(uri = catalogVideo, contentDescription = description, onError = { failedVideos = failedVideos + catalogVideo })
-            exercise.frames.isNotEmpty() -> FrameLoop(
-                frames = exercise.frames,
-                contentDescription = stringResource(R.string.exercise_frames_description, exercise.name),
+            else -> CatalogMediaView(
+                exercise = exercise,
+                media = catalogMediaFor(
+                    video = exercise.catalogVideo,
+                    videoFailed = exercise.catalogVideo in failedVideos,
+                    onlineOnly = exercise.catalogVideoOnlineOnly,
+                    hasFrames = exercise.frames.isNotEmpty(),
+                ),
+                description = description,
+                framesDescription = framesDescription,
+                onVideoError = { video -> failedVideos = failedVideos + video },
             )
         }
         if (isImportingVideo) {
@@ -672,7 +683,7 @@ private fun AlternativeRow(exercise: ExerciseRowUi, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingM),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ExerciseThumbnail(model = exercise.thumbnail, size = 48.dp)
+            ExerciseThumbnail(model = exercise.thumbnail, size = 48.dp, muscle = exercise.muscle)
             Column(Modifier.weight(1f)) {
                 Text(exercise.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(

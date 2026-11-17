@@ -115,3 +115,18 @@ data class ExerciseUserFlags(
     @ColumnInfo(name = "created_at")
     val createdAt: Instant,
 )
+
+/** Serie a tempo di un esercizio INCLINE_TIME: pendenza (null se non scritta) e durata. */
+data class InclineSetRow(
+    @ColumnInfo(name = "session_id")
+    val sessionId: Long,
+
+    @ColumnInfo(name = "performed_at")
+    val performedAt: Instant,
+
+    @ColumnInfo(name = "incline_percent")
+    val inclinePercent: Double?,
+
+    @ColumnInfo(name = "duration_seconds")
+    val durationSeconds: Int,
+)

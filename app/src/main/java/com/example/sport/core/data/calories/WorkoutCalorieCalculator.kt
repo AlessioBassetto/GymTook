@@ -44,6 +44,8 @@ data class CalorieSet(
     val distanceMeters: Double? = null,
     val rpe: Double? = null,
     val rir: Int? = null,
+    /** Pendenza del tapis roulant (%), per gli esercizi INCLINE_TIME. */
+    val inclinePercent: Double? = null,
     /** Recupero impostato dopo la serie (timer del logger): pesa la ripartizione del recupero reale. */
     val plannedRestSeconds: Int = DEFAULT_PLANNED_REST_SECONDS,
 ) {
@@ -228,35 +230,53 @@ class WorkoutCalorieCalculator {
         return joules * (1 + ECCENTRIC_COST_RATIO) / MUSCLE_EFFICIENCY / JOULES_PER_KCAL
     }
 
+    // Nel tapis roulant in salita il MET viene da pendenza e velocità: l'RPE non si somma.
     private fun hasMeasuredSpeed(set: CalorieSet, profile: ExerciseEnergyProfile): Boolean =
-        profile.energyClass == EnergyClass.CARDIO &&
+        set.exercise.trackingType == ExerciseTrackingType.INCLINE_TIME ||
+            profile.energyClass == EnergyClass.CARDIO &&
             profile.cardioKind in SPEED_BASED_KINDS &&
             (set.durationSeconds ?: 0) > 0 && (set.distanceMeters ?: 0.0) > 0.0
 
     /** MET della serie: per il cardio dalla velocità (se nota), altrimenti quello della classe. */
     private fun activeMetOf(item: SetWork, body: BodyMetrics): Double {
         if (item.profile.energyClass != EnergyClass.CARDIO) return item.profile.energyClass.activeMet
-        return cardioMet(item.set, item.profile.cardioKind ?: CardioKind.OTHER, body.weightKg)
+        return cardioMet(item.set, item.profile, body.weightKg)
             .coerceIn(MIN_CARDIO_MET, MAX_CARDIO_MET)
     }
 
     /**
      * MET del cardio.
-     * - Camminata e corsa (ACSM): VO₂ = 3,5 + 0,1·v (camminata, v ≤ 100 m/min) oppure
-     *   3,5 + 0,2·v (corsa, v ≥ 134 m/min), raccordate linearmente nel mezzo; MET = VO₂ / 3,5.
+     * - Camminata e corsa (ACSM, con pendenza G = inclinazione/100):
+     *   camminata VO₂ = 3,5 + 0,1·v + 1,8·v·G (v ≤ 100 m/min), corsa VO₂ = 3,5 + 0,2·v + 0,9·v·G
+     *   (v ≥ 134 m/min), raccordate linearmente nel mezzo; MET = VO₂ / 3,5. Il termine v·G è il
+     *   moltiplicatore della pendenza: lavoro verticale contro la gravità.
+     * - Tapis roulant in salita (INCLINE_TIME): si registrano pendenza e tempo, non la velocità; si
+     *   usa quella tipica (camminata in salita 5 km/h, corsa 9 km/h) se non è nota da distanza e tempo.
      * - Bici (Compendium 2011, fasce di velocità): <16 km/h 4,0 · <19,3 6,8 · <22,5 8,0 ·
      *   <25,7 10,0 · <30,6 12,0 · oltre 15,8.
      * - Vogatore: potenza dal passo (formula Concept2: W = 2,80 / passo³, passo in s/m), costo
      *   metabolico = W / 0,20 di rendimento; MET = 1 + costo netto / (0,0175 × peso).
      * - Senza distanza (o per le altre attività): valori medi del Compendium.
      */
-    private fun cardioMet(set: CalorieSet, kind: CardioKind, weightKg: Double): Double {
+    private fun cardioMet(set: CalorieSet, profile: ExerciseEnergyProfile, weightKg: Double): Double {
+        val kind = profile.cardioKind ?: CardioKind.OTHER
         val seconds = set.durationSeconds?.takeIf { it > 0 }?.toDouble()
         val meters = set.distanceMeters?.takeIf { it > 0 }
+        val grade = (set.inclinePercent ?: 0.0).coerceIn(0.0, MAX_INCLINE_PERCENT) / 100
+        if (set.exercise.trackingType == ExerciseTrackingType.INCLINE_TIME) {
+            val metersPerMinute = if (seconds != null && meters != null) {
+                meters / (seconds / SECONDS_PER_MINUTE)
+            } else if (profile.running) {
+                TYPICAL_RUN_M_PER_MIN
+            } else {
+                TYPICAL_INCLINE_WALK_M_PER_MIN
+            }
+            return runOrWalkVo2(metersPerMinute, grade) / VO2_PER_MET
+        }
         if (seconds != null && meters != null) {
             val metersPerMinute = meters / (seconds / SECONDS_PER_MINUTE)
             when (kind) {
-                CardioKind.RUN_OR_WALK -> return runOrWalkVo2(metersPerMinute) / VO2_PER_MET
+                CardioKind.RUN_OR_WALK -> return runOrWalkVo2(metersPerMinute, grade) / VO2_PER_MET
                 CardioKind.CYCLING -> return cyclingMet(metersPerMinute * 60 / 1000)
                 CardioKind.ROWING -> {
                     val paceSecondsPerMeter = seconds / meters
@@ -281,10 +301,10 @@ class WorkoutCalorieCalculator {
         return base
     }
 
-    /** VO₂ (ml/kg/min) da velocità in piano, equazioni metaboliche ACSM. */
-    private fun runOrWalkVo2(metersPerMinute: Double): Double {
-        val walking = VO2_PER_MET + 0.1 * metersPerMinute
-        val running = VO2_PER_MET + 0.2 * metersPerMinute
+    /** VO₂ (ml/kg/min) da velocità e pendenza ([grade] = frazione, 0,08 = 8%), equazioni metaboliche ACSM. */
+    internal fun runOrWalkVo2(metersPerMinute: Double, grade: Double = 0.0): Double {
+        val walking = VO2_PER_MET + 0.1 * metersPerMinute + 1.8 * metersPerMinute * grade
+        val running = VO2_PER_MET + 0.2 * metersPerMinute + 0.9 * metersPerMinute * grade
         return when {
             metersPerMinute <= WALK_MAX_M_PER_MIN -> walking
             metersPerMinute >= RUN_MIN_M_PER_MIN -> running
@@ -373,6 +393,12 @@ class WorkoutCalorieCalculator {
         const val MAX_RECOVERY_CAP_SECONDS = 600.0
         const val MIN_REST_WEIGHT_SECONDS = 30
 
+        /** Camminata in salita tipica sul tapis roulant: 5 km/h. */
+        const val TYPICAL_INCLINE_WALK_M_PER_MIN = 5000.0 / 60
+
+        /** Corsa in salita tipica: 9 km/h. */
+        const val TYPICAL_RUN_M_PER_MIN = 9000.0 / 60
+        const val MAX_INCLINE_PERCENT = 40.0
         const val WALK_MAX_M_PER_MIN = 100.0
         const val RUN_MIN_M_PER_MIN = 134.0
         const val MIN_CARDIO_MET = 2.0

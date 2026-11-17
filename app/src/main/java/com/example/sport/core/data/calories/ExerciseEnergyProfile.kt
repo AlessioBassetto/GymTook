@@ -91,6 +91,8 @@ data class ExerciseEnergyProfile(
     val implements: Int = 1,
     val sides: Int = 1,
     val cardioKind: CardioKind? = null,
+    /** Cardio di corsa (non camminata): sceglie l'equazione ACSM e la velocità tipica. */
+    val running: Boolean = false,
 ) {
     companion object {
         /** Statura di riferimento per le corse di [romMeters] (adulto medio). */
@@ -110,7 +112,13 @@ object ExerciseEnergyProfiles {
         val text = keyText(exercise)
         val energyClass = energyClassOf(exercise)
         if (energyClass == EnergyClass.CARDIO) {
-            return ExerciseEnergyProfile(energyClass, romMeters = 0.0, bodyMassFraction = 0.0, cardioKind = cardioKindOf(text))
+            return ExerciseEnergyProfile(
+                energyClass,
+                romMeters = 0.0,
+                bodyMassFraction = 0.0,
+                cardioKind = cardioKindOf(text),
+                running = RUNNING.containsMatchIn(text),
+            )
         }
         if (energyClass == EnergyClass.ISOMETRIC) {
             // A tempo non si conta lavoro meccanico: niente si sposta.
@@ -138,6 +146,7 @@ object ExerciseEnergyProfiles {
         val group = exercise.primaryMuscle.group
         return when {
             exercise.trackingType == ExerciseTrackingType.DISTANCE_DURATION ||
+                exercise.trackingType == ExerciseTrackingType.INCLINE_TIME ||
                 exercise.category == ExerciseCategory.CARDIO ||
                 exercise.equipment == Equipment.CARDIO_MACHINE ||
                 exercise.primaryMuscle == Muscle.CARDIO -> EnergyClass.CARDIO
@@ -254,6 +263,7 @@ object ExerciseEnergyProfiles {
     private val STAIRS = words("stair\\w*|step ?mill|scale")
     private val JUMP_ROPE = words("rope jumping|jump rope|skipping rope|corda")
     private val SLED = words("prowler|sled|slitta")
+    private val RUNNING = words("run\\w*|jog\\w*|sprint\\w*|cors[ao]|corsett\\w*")
     private val RUN_OR_WALK = words("run\\w*|jog\\w*|sprint\\w*|treadmill|tapis|walk\\w*|camminat\\w*|cors[ao]|skating")
 
     // Pattern biomeccanici

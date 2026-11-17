@@ -13,6 +13,7 @@ import com.example.sport.core.database.entity.RoutineDayEntity
 import com.example.sport.core.database.entity.RoutineExerciseEntity
 import com.example.sport.core.database.entity.SessionExerciseEntity
 import com.example.sport.core.database.entity.WorkoutSessionEntity
+import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.core.model.SessionStatus
 import com.example.sport.core.model.SetType
 import com.example.sport.core.database.relation.ActiveSessionHeader
@@ -239,6 +240,9 @@ interface WorkoutSessionDao {
     @Query("UPDATE exercise_sets SET distance_meters = :meters WHERE id = :setId")
     suspend fun updateSetDistance(setId: Long, meters: Double?)
 
+    @Query("UPDATE exercise_sets SET incline_percent = :percent WHERE id = :setId")
+    suspend fun updateSetIncline(setId: Long, percent: Double?)
+
     @Query("UPDATE exercise_sets SET set_type = :type WHERE id = :setId")
     suspend fun updateSetType(setId: Long, type: SetType)
 
@@ -348,11 +352,19 @@ interface WorkoutSessionDao {
     @Query(
         """
         UPDATE exercise_sets
-        SET weight_kg = :weightKg, reps = :reps, duration_seconds = :durationSeconds, distance_meters = :distanceMeters
+        SET weight_kg = :weightKg, reps = :reps, duration_seconds = :durationSeconds, distance_meters = :distanceMeters,
+            incline_percent = :inclinePercent
         WHERE id = :setId
         """,
     )
-    suspend fun updateSetValues(setId: Long, weightKg: Double?, reps: Int?, durationSeconds: Int?, distanceMeters: Double?)
+    suspend fun updateSetValues(
+        setId: Long,
+        weightKg: Double?,
+        reps: Int?,
+        durationSeconds: Int?,
+        distanceMeters: Double?,
+        inclinePercent: Double? = null,
+    )
 
     /** Allenamento a cui appartiene una serie (per ricalcolarne le calorie dopo una correzione). */
     @Query("SELECT se.session_id FROM exercise_sets es INNER JOIN session_exercises se ON se.id = es.session_exercise_id WHERE es.id = :setId")
@@ -427,6 +439,7 @@ interface WorkoutSessionDao {
                     count = planned.targetSets.coerceAtLeast(1),
                     previous = getPreviousWorkingSets(planned.exerciseId),
                     fallbackReps = planned.targetRepsMax ?: planned.targetRepsMin,
+                    trackingType = exercise.trackingType,
                 ),
             )
         }
@@ -454,6 +467,7 @@ interface WorkoutSessionDao {
                 count = setCount.coerceAtLeast(1),
                 previous = getPreviousWorkingSets(exerciseId),
                 fallbackReps = null,
+                trackingType = exercise.trackingType,
             ),
         )
         return sessionExerciseId
@@ -472,6 +486,7 @@ interface WorkoutSessionDao {
                 reps = last?.reps,
                 durationSeconds = last?.durationSeconds,
                 distanceMeters = last?.distanceMeters,
+                inclinePercent = last?.inclinePercent,
             ),
         )
     }
@@ -521,7 +536,7 @@ interface WorkoutSessionDao {
             "Esercizio di sessione $sessionExerciseId inesistente"
         }
         if (current.exerciseId == newExerciseId) return current.id
-        checkNotNull(findExercise(newExerciseId)) { "Esercizio $newExerciseId inesistente" }
+        val replacement = checkNotNull(findExercise(newExerciseId)) { "Esercizio $newExerciseId inesistente" }
         val setup = findLastMachineSetup(newExerciseId)
         val (completed, pending) = getSets(sessionExerciseId).partition { it.isCompleted }
 
@@ -556,8 +571,9 @@ interface WorkoutSessionDao {
 
         val previous = getPreviousWorkingSets(newExerciseId)
         if (pending.isEmpty()) {
-            insertSets(buildPrefilledSets(targetId, count = 1, previous = previous, fallbackReps = null))
+            insertSets(buildPrefilledSets(targetId, count = 1, previous = previous, fallbackReps = null, trackingType = replacement.trackingType))
         } else {
+            val keepDistance = replacement.trackingType != ExerciseTrackingType.INCLINE_TIME
             updateSets(
                 pending.mapIndexed { index, set ->
                     val reference = previous.getOrNull(index) ?: previous.lastOrNull()
@@ -569,7 +585,8 @@ interface WorkoutSessionDao {
                         rpe = null,
                         rir = null,
                         durationSeconds = reference?.durationSeconds,
-                        distanceMeters = reference?.distanceMeters,
+                        distanceMeters = reference?.distanceMeters?.takeIf { keepDistance },
+                        inclinePercent = reference?.inclinePercent,
                     )
                 },
             )
@@ -690,6 +707,7 @@ internal fun buildPrefilledSets(
     count: Int,
     previous: List<ExerciseSetEntity>,
     fallbackReps: Int?,
+    trackingType: ExerciseTrackingType? = null,
 ): List<ExerciseSetEntity> = List(count) { index ->
     val reference = previous.getOrNull(index) ?: previous.lastOrNull()
     ExerciseSetEntity(
@@ -699,6 +717,10 @@ internal fun buildPrefilledSets(
         weightKg = reference?.weightKg,
         reps = reference?.reps ?: fallbackReps,
         durationSeconds = reference?.durationSeconds,
-        distanceMeters = reference?.distanceMeters,
+        // Il tapis in salita non registra la distanza: quella di una serie di prima della v5 non va
+        // ricopiata (resterebbe invisibile nel logger e falserebbe la velocità nelle calorie).
+        distanceMeters = reference?.distanceMeters?.takeIf { trackingType != ExerciseTrackingType.INCLINE_TIME },
+        // Tapis roulant: la pendenza della volta scorsa è il riferimento rapido della nuova serie.
+        inclinePercent = reference?.inclinePercent,
     )
 }

@@ -3,6 +3,7 @@ package com.example.sport.core.designsystem.input
 import androidx.compose.runtime.Immutable
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.roundToLong
 
 /** Regole di un campo numerico del logger. */
 @Immutable
@@ -14,6 +15,11 @@ data class NumericInputConfig(
     val step: Double,
     val min: Double,
     val max: Double,
+    /**
+     * Tempo "mm:ss" (valore in secondi): le cifre entrano da destra come sul display di un
+     * microonde, 2-5-0-0 = 25:00. Niente virgola; +/- spostano di [step] secondi.
+     */
+    val clock: Boolean = false,
 ) {
     init {
         require(min <= max) { "min deve essere <= max" }
@@ -31,6 +37,12 @@ data class NumericInputConfig(
         val Seconds = NumericInputConfig(allowDecimal = false, maxIntegerDigits = 4, maxDecimalDigits = 0, step = 15.0, min = 0.0, max = 5999.0)
         val Minutes = NumericInputConfig(allowDecimal = false, maxIntegerDigits = 3, maxDecimalDigits = 0, step = 1.0, min = 0.0, max = 600.0)
         val DistanceKm = NumericInputConfig(allowDecimal = true, maxIntegerDigits = 3, maxDecimalDigits = 2, step = 0.5, min = 0.0, max = 300.0)
+
+        /** Pendenza del tapis roulant: i tapis salgono di 0,5% per volta, fino al 40% dei modelli da camminata. */
+        val InclinePercent = NumericInputConfig(allowDecimal = true, maxIntegerDigits = 2, maxDecimalDigits = 1, step = 0.5, min = 0.0, max = 40.0)
+
+        /** Tempo di corsa mm:ss fino a 99:59; +/- di un minuto. */
+        val Clock = NumericInputConfig(allowDecimal = false, maxIntegerDigits = 4, maxDecimalDigits = 0, step = 60.0, min = 0.0, max = 5999.0, clock = true)
 
         /** Peso corporeo: la bilancia di casa arriva al decimo, si corregge di 0,1 kg. */
         val BodyWeightKg = NumericInputConfig(allowDecimal = true, maxIntegerDigits = 3, maxDecimalDigits = 1, step = 0.1, min = 20.0, max = 400.0)
@@ -69,9 +81,9 @@ data class NumericInputState(
     val config: NumericInputConfig,
     val replaceOnNextInput: Boolean = true,
 ) {
-    val value: Double? get() = text.toDoubleOrNull()
+    val value: Double? get() = if (config.clock) clockSeconds(text)?.toDouble() else text.toDoubleOrNull()
 
-    val displayText: String get() = text.replace('.', ',')
+    val displayText: String get() = if (config.clock) clockDisplay(text) else text.replace('.', ',')
 
     fun reduce(key: KeypadKey): NumericInputState = when (key) {
         is KeypadKey.Digit -> appendDigit(key.value)
@@ -101,6 +113,7 @@ data class NumericInputState(
     }
 
     private fun isAcceptable(candidate: String): Boolean {
+        if (config.clock) return candidate.length <= config.maxIntegerDigits && (clockSeconds(candidate) ?: 0) <= config.max
         val integerPart = candidate.substringBefore('.')
         val decimalPart = candidate.substringAfter('.', missingDelimiterValue = "")
         if (integerPart.length > config.maxIntegerDigits) return false
@@ -114,11 +127,33 @@ data class NumericInputState(
         fun of(value: Double?, config: NumericInputConfig): NumericInputState =
             NumericInputState(text = value?.let { canonical(it, config) }.orEmpty(), config = config)
 
-        /** Rappresentazione senza zeri superflui: 80.0 → "80", 42.50 → "42.5". */
-        fun canonical(value: Double, config: NumericInputConfig): String =
-            BigDecimal.valueOf(value)
+        /** Rappresentazione senza zeri superflui: 80.0 → "80", 42.50 → "42.5"; tempo 1500 s → "2500". */
+        fun canonical(value: Double, config: NumericInputConfig): String {
+            if (config.clock) return clockDigits(value.roundToLong())
+            return BigDecimal.valueOf(value)
                 .setScale(config.maxDecimalDigits, RoundingMode.HALF_UP)
                 .stripTrailingZeros()
                 .toPlainString()
+        }
     }
+}
+
+/** Cifre del campo tempo → secondi: le ultime due sono i secondi ("2500" = 25 min, "90" = 90 s). */
+internal fun clockSeconds(digits: String): Long? {
+    val number = digits.toLongOrNull() ?: return null
+    return number / 100 * 60 + number % 100
+}
+
+/** Secondi → cifre del campo tempo (1500 → "2500", 45 → "45"). */
+internal fun clockDigits(seconds: Long): String {
+    val safe = seconds.coerceAtLeast(0)
+    val minutes = safe / 60
+    val rest = safe % 60
+    return if (minutes == 0L) rest.toString() else "$minutes${rest.toString().padStart(2, '0')}"
+}
+
+/** Cifre del campo tempo → "m:ss" come appare mentre si scrive ("" resta vuoto, "5" = "0:05"). */
+internal fun clockDisplay(digits: String): String {
+    val number = digits.toLongOrNull() ?: return ""
+    return "${number / 100}:${(number % 100).toString().padStart(2, '0')}"
 }

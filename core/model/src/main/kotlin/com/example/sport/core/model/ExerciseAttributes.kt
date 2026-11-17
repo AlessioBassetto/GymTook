@@ -19,6 +19,12 @@ enum class ExerciseTrackingType {
 
     /** Distanza + durata (corsa, vogatore). */
     DISTANCE_DURATION,
+
+    /**
+     * Inclinazione (%) + tempo: tapis roulant in salita, camminate e corse in pendenza.
+     * Il peso non c'è: la fatica sta nella pendenza e nella durata.
+     */
+    INCLINE_TIME,
 }
 
 /**

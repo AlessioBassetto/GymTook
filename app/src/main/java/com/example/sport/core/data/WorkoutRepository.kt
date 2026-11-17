@@ -31,6 +31,10 @@ enum class SetMetric(val inputConfig: NumericInputConfig) {
     DURATION_SECONDS(NumericInputConfig.Seconds),
     DURATION_MINUTES(NumericInputConfig.Minutes),
     DISTANCE_KM(NumericInputConfig.DistanceKm),
+    INCLINE_PERCENT(NumericInputConfig.InclinePercent),
+
+    /** Tempo di corsa mm:ss (salvato in secondi). */
+    DURATION_CLOCK(NumericInputConfig.Clock),
     ;
 
     fun read(set: ExerciseSetEntity): Double? = when (this) {
@@ -41,6 +45,8 @@ enum class SetMetric(val inputConfig: NumericInputConfig) {
         DURATION_SECONDS -> set.durationSeconds?.toDouble()
         DURATION_MINUTES -> set.durationSeconds?.let { it / 60.0 }
         DISTANCE_KM -> set.distanceMeters?.let { it / 1000.0 }
+        INCLINE_PERCENT -> set.inclinePercent
+        DURATION_CLOCK -> set.durationSeconds?.toDouble()
     }
 
     /** Regole del tastierino nell'unità scelta: in libbre si sale di 5 lb e basta un decimale. */
@@ -66,6 +72,7 @@ enum class SetMetric(val inputConfig: NumericInputConfig) {
                 -> listOf(WEIGHT, REPS)
                 ExerciseTrackingType.DURATION -> listOf(DURATION_SECONDS)
                 ExerciseTrackingType.DISTANCE_DURATION -> listOf(DISTANCE_KM, DURATION_MINUTES)
+                ExerciseTrackingType.INCLINE_TIME -> listOf(INCLINE_PERCENT, DURATION_CLOCK)
             }
             return if (withRpe) base + effortMetric(effort) else base
         }
@@ -140,6 +147,8 @@ class WorkoutRepository @Inject constructor(
             SetMetric.DURATION_SECONDS -> sessionDao.updateSetDuration(setId, value?.roundToInt())
             SetMetric.DURATION_MINUTES -> sessionDao.updateSetDuration(setId, value?.let { (it * 60).roundToInt() })
             SetMetric.DISTANCE_KM -> sessionDao.updateSetDistance(setId, value?.let { it * 1000 })
+            SetMetric.INCLINE_PERCENT -> sessionDao.updateSetIncline(setId, value)
+            SetMetric.DURATION_CLOCK -> sessionDao.updateSetDuration(setId, value?.roundToInt())
         }
     }
 

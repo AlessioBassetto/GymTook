@@ -20,6 +20,7 @@ class MediaConfig(baseUrl: String) {
 
     /** URL assoluto con ogni segmento correttamente codificato; null se remoto disattivato o path non sicuro. */
     fun urlFor(path: String): String? {
+        // Niente URL assoluti dal catalogo: video e anteprime passano sempre dalla CDN configurata.
         val baseUrl = base ?: return null
         if (!isSafeRelativeMediaPath(path)) return null
         return baseUrl.newBuilder()

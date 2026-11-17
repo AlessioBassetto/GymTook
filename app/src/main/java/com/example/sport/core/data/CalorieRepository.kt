@@ -170,6 +170,7 @@ class CalorieRepository @Inject constructor(
         rpe = rpe,
         rir = rir,
         plannedRestSeconds = restSeconds,
+        inclinePercent = inclinePercent,
     )
 
     companion object {

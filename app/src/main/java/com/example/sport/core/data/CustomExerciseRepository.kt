@@ -159,7 +159,11 @@ class CustomExerciseRepository @Inject constructor(
             equipment = equipment,
             primaryMuscle = primaryMuscles.first(),
             trackingType = trackingType,
-            category = if (trackingType == ExerciseTrackingType.DISTANCE_DURATION || equipment == Equipment.CARDIO_MACHINE) {
+            category = if (
+                trackingType == ExerciseTrackingType.DISTANCE_DURATION ||
+                trackingType == ExerciseTrackingType.INCLINE_TIME ||
+                equipment == Equipment.CARDIO_MACHINE
+            ) {
                 ExerciseCategory.CARDIO
             } else {
                 ExerciseCategory.STRENGTH

@@ -556,7 +556,7 @@ private fun BuilderExerciseRow(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            ExerciseThumbnail(model = exercise.thumbnail, size = 48.dp)
+            ExerciseThumbnail(model = exercise.thumbnail, size = 48.dp, muscle = exercise.muscle)
             Spacer(Modifier.width(SportDimens.SpacingM))
             Column(Modifier.weight(1f).padding(vertical = SportDimens.SpacingS)) {
                 if (exercise.supersetPosition == SupersetPosition.FIRST) {

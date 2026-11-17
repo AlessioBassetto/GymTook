@@ -111,6 +111,7 @@ fun ExerciseTrackingType.labelRes(): Int = when (this) {
     ExerciseTrackingType.ASSISTED_BODYWEIGHT -> R.string.tracking_assisted
     ExerciseTrackingType.DURATION -> R.string.tracking_duration
     ExerciseTrackingType.DISTANCE_DURATION -> R.string.tracking_distance_duration
+    ExerciseTrackingType.INCLINE_TIME -> R.string.tracking_incline_time
 }
 
 @StringRes

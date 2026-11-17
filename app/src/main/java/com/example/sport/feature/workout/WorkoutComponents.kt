@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -77,6 +79,8 @@ private fun SetMetric.columnWeight(): Float = when (this) {
     SetMetric.REPS, SetMetric.DURATION_MINUTES -> 1f
     SetMetric.DURATION_SECONDS -> 1.25f
     SetMetric.RPE, SetMetric.RIR -> 0.9f
+    // Tapis roulant: due soli campi, larghi e leggibili.
+    SetMetric.INCLINE_PERCENT, SetMetric.DURATION_CLOCK -> 1.5f
 }
 
 /** Intestazione della colonna; il peso usa l'unità scelta ("kg", "+lb" con la zavorra, "−kg" con l'assistenza). */
@@ -102,6 +106,8 @@ private fun SetMetric.columnLabelRes(): Int = when (this) {
     SetMetric.DURATION_SECONDS -> R.string.workout_col_seconds
     SetMetric.DURATION_MINUTES -> R.string.workout_col_minutes
     SetMetric.DISTANCE_KM -> R.string.workout_col_km
+    SetMetric.INCLINE_PERCENT -> R.string.workout_col_incline
+    SetMetric.DURATION_CLOCK -> R.string.workout_col_time
 }
 
 @StringRes
@@ -113,6 +119,8 @@ internal fun SetMetric.fieldLabelRes(): Int = when (this) {
     SetMetric.DURATION_SECONDS -> R.string.workout_field_seconds
     SetMetric.DURATION_MINUTES -> R.string.workout_field_minutes
     SetMetric.DISTANCE_KM -> R.string.workout_field_km
+    SetMetric.INCLINE_PERCENT -> R.string.workout_field_incline
+    SetMetric.DURATION_CLOCK -> R.string.workout_field_time
 }
 
 /** Intestazioni delle colonne, allineate alla [SetRow]. */
@@ -154,6 +162,8 @@ internal fun SetRow(
     onTypeChange: (SetType) -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    stopwatch: StopwatchUi? = null,
+    now: () -> Instant = Instant::now,
 ) {
     val extended = SportTheme.extendedColors
     val haptics = LocalHapticFeedback.current
@@ -179,8 +189,13 @@ internal fun SetRow(
             )
             metrics.forEach { metric ->
                 val isActive = editing?.setId == row.setId && editing.metric == metric
+                val timing = stopwatch?.takeIf { it.setId == row.setId && metric == SetMetric.DURATION_CLOCK }
                 NumericValueField(
-                    value = if (isActive) editing.text else row.values[metric].orEmpty(),
+                    value = when {
+                        timing != null -> stopwatchText(timing, now)
+                        isActive -> editing.text
+                        else -> row.values[metric].orEmpty()
+                    },
                     placeholder = "–",
                     isActive = isActive,
                     onClick = { onFieldClick(metric) },
@@ -283,6 +298,9 @@ internal fun KeypadPanel(
     onKey: (KeypadKey) -> Unit,
     onNext: () -> Unit,
     onClose: () -> Unit,
+    stopwatch: StopwatchUi? = null,
+    now: () -> Instant = Instant::now,
+    onToggleStopwatch: () -> Unit = {},
 ) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 2.dp) {
         Column {
@@ -306,6 +324,9 @@ internal fun KeypadPanel(
                 IconButton(onClick = onClose, modifier = Modifier.size(SportDimens.TouchTargetMin)) {
                     Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.workout_keypad_close))
                 }
+            }
+            if (editing.metric == SetMetric.DURATION_CLOCK) {
+                StopwatchButton(stopwatch, editing.setId, now, onToggleStopwatch)
             }
             NumericKeypad(
                 onKey = onKey,
@@ -415,4 +436,35 @@ internal fun vibrateRestFinished(context: Context) {
         context.getSystemService(Vibrator::class.java)
     }
     vibrator?.takeIf { it.hasVibrator() }?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 350, 150, 350), -1))
+}
+
+/** Tempo del cronometro acceso, aggiornato ogni secondo mentre la schermata è visibile. */
+@Composable
+private fun stopwatchText(stopwatch: StopwatchUi, now: () -> Instant): String {
+    val current by rememberTickingNow(periodMillis = 1_000, now = now)
+    return Formatters.clock(stopwatch.secondsAt(current))
+}
+
+/**
+ * Cronometro integrato del tempo di corsa: "Avvia" parte dal tempo già scritto nel campo, "Ferma"
+ * salva il totale. Se è acceso su un'altra serie, il pulsante lo ferma.
+ */
+@Composable
+private fun StopwatchButton(stopwatch: StopwatchUi?, editingSetId: Long, now: () -> Instant, onToggle: () -> Unit) {
+    val label = when {
+        stopwatch == null -> stringResource(R.string.workout_stopwatch_start)
+        stopwatch.setId == editingSetId -> stringResource(R.string.workout_stopwatch_stop, stopwatchText(stopwatch, now))
+        else -> stringResource(R.string.workout_stopwatch_stop_other)
+    }
+    FilledTonalButton(
+        onClick = onToggle,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = SportDimens.ScreenPadding)
+            .heightIn(min = SportDimens.TouchTargetMin),
+    ) {
+        Icon(if (stopwatch == null) Icons.Outlined.Timer else Icons.Filled.Stop, contentDescription = null)
+        Spacer(Modifier.width(SportDimens.SpacingS))
+        Text(label)
+    }
 }

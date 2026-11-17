@@ -69,6 +69,8 @@ internal data class SetEditTarget(
     val distanceMeters: Double?,
     /** Etichetta attuale ("100 kg × 5"), usata nel titolo e nella conferma di eliminazione. */
     val description: String,
+    /** Pendenza del tapis roulant (%), per gli esercizi INCLINE_TIME. */
+    val inclinePercent: Double? = null,
 )
 
 /** Testi dei campi → valori da salvare; null se manca un dato o un numero non è valido. */
@@ -80,6 +82,8 @@ internal fun parseSetValues(
     seconds: String,
     kilometers: String,
     minutes: String,
+    incline: String = "",
+    time: String = "",
 ): SetValues? {
     fun number(text: String): Double? = Formatters.parseDecimal(text)?.takeIf { it >= 0 }
     fun whole(text: String): Int? = text.trim().toIntOrNull()?.takeIf { it >= 0 }
@@ -99,6 +103,11 @@ internal fun parseSetValues(
             val typedMinutes = whole(minutes)
             if (!isBlankOr(kilometers, typedKm) || !isBlankOr(minutes, typedMinutes)) return null
             SetValues(distanceMeters = typedKm?.let { it * 1000 }, durationSeconds = typedMinutes?.let { it * 60 })
+        }
+        ExerciseTrackingType.INCLINE_TIME -> {
+            val typedIncline = number(incline)
+            if (!isBlankOr(incline, typedIncline)) return null
+            SetValues(inclinePercent = typedIncline, durationSeconds = parseClock(time) ?: return null)
         }
     }
     return values.takeIf { it.isValid }
@@ -121,7 +130,11 @@ internal fun SetEditDialog(
     var seconds by remember(target.setId) { mutableStateOf(target.durationSeconds?.toString().orEmpty()) }
     var kilometers by remember(target.setId) { mutableStateOf(Formatters.editable(target.distanceMeters?.let { it / 1000 })) }
     var minutes by remember(target.setId) { mutableStateOf(target.durationSeconds?.let { (it / 60.0).roundToInt().toString() }.orEmpty()) }
-    val values = parseSetValues(target.trackingType, unit, weight, reps, seconds, kilometers, minutes)
+    var incline by remember(target.setId) { mutableStateOf(Formatters.editable(target.inclinePercent)) }
+    var time by remember(target.setId) { mutableStateOf(target.durationSeconds?.let { Formatters.clock(it.toLong()) }.orEmpty()) }
+    val values = parseSetValues(target.trackingType, unit, weight, reps, seconds, kilometers, minutes, incline, time)
+        // Tapis roulant registrato prima della v5 con la distanza: la correzione non la cancella.
+        ?.let { if (target.trackingType == ExerciseTrackingType.INCLINE_TIME) it.copy(distanceMeters = target.distanceMeters) else it }
 
     FormDialog(
         title = stringResource(R.string.set_edit_title),
@@ -151,6 +164,18 @@ internal fun SetEditDialog(
                     NumberField(kilometers, { kilometers = it }, stringResource(R.string.set_edit_kilometers), decimal = true)
                     NumberField(minutes, { minutes = it }, stringResource(R.string.set_edit_minutes), decimal = false)
                 }
+                ExerciseTrackingType.INCLINE_TIME -> {
+                    NumberField(incline, { incline = it }, stringResource(R.string.set_edit_incline), decimal = true)
+                    OutlinedTextField(
+                        value = time,
+                        onValueChange = { time = it },
+                        label = { Text(stringResource(R.string.set_edit_time)) },
+                        singleLine = true,
+                        // Tastiera con il separatore: "25,30" vale come 25:30.
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             TextButton(onClick = onDeleteRequest) {
                 Text(stringResource(R.string.set_delete), color = MaterialTheme.colorScheme.error)
@@ -172,4 +197,22 @@ private fun NumberField(value: String, onValueChange: (String) -> Unit, label: S
         keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
         modifier = Modifier.fillMaxWidth(),
     )
+}
+
+/**
+ * Tempo scritto a mano: "25:30" (minuti:secondi) oppure "25" (minuti interi). La tastiera numerica
+ * spesso non ha i due punti: valgono anche "25.30" e "25,30". I secondi hanno sempre due cifre
+ * ("25,5" sarebbe ambiguo: 25 minuti e mezzo o 25:05?). null se non valido.
+ */
+internal fun parseClock(text: String): Int? {
+    val trimmed = text.trim()
+    if (trimmed.isEmpty()) return null
+    val separator = trimmed.indexOfFirst { it == ':' || it == '.' || it == ',' }
+    if (separator < 0) return trimmed.toIntOrNull()?.takeIf { it >= 0 }?.let { it * 60 }
+    val minutesText = trimmed.substring(0, separator)
+    val secondsText = trimmed.substring(separator + 1)
+    if (minutesText.isEmpty() || !minutesText.all(Char::isDigit)) return null
+    if (secondsText.length != 2 || !secondsText.all(Char::isDigit)) return null
+    val seconds = secondsText.toInt().takeIf { it in 0..59 } ?: return null
+    return minutesText.toInt() * 60 + seconds
 }

@@ -3,9 +3,11 @@ package com.example.sport.core.data
 import com.example.sport.core.data.progress.DatedWeight
 import com.example.sport.core.data.progress.ExerciseRecords
 import com.example.sport.core.data.progress.ExerciseTrend
+import com.example.sport.core.data.progress.InclineSession
 import com.example.sport.core.data.progress.WEEK_DAYS
 import com.example.sport.core.data.progress.WeightTrendPoint
 import com.example.sport.core.data.progress.exerciseTrends
+import com.example.sport.core.data.progress.inclineSessions
 import com.example.sport.core.data.progress.movingAverage
 import com.example.sport.core.data.progress.personalRecords
 import com.example.sport.core.database.dao.BodyWeightDao
@@ -35,6 +37,8 @@ data class SetValues(
     val reps: Int? = null,
     val durationSeconds: Int? = null,
     val distanceMeters: Double? = null,
+    /** Pendenza del tapis roulant (%), per gli esercizi INCLINE_TIME. */
+    val inclinePercent: Double? = null,
 ) {
     /** Stesse regole del logger: almeno un dato misurato e nessun valore fuori scala. */
     val isValid: Boolean
@@ -42,13 +46,15 @@ data class SetValues(
             (weightKg == null || weightKg in 0.0..MAX_WEIGHT_KG) &&
             (reps == null || reps in 0..MAX_REPS) &&
             (durationSeconds == null || durationSeconds in 0..MAX_DURATION_SECONDS) &&
-            (distanceMeters == null || distanceMeters in 0.0..MAX_DISTANCE_METERS)
+            (distanceMeters == null || distanceMeters in 0.0..MAX_DISTANCE_METERS) &&
+            (inclinePercent == null || inclinePercent in 0.0..MAX_INCLINE_PERCENT)
 
     companion object {
         const val MAX_WEIGHT_KG = 2000.0
         const val MAX_REPS = 999
         const val MAX_DURATION_SECONDS = 36_000
         const val MAX_DISTANCE_METERS = 300_000.0
+        const val MAX_INCLINE_PERCENT = 40.0
     }
 }
 
@@ -97,7 +103,7 @@ class ProgressRepository @Inject constructor(
      */
     suspend fun updateSet(setId: Long, values: SetValues) {
         require(values.isValid) { "Serie senza dati validi: $values" }
-        sessionDao.updateSetValues(setId, values.weightKg, values.reps, values.durationSeconds, values.distanceMeters)
+        sessionDao.updateSetValues(setId, values.weightKg, values.reps, values.durationSeconds, values.distanceMeters, values.inclinePercent)
         sessionDao.getSessionIdOfSet(setId)?.let { calories.recalculate(it) }
     }
 
@@ -137,6 +143,10 @@ class ProgressRepository @Inject constructor(
     /** Un punto per sessione: carico massimo, volume e massimale stimato. */
     fun observeExerciseProgress(exerciseId: String, from: Instant): Flow<List<ExerciseProgressPoint>> =
         progressDao.observeExerciseProgress(exerciseId, from)
+
+    /** Tapis roulant in salita: una sessione per allenamento con tempo e pendenza media, dalla più vecchia. */
+    fun observeInclineSessions(exerciseId: String, from: Instant): Flow<List<InclineSession>> =
+        progressDao.observeInclineSets(exerciseId, from).map(::inclineSessions)
 
     fun observeHasHistory(exerciseId: String): Flow<Boolean> = progressDao.observeHasHistory(exerciseId)
 

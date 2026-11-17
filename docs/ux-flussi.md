@@ -153,7 +153,7 @@ flowchart TD
 - La **media mobile a 7 giorni** usa i giorni di calendario (non le ultime 7 pesate) e parte già "calda" con la settimana precedente al periodo mostrato: è il dato da seguire, le oscillazioni di acqua e sale restano nei punti grigi.
 
 ### 11. Leggere i progressi di un esercizio
-- Panoramica → riga dell'esercizio o del record, oppure scheda esercizio → icona **Progressi** (solo esercizi a ripetizioni già svolti).
+- Panoramica → riga dell'esercizio o del record, oppure scheda esercizio → icona **Progressi** (esercizi a ripetizioni e tapis roulant in salita, vedi flusso 19).
 - Chip della grandezza (1RM stimato con Epley fino a 12 ripetizioni, carico massimo, volume, ripetizioni) e del periodo. A corpo libero contano ripetizioni e zavorra; negli assistiti solo le ripetizioni (il peso è un aiuto, quindi non entra in record né volume).
 - Record di sempre: la data è la **prima volta** che il valore è stato raggiunto; tocco = l'allenamento in cui è successo.
 
@@ -214,6 +214,29 @@ Record, volumi e grafici non sono salvati a parte: si calcolano dalle serie nel 
 | Profilo corporeo | Riepilogo con le kcal | Storico e totali | Dettaglio dopo una correzione |
 |---|---|---|---|
 | ![Profilo corporeo](screenshots/34-profilo-corporeo.png) | ![Riepilogo](screenshots/35-riepilogo-kcal.png) | ![Storico](screenshots/36-storico-kcal.png) | ![Dettaglio](screenshots/37-dettaglio-kcal.png) |
+
+### 19. Tapis roulant in salita (inclinazione + tempo)
+- Esercizi con registrazione **Inclinazione e tempo**: "Camminata in salita sul tapis roulant" del catalogo e gli esercizi personalizzati che scelgono questo tipo. La corsa sul tapis resta a distanza e tempo.
+- **Logger**: colonne **Pend. %** e **Tempo**. La pendenza sale e scende di 0,5% (0–40%); il tempo si scrive come sul display di un microonde (2-5-3-0 = 25:30) e ±1:00 lo sposta di un minuto. Le serie partono da pendenza e tempo della volta scorsa; **+ Serie** li copia dall'ultima.
+- **Cronometro**: sul campo Tempo, **Avvia cronometro** conta dal tempo già scritto (si riprende dopo una pausa); resta acceso chiudendo il tastierino e si ferma con **Ferma cronometro**, spuntando la serie o terminando l'allenamento. Scrivere un tempo a mano lo spegne.
+- **Progressi** (scheda esercizio → icona Progressi): ultima sessione, durata migliore, pendenza massima e sessioni migliorate; grafico a doppia serie sessione per sessione (barre = minuti, asse sinistro; linea = pendenza media pesata sul tempo, asse destro; tenendo premuto compare il dettaglio). Ogni sessione dice com'è andata rispetto alla precedente: **stessa pendenza più a lungo**, **più pendenza a parità di durata** o **entrambe** sono miglioramenti (freccia e colore dei record); differenze sotto 0,25 punti e 30 secondi contano come "uguale".
+- **Correzione dallo storico**: campi Inclinazione (%) e Tempo (mm:ss); per la tastiera numerica valgono anche "25,30" e "25.30", oppure i soli minuti ("25").
+- **Calorie**: peso corporeo, durata esatta e pendenza con le equazioni ACSM (camminata VO₂ = 3,5 + 0,1·v + 1,8·v·pendenza; corsa 3,5 + 0,2·v + 0,9·v·pendenza). La velocità non si registra: si usa quella tipica (5 km/h in camminata, 9 km/h se il nome indica corsa).
+- **Aggiornamento dalla 1.0.3**: la migrazione Room v4 → v5 aggiunge la colonna della pendenza; le camminate già registrate con distanza e tempo restano intatte e mostrano anche la distanza ("30:00 · 3 km"), che non viene ricopiata nelle nuove serie.
+
+| Logger con cronometro | Confronto sessioni | Correzione |
+|---|---|---|
+| ![Pendenza e cronometro](screenshots/38-tapis-cronometro.png) | ![Tempo e pendenza](screenshots/39-tapis-progressi.png) | ![Correggi serie](screenshots/40-tapis-correzione.png) |
+
+### 20. Catalogo in italiano, anteprime e video
+- Tutti i 733 esercizi hanno nome, alias, esecuzione passo passo, punti chiave ed errori comuni in italiano (70 curati a mano, 663 tradotti dal dataset); la ricerca trova sia il nome italiano sia quello inglese.
+- **Anteprime** nelle liste e nel selettore: immagini con cache su disco (Coil); senza rete e senza copia in cache compare la mappa anatomica con il muscolo principale evidenziato.
+- **Scheda esercizio**: video loop silenzioso (Media3/ExoPlayer) da file locale o cache, GIF/WebP animate con Coil, altrimenti i fotogrammi in dissolvenza. Offline senza copia del video: fotogrammi o mappa anatomica con il badge discreto **Video disponibile online**; fotogrammi mai scaricati: mappa anatomica. Mai schermate d'errore o riquadri vuoti.
+- Le build release senza `-Psport.mediaBaseUrl.release` non scaricano media remoti: mostrano sempre il ripiego anatomico.
+
+| Anteprime online | Offline, mai scaricate | Scheda offline |
+|---|---|---|
+| ![Anteprime](screenshots/41-anteprime-online.png) | ![Mappe anatomiche](screenshots/42-anteprime-offline.png) | ![Mappa al posto dei fotogrammi](screenshots/43-scheda-offline.png) |
 
 ## Stati di ogni schermata
 

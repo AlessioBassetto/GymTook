@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performScrollToNode
@@ -303,5 +304,41 @@ class ExercisesUiTest {
         }
         composeRule.onNodeWithText("Importazione del video…").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Aggiungi il tuo video").assertDoesNotExist()
+    }
+
+    @Test
+    fun detail_offlineVideoNotCached_showsTheAnatomyWithADiscreetBadge() {
+        val exercise = detail(custom = false).copy(
+            catalogVideo = "https://media.example.org/exercises/stacco.mp4",
+            catalogVideoOnlineOnly = true,
+        )
+        composeRule.setContent { SportTheme { ExerciseDetailContent(ExerciseDetailUiState.Content(exercise), detailActions()) } }
+
+        composeRule.onNodeWithText("Video disponibile online").assertIsDisplayed()
+        // Mappa anatomica al posto del video: nessun errore a schermo.
+        composeRule.onNodeWithContentDescription("Esecuzione di Il mio stacco").assertIsDisplayed()
+        composeRule.onNodeWithText("errore", substring = true, ignoreCase = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun detail_framesThatCannotLoad_fallBackToTheAnatomy_notABlankBox() {
+        val missing = java.io.File(composeRuleContextDir(), "mai-scaricato/0.jpg")
+        val exercise = detail(custom = false).copy(frames = listOf(missing, missing))
+        composeRule.setContent { SportTheme { ExerciseDetailContent(ExerciseDetailUiState.Content(exercise), detailActions()) } }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag(EXERCISE_ANATOMY_TAG).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(EXERCISE_ANATOMY_TAG).assertIsDisplayed()
+    }
+
+    private fun composeRuleContextDir(): java.io.File =
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().cacheDir
+
+    @Test
+    fun detail_onlineVideo_hasNoBadge() {
+        val exercise = detail(custom = false).copy(catalogVideo = "https://media.example.org/exercises/stacco.gif")
+        composeRule.setContent { SportTheme { ExerciseDetailContent(ExerciseDetailUiState.Content(exercise), detailActions()) } }
+        composeRule.onNodeWithText("Video disponibile online").assertDoesNotExist()
     }
 }

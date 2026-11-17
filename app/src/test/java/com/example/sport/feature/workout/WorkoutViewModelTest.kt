@@ -79,6 +79,79 @@ class WorkoutViewModelTest : DatabaseTest() {
         viewModel.uiState.first { it is WorkoutUiState.Active && predicate(it) } as WorkoutUiState.Active
 
     @Test
+    fun treadmill_inclineStepsByHalfAPercent_andTheStopwatchWritesTheTime() = runTest {
+        val (_, dayId) = createRoutineWithDay("Cardio", listOf("walking_treadmill" to 1))
+        workoutRepository.startFromRoutineDay(dayId)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        val exercise = awaitActive().exercises[0]
+        assertEquals(listOf(SetMetric.INCLINE_PERCENT, SetMetric.DURATION_CLOCK), exercise.metrics)
+        val setId = exercise.sets[0].setId
+
+        // Pendenza: 8, poi "+" = 8,5%.
+        viewModel.onFieldClick(setId, SetMetric.INCLINE_PERCENT)
+        assertEquals("0,5", awaitActive { it.editing != null }.editing!!.stepLabel)
+        viewModel.onKey(KeypadKey.Digit(8))
+        viewModel.onKey(KeypadKey.Increment)
+        awaitActive { it.exercises[0].sets[0].values[SetMetric.INCLINE_PERCENT] == "8,5" }
+        assertEquals(8.5, db.workoutSessionDao().getSet(setId)!!.inclinePercent!!, 0.0)
+
+        // Tempo: cronometro avviato e fermato dopo 25 minuti e 30 secondi.
+        viewModel.onFieldClick(setId, SetMetric.DURATION_CLOCK)
+        assertEquals("1:00", awaitActive { it.editing?.metric == SetMetric.DURATION_CLOCK }.editing!!.stepLabel)
+        viewModel.onToggleStopwatch()
+        val running = awaitActive { it.stopwatch != null }.stopwatch!!
+        assertEquals(setId, running.setId)
+        clock.current = clock.current.plusSeconds(25 * 60 + 30)
+        assertEquals(1530L, running.secondsAt(viewModel.now()))
+        viewModel.onToggleStopwatch()
+        val stopped = awaitActive { it.stopwatch == null && it.exercises[0].sets[0].values[SetMetric.DURATION_CLOCK] == "25:30" }
+        assertEquals("25:30", stopped.editing!!.text)
+        assertEquals(1530, db.workoutSessionDao().getSet(setId)!!.durationSeconds)
+
+        // Ripartito da 25:30, si ferma da solo spuntando la serie.
+        viewModel.onToggleStopwatch()
+        awaitActive { it.stopwatch?.baseSeconds == 1530L }
+        clock.current = clock.current.plusSeconds(30)
+        viewModel.onToggleComplete(setId)
+        awaitActive { it.stopwatch == null && it.exercises[0].sets[0].isCompleted }
+        val saved = db.workoutSessionDao().getSet(setId)!!
+        assertEquals(1560, saved.durationSeconds)
+        assertEquals(8.5, saved.inclinePercent!!, 0.0)
+
+        // "+ Serie" copia pendenza e tempo dell'ultima serie.
+        workoutRepository.addSet(exercise.sessionExerciseId)
+        val added = db.workoutSessionDao().getSets(exercise.sessionExerciseId).maxBy { it.setIndex }
+        assertEquals(8.5, added.inclinePercent!!, 0.0)
+        assertEquals(1560, added.durationSeconds)
+    }
+
+    @Test
+    fun treadmillSetLabel_keepsTheDistanceOfSetsLoggedBeforeTheIncline() {
+        val type = com.example.sport.core.model.ExerciseTrackingType.INCLINE_TIME
+        fun set(incline: Double?, seconds: Int?, meters: Double?) = com.example.sport.core.database.entity.ExerciseSetEntity(
+            sessionExerciseId = 1, setIndex = 0, durationSeconds = seconds, distanceMeters = meters, inclinePercent = incline,
+        )
+        assertEquals("8,5% · 25:00", SetFormat.previous(type, set(8.5, 1500, null), WeightUnit.KG))
+        assertEquals("30:00 · 3 km", SetFormat.previous(type, set(null, 1800, 3000.0), WeightUnit.KG))
+        assertNull(SetFormat.previous(type, set(null, null, null), WeightUnit.KG))
+    }
+
+    @Test
+    fun treadmill_typingTheTimeStopsTheStopwatch() = runTest {
+        val (_, dayId) = createRoutineWithDay("Cardio", listOf("walking_treadmill" to 1))
+        workoutRepository.startFromRoutineDay(dayId)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        val setId = awaitActive().exercises[0].sets[0].setId
+
+        viewModel.onFieldClick(setId, SetMetric.DURATION_CLOCK)
+        viewModel.onToggleStopwatch()
+        awaitActive { it.stopwatch != null }
+        listOf(KeypadKey.Digit(2), KeypadKey.Digit(0), KeypadKey.Digit(0), KeypadKey.Digit(0)).forEach(viewModel::onKey)
+        awaitActive { it.stopwatch == null && it.exercises[0].sets[0].values[SetMetric.DURATION_CLOCK] == "20:00" }
+        assertEquals(1200, db.workoutSessionDao().getSet(setId)!!.durationSeconds)
+    }
+
+    @Test
     fun pounds_areShownAndTyped_butStoredInKilograms() = runTest {
         val (_, dayId) = createRoutineWithDay("Petto", listOf("barbell_bench_press" to 1))
         workoutRepository.startFromRoutineDay(dayId)

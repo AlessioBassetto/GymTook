@@ -163,6 +163,7 @@
     <string name="tracking_assisted">Con contrappeso (assistito)</string>
     <string name="tracking_duration">Tempo</string>
     <string name="tracking_distance_duration">Distanza e tempo</string>
+    <string name="tracking_incline_time">Inclinazione e tempo</string>
 
     <!-- Scheda esercizio: azioni, alternative, video -->
     <string name="exercise_more_options">Altre opzioni</string>
@@ -194,6 +195,7 @@
     <string name="exercise_video_importing">Importazione del video…</string>
     <string name="exercise_video_no_camera">Nessuna app fotocamera disponibile per registrare.</string>
     <string name="exercise_video_unplayable">Questo video non si riesce a riprodurre su questo telefono: prova a registrarne uno nuovo.</string>
+    <string name="exercise_video_online_only">Video disponibile online</string>
 
     <!-- Editor esercizio personalizzato -->
     <string name="editor_title_new">Nuovo esercizio</string>
@@ -476,6 +478,8 @@
     <string name="workout_col_seconds">Sec</string>
     <string name="workout_col_km">km</string>
     <string name="workout_col_minutes">Min</string>
+    <string name="workout_col_incline" formatted="false">Pend. %</string>
+    <string name="workout_col_time">Tempo</string>
     <string name="workout_set_complete">Completa la serie %1$d</string>
     <string name="workout_set_uncomplete">Serie %1$d completata, tocca per annullare</string>
     <string name="workout_set_options">Opzioni serie %1$d</string>
@@ -487,6 +491,11 @@
     <string name="workout_field_seconds">Secondi</string>
     <string name="workout_field_km">Distanza</string>
     <string name="workout_field_minutes">Minuti</string>
+    <string name="workout_field_incline">Inclinazione</string>
+    <string name="workout_field_time">Tempo di corsa</string>
+    <string name="workout_stopwatch_start">Avvia cronometro</string>
+    <string name="workout_stopwatch_stop">Ferma cronometro · %1$s</string>
+    <string name="workout_stopwatch_stop_other">Ferma il cronometro acceso</string>
     <string name="workout_keypad_title">%1$s · serie %2$d · %3$s</string>
     <string name="workout_keypad_close">Chiudi tastierino</string>
 
@@ -744,6 +753,8 @@
     <string name="set_edit_seconds">Durata (secondi)</string>
     <string name="set_edit_kilometers">Distanza (km)</string>
     <string name="set_edit_minutes">Durata (minuti)</string>
+    <string name="set_edit_incline" formatted="false">Inclinazione (%)</string>
+    <string name="set_edit_time">Tempo (mm:ss)</string>
     <string name="set_delete">Elimina serie</string>
     <string name="set_delete_title">Eliminare la serie %1$s?</string>
     <string name="set_delete_message">Record, volumi e grafici si ricalcolano. Se era l\'unica serie, anche l\'esercizio esce dall\'allenamento.</string>
@@ -783,4 +794,25 @@
     <string name="body_profile_birth_year_error">Inserisci un anno tra %1$d e %2$d</string>
     <string name="body_profile_note">Servono solo alla stima delle calorie: metabolismo a riposo e ampiezza dei movimenti. Se un dato manca si usa un valore medio.</string>
     <string name="body_profile_saved">Profilo salvato: calorie ricalcolate</string>
+
+    <!-- Tapis roulant: inclinazione e tempo -->
+    <string name="incline_none_in_range">Nessuna sessione di tapis roulant nel periodo scelto.</string>
+    <string name="incline_latest">Ultima sessione</string>
+    <string name="incline_session_value">%1$s · %2$s</string>
+    <string name="incline_session_max">Pendenza massima %1$s</string>
+    <string name="incline_longest">durata migliore</string>
+    <string name="incline_steepest">pendenza massima</string>
+    <string name="incline_improvements">sessioni migliorate</string>
+    <string name="incline_improvements_value">%1$d su %2$d</string>
+    <string name="incline_chart_title">Tempo e pendenza, sessione per sessione</string>
+    <string name="incline_legend_time">Tempo (minuti)</string>
+    <string name="incline_legend_incline" formatted="false">Pendenza media (%)</string>
+    <string name="incline_chart_description">Confronto di %1$d sessioni: l\'ultima %2$s a %3$s di pendenza.</string>
+    <string name="incline_improved">Migliorata rispetto alla volta precedente</string>
+    <string name="incline_trend_first">Prima sessione del periodo</string>
+    <string name="incline_trend_longer_same">Stessa pendenza, %1$s di tempo</string>
+    <string name="incline_trend_steeper_same">%1$s di pendenza a parità di durata</string>
+    <string name="incline_trend_steeper_longer">%1$s di pendenza e %2$s di tempo</string>
+    <string name="incline_trend_same">Come la volta precedente</string>
+    <string name="incline_trend_change">Pendenza %1$s, tempo %2$s</string>
 </resources>

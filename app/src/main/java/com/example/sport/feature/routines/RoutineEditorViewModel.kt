@@ -14,6 +14,7 @@ import com.example.sport.core.data.totalSets
 import com.example.sport.core.database.relation.RoutineDayWithExercises
 import com.example.sport.core.database.relation.RoutineWithDays
 import com.example.sport.core.media.MediaRepository
+import com.example.sport.core.model.Muscle
 import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.core.ui.labels.labelRes
 import com.example.sport.navigation.RoutineEditorRoute
@@ -48,6 +49,8 @@ data class BuilderExerciseUi(
     val restIsDefault: Boolean,
     val defaultRestSeconds: Int,
     val countsReps: Boolean,
+    /** Muscolo principale: ripiego della miniatura (mappa anatomica). */
+    val muscle: Muscle? = null,
     val supersetPosition: SupersetPosition,
 ) {
     val targets: ExerciseTargets get() = ExerciseTargets(sets, repsMin, repsMax, if (restIsDefault) null else restSeconds)
@@ -194,6 +197,7 @@ class RoutineEditorViewModel @Inject constructor(
                     exerciseId = exercise.id,
                     name = exercise.name,
                     muscleLabelRes = exercise.primaryMuscle.labelRes(),
+                    muscle = exercise.primaryMuscle,
                     thumbnail = thumbnails[exercise.id]?.let(mediaRepository::resolve),
                     sets = planned.targetSets,
                     repsMin = planned.targetRepsMin,
@@ -202,7 +206,8 @@ class RoutineEditorViewModel @Inject constructor(
                     restIsDefault = planned.restSeconds == null,
                     defaultRestSeconds = exercise.defaultRestSeconds,
                     countsReps = exercise.trackingType != ExerciseTrackingType.DURATION &&
-                        exercise.trackingType != ExerciseTrackingType.DISTANCE_DURATION,
+                        exercise.trackingType != ExerciseTrackingType.DISTANCE_DURATION &&
+                        exercise.trackingType != ExerciseTrackingType.INCLINE_TIME,
                     supersetPosition = when {
                         !previousSame && nextSame -> SupersetPosition.FIRST
                         previousSame && nextSame -> SupersetPosition.MIDDLE

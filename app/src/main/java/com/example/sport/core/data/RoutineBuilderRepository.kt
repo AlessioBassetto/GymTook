@@ -135,7 +135,8 @@ class RoutineBuilderRepository @Inject constructor(
         val day = checkNotNull(dao.getDay(dayId)) { "Giorno $dayId inesistente" }
         val exercise = checkNotNull(exerciseDao.getById(exerciseId)) { "Esercizio $exerciseId inesistente" }
         val countsReps = exercise.trackingType != ExerciseTrackingType.DURATION &&
-            exercise.trackingType != ExerciseTrackingType.DISTANCE_DURATION
+            exercise.trackingType != ExerciseTrackingType.DISTANCE_DURATION &&
+            exercise.trackingType != ExerciseTrackingType.INCLINE_TIME
         val id = dao.appendExerciseToDay(
             RoutineExerciseEntity(
                 routineDayId = dayId,

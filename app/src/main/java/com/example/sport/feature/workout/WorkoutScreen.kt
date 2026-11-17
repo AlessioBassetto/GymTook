@@ -96,6 +96,8 @@ internal data class WorkoutActions(
     val onRestSkip: () -> Unit,
     val onRestElapsed: () -> Unit,
     val now: () -> Instant,
+    /** Cronometro del tempo di corsa (tapis roulant): avvia o ferma per la serie in modifica. */
+    val onToggleStopwatch: () -> Unit = {},
     val onGrantExactAlarms: () -> Unit = {},
     val onDismissExactAlarmHint: () -> Unit = {},
 )
@@ -157,6 +159,7 @@ fun WorkoutScreen(
             onRestSkip = viewModel::onRestSkip,
             onRestElapsed = viewModel::onRestElapsed,
             now = viewModel::now,
+            onToggleStopwatch = viewModel::onToggleStopwatch,
             onGrantExactAlarms = {
                 exactAlarmSettingsIntent(context)?.let { intent ->
                     runCatching { context.startActivity(intent) }
@@ -321,6 +324,8 @@ private fun ColumnScope.ActiveWorkout(state: WorkoutUiState.Active, actions: Wor
                             metrics = item.exercise.metrics,
                             trackingType = item.exercise.trackingType,
                             editing = state.editing,
+                            stopwatch = state.stopwatch,
+                            now = actions.now,
                             onFieldClick = { metric -> actions.onFieldClick(item.row.setId, metric) },
                             onToggleComplete = { actions.onToggleComplete(item.row.setId) },
                             onTypeChange = { type -> actions.onSetTypeChange(item.row.setId, type) },
@@ -346,7 +351,15 @@ private fun ColumnScope.ActiveWorkout(state: WorkoutUiState.Active, actions: Wor
         )
     }
     state.editing?.let { editing ->
-        KeypadPanel(editing = editing, onKey = actions.onKey, onNext = actions.onNext, onClose = actions.onCloseKeypad)
+        KeypadPanel(
+            editing = editing,
+            onKey = actions.onKey,
+            onNext = actions.onNext,
+            onClose = actions.onCloseKeypad,
+            stopwatch = state.stopwatch,
+            now = actions.now,
+            onToggleStopwatch = actions.onToggleStopwatch,
+        )
     }
 }
 
@@ -412,7 +425,7 @@ private fun ExerciseHeader(exercise: WorkoutExerciseUi, actions: WorkoutActions)
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingM),
         ) {
-            ExerciseThumbnail(model = exercise.thumbnail, size = 48.dp)
+            ExerciseThumbnail(model = exercise.thumbnail, size = 48.dp, muscle = exercise.muscle)
             Column(Modifier.weight(1f)) {
                 Text(exercise.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 exercise.supersetLabel?.let { SupersetBadge(stringResource(R.string.workout_superset, it)) }

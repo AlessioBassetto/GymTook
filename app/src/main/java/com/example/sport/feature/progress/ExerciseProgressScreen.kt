@@ -169,14 +169,16 @@ internal fun ExerciseProgressContent(
                 }
             },
             actions = {
-                if (content != null && content.metric != null) ProgressMenu(onReset = { confirmReset = true })
+                if (content != null && (content.metric != null || content.incline != null)) ProgressMenu(onReset = { confirmReset = true })
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
         when (state) {
             ExerciseProgressUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             ExerciseProgressUiState.NotFound -> EmptyState(icon = Icons.Outlined.SearchOff, title = stringResource(R.string.exercise_not_found))
-            is ExerciseProgressUiState.Content -> if (state.metric == null) {
+            is ExerciseProgressUiState.Content -> if (state.incline != null) {
+                InclineProgressBody(state, state.incline, actions)
+            } else if (state.metric == null) {
                 EmptyState(icon = Icons.Outlined.Insights, title = stringResource(R.string.exercise_progress_unsupported))
             } else {
                 ExerciseProgressBody(state, state.metric, actions, onDeleteRecordRequest = { deletingRecord = it })

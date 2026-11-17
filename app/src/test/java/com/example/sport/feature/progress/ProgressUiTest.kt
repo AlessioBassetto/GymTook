@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.sport.core.data.progress.InclineSession
 import com.example.sport.core.data.progress.RecordKind
 import com.example.sport.core.data.progress.WeightTrendPoint
 import com.example.sport.core.database.T0
@@ -40,6 +42,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneOffset
 
 /** Panoramica Progressi, peso corporeo, andamento per esercizio e dettaglio allenamento (Robolectric). */
 @RunWith(AndroidJUnit4::class)
@@ -405,6 +408,131 @@ class ProgressUiTest {
         composeRule.onNodeWithText("Azzera storico").performClick()
 
         assertEquals(listOf("deleteRecord:HEAVIEST_SET:31", "deleteRecord:SESSION_VOLUME:null", "reset"), calls)
+    }
+
+    // ------------------------------------------------------------------ Tapis roulant in salita
+
+    private fun inclineSession(id: Long, daysAgo: Long, incline: Double, minutes: Int) = InclineSession(
+        sessionId = id,
+        performedAt = today.minusDays(daysAgo).atTime(7, 0).toInstant(ZoneOffset.UTC),
+        totalSeconds = minutes * 60,
+        averageIncline = incline,
+        maxIncline = incline,
+        setCount = 1,
+    )
+
+    @Test
+    fun inclineProgress_comparesTimeAndIncline_andHighlightsImprovements() {
+        val incline = inclineProgressUi(
+            listOf(inclineSession(1, 6, 10.0, 25), inclineSession(2, 3, 10.0, 30), inclineSession(3, 0, 12.0, 30)),
+            ZoneOffset.UTC,
+        )
+        val state = ExerciseProgressUiState.Content(
+            exerciseId = "walking_treadmill",
+            name = "Camminata in salita sul tapis roulant",
+            metrics = emptyList(),
+            metric = null,
+            range = TimeRange.HALF_YEAR,
+            points = emptyList(),
+            sessions = emptyList(),
+            records = emptyList(),
+            incline = incline,
+        )
+        setContent { ExerciseProgressContent(state, exerciseActions()) }
+
+        composeRule.onNodeWithText("Ultima sessione").assertIsDisplayed()
+        composeRule.onNodeWithText("2 su 2").assertIsDisplayed()
+        composeRule.onNodeWithText("Tempo e pendenza, sessione per sessione").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Confronto di 3 sessioni: l'ultima 30:00 a 12% di pendenza.").assertIsDisplayed()
+        composeRule.onNodeWithText("Pendenza media (%)").assertIsDisplayed()
+
+        val list = composeRule.onNode(hasScrollToIndexAction())
+        list.performScrollToNode(hasText("+2% di pendenza a parità di durata"))
+        composeRule.onNodeWithText("+2% di pendenza a parità di durata").performClick()
+        list.performScrollToNode(hasText("Stessa pendenza, +5:00 di tempo"))
+        list.performScrollToNode(hasText("Prima sessione del periodo"))
+        assertEquals(2, composeRule.onAllNodes(hasContentDescription("Migliorata rispetto alla volta precedente")).fetchSemanticsNodes().size)
+        assertEquals(listOf("session:3"), calls)
+    }
+
+    @Test
+    fun inclineProgress_emptyRange_explainsIt() {
+        val state = ExerciseProgressUiState.Content(
+            "walking_treadmill", "Camminata in salita sul tapis roulant", emptyList(), null, TimeRange.MONTH,
+            emptyList(), emptyList(), emptyList(), incline = InclineProgressUi(emptyList()),
+        )
+        setContent { ExerciseProgressContent(state, exerciseActions()) }
+        composeRule.onNodeWithText("Nessuna sessione di tapis roulant nel periodo scelto.").assertIsDisplayed()
+    }
+
+    @Test
+    fun sessionDetail_fixesAnInclineAndTimeSet() {
+        val state = SessionDetailUiState.Content(
+            title = "Cardio",
+            date = today,
+            startTime = LocalTime.of(7, 0),
+            endTime = LocalTime.of(7, 40),
+            duration = "40 min",
+            workingSets = 1,
+            volumeKg = 0.0,
+            exercises = listOf(
+                SessionExerciseUi(
+                    id = 1L,
+                    exerciseId = "walking_treadmill",
+                    name = "Camminata in salita sul tapis roulant",
+                    trackingType = ExerciseTrackingType.INCLINE_TIME,
+                    sets = listOf(SessionSetUi(5L, SetType.WORKING, 1, "8,5% · 25:00", null, null, durationSeconds = 1500, inclinePercent = 8.5)),
+                    volumeKg = 0.0,
+                ),
+            ),
+            notes = null,
+        )
+        setContent {
+            SessionDetailContent(
+                state,
+                SessionDetailActions(
+                    onBack = {},
+                    onOpenExercise = {},
+                    onDelete = {},
+                    onUpdateSet = { id, values -> calls += "update:$id:${values.inclinePercent}:${values.durationSeconds}" },
+                    onDeleteSet = {},
+                ),
+            )
+        }
+
+        composeRule.onNodeWithText("8,5% · 25:00").performClick()
+        composeRule.onNodeWithText("Inclinazione (%)").assertIsDisplayed()
+        composeRule.onNode(hasText("8,5") and hasSetTextAction()).performTextReplacement("9")
+        composeRule.onNode(hasText("25:00") and hasSetTextAction()).performTextReplacement("27:30")
+        composeRule.onNodeWithText("Salva").performClick()
+
+        composeRule.onNodeWithText("8,5% · 25:00").performClick()
+        // Oltre il 40% nessun tapis roulant: non si salva.
+        composeRule.onNode(hasText("8,5") and hasSetTextAction()).performTextReplacement("45")
+        composeRule.onNodeWithText("Salva").assertIsNotEnabled()
+
+        assertEquals(listOf("update:5:9.0:1650"), calls)
+    }
+
+    @Test
+    fun setValues_parseInclineAndClockTime() {
+        fun parse(incline: String, time: String) =
+            parseSetValues(ExerciseTrackingType.INCLINE_TIME, WeightUnit.KG, "", "", "", "", "", incline, time)
+
+        assertEquals(8.5, parse("8,5", "25:30")!!.inclinePercent!!, 0.0)
+        assertEquals(1530, parse("8,5", "25:30")!!.durationSeconds)
+        assertEquals("Solo minuti", 1500, parse("10", "25")!!.durationSeconds)
+        assertEquals("Pendenza vuota = in piano", null, parse("", "20:00")!!.inclinePercent)
+        assertEquals("Il tempo è obbligatorio", null, parse("10", ""))
+        assertEquals("Secondi oltre 59", null, parse("10", "25:75"))
+        assertEquals(null, parse("abc", "25:00"))
+        assertEquals(null, parse("41", "25:00"))
+        assertEquals(90, parseClock(" 1:30 "))
+        assertEquals("Tastiera numerica senza i due punti", 1530, parseClock("25,30"))
+        assertEquals(1530, parseClock("25.30"))
+        assertEquals("Secondi a una cifra: ambiguo", null, parseClock("25,5"))
+        assertEquals(null, parseClock("-1:00"))
+        assertEquals(null, parseClock(":30"))
     }
 
     @Test

@@ -69,7 +69,7 @@ import com.example.sport.core.database.entity.WorkoutSessionEntity
         ExerciseUserVideoEntity::class,
         BodyProfileEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = Migration1To2::class),
@@ -77,6 +77,7 @@ import com.example.sport.core.database.entity.WorkoutSessionEntity
         // compila all'avvio) e tabella `exercise_user_videos`. Solo aggiunte: nessuna spec.
         AutoMigration(from = 2, to = 3),
         // v3 → v4 (calorie): Migration scritta a mano, vedi MIGRATION_3_4 in Migrations.kt.
+        // v4 → v5 (tapis roulant): colonna exercise_sets.incline_percent, vedi MIGRATION_4_5.
     ],
 )
 @TypeConverters(Converters::class)
