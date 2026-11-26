@@ -159,19 +159,24 @@ class DietUiTest {
     }
 
     @Test
-    fun dietTab_withoutPlan_createsOne() {
+    fun dietTab_withoutPlan_isADiary_andCreatesAPlanForTheTargets() {
         setContent {
             NutritionContent(
-                state = NutritionUiState.NoPlan(hasPlans = true),
-                onSetConsumed = { _, _ -> },
-                onOpenPlans = { calls += "plans" },
-                onCreatePlan = { calls += "create:$it" },
+                state = diaryState(planId = null),
+                actions = NutritionActions(
+                    onOpenPlans = { calls += "plans" },
+                    onCreatePlan = { calls += "create:$it" },
+                    onAddFood = { calls += "add:$it" },
+                ),
             )
         }
-        composeRule.onNodeWithText("I tuoi piani").performClick()
-        composeRule.onNodeWithText("Crea un piano").performClick()
+        composeRule.onNodeWithText("Colazione").assertIsDisplayed()
+        composeRule.onNodeWithText("Nessun obiettivo: crea un piano per impostare calorie e macro.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("I tuoi piani").performClick()
+        composeRule.onNodeWithText("Aggiungi a Colazione").performClick()
+        composeRule.onNodeWithText("Imposta").performClick()
         composeRule.onNodeWithText("Crea").performClick()
-        assertEquals(listOf("plans", "create:Il mio piano"), calls)
+        assertEquals(listOf("plans", "add:BREAKFAST", "create:Il mio piano"), calls)
     }
 
     // ------------------------------------------------------------------ Impostazioni
@@ -203,13 +208,13 @@ class DietUiTest {
     fun settings_restoreAsksForConfirmation_withTheBackupContents() {
         val pending = PendingRestore(
             file = BackupFile(schemaVersion = 3, exportedAt = "2026-11-02T07:00:00Z", tables = emptyMap()),
-            summary = BackupSummary(sessions = 42, routines = 2, bodyWeights = 90, dietPlans = 1, customExercises = 3),
+            summary = BackupSummary(sessions = 42, routines = 2, bodyWeights = 90, dietPlans = 1, customExercises = 3, diaryEntries = 120, userFoods = 4),
             exportedOn = LocalDate.of(2026, 11, 2),
         )
         setContent { SettingsContent(UserSettings(), busy = false, pendingRestore = pending, actions = settingsActions()) }
 
         composeRule.onNodeWithText("Backup del Lunedì 2 novembre:").assertIsDisplayed()
-        composeRule.onNodeWithText("42 allenamenti, 2 schede, 90 pesate, 1 piano alimentare e 3 esercizi personalizzati.").assertIsDisplayed()
+        composeRule.onNodeWithText("42 allenamenti, 2 schede, 90 pesate, 1 piano alimentare, 3 esercizi personalizzati, 4 piatti e ricette personali e 120 voci del diario alimentare.").assertIsDisplayed()
         composeRule.onNodeWithText("Ripristina").performClick()
         assertEquals(listOf("confirm"), calls)
     }

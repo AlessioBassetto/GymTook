@@ -332,6 +332,7 @@ private fun ExerciseBlock(exercise: SessionExerciseUi, onOpen: () -> Unit, onEdi
                                     distanceMeters = set.distanceMeters,
                                     description = set.description,
                                     inclinePercent = set.inclinePercent,
+                                    speedKmh = set.speedKmh,
                                 ),
                             )
                         },

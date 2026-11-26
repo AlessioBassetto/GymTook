@@ -46,6 +46,8 @@ data class CalorieSet(
     val rir: Int? = null,
     /** Pendenza del tapis roulant (%), per gli esercizi INCLINE_TIME. */
     val inclinePercent: Double? = null,
+    /** Velocità del tapis roulant (km/h), per gli esercizi INCLINE_TIME. */
+    val speedKmh: Double? = null,
     /** Recupero impostato dopo la serie (timer del logger): pesa la ripartizione del recupero reale. */
     val plannedRestSeconds: Int = DEFAULT_PLANNED_REST_SECONDS,
 ) {
@@ -250,8 +252,9 @@ class WorkoutCalorieCalculator {
      *   camminata VO₂ = 3,5 + 0,1·v + 1,8·v·G (v ≤ 100 m/min), corsa VO₂ = 3,5 + 0,2·v + 0,9·v·G
      *   (v ≥ 134 m/min), raccordate linearmente nel mezzo; MET = VO₂ / 3,5. Il termine v·G è il
      *   moltiplicatore della pendenza: lavoro verticale contro la gravità.
-     * - Tapis roulant in salita (INCLINE_TIME): si registrano pendenza e tempo, non la velocità; si
-     *   usa quella tipica (camminata in salita 5 km/h, corsa 9 km/h) se non è nota da distanza e tempo.
+     * - Tapis roulant (INCLINE_TIME): velocità registrata in km/h → m/min (v = km/h × 1000 / 60),
+     *   pendenza G = %/100, durata esatta della serie. Serie vecchie senza velocità: da distanza e
+     *   tempo se c'erano, altrimenti la velocità tipica (camminata 5 km/h, corsa 9 km/h).
      * - Bici (Compendium 2011, fasce di velocità): <16 km/h 4,0 · <19,3 6,8 · <22,5 8,0 ·
      *   <25,7 10,0 · <30,6 12,0 · oltre 15,8.
      * - Vogatore: potenza dal passo (formula Concept2: W = 2,80 / passo³, passo in s/m), costo
@@ -264,12 +267,12 @@ class WorkoutCalorieCalculator {
         val meters = set.distanceMeters?.takeIf { it > 0 }
         val grade = (set.inclinePercent ?: 0.0).coerceIn(0.0, MAX_INCLINE_PERCENT) / 100
         if (set.exercise.trackingType == ExerciseTrackingType.INCLINE_TIME) {
-            val metersPerMinute = if (seconds != null && meters != null) {
-                meters / (seconds / SECONDS_PER_MINUTE)
-            } else if (profile.running) {
-                TYPICAL_RUN_M_PER_MIN
-            } else {
-                TYPICAL_INCLINE_WALK_M_PER_MIN
+            val speed = set.speedKmh?.takeIf { it > 0 }?.coerceAtMost(MAX_TREADMILL_SPEED_KMH)
+            val metersPerMinute = when {
+                speed != null -> kmhToMetersPerMinute(speed)
+                seconds != null && meters != null -> meters / (seconds / SECONDS_PER_MINUTE)
+                profile.running -> TYPICAL_RUN_M_PER_MIN
+                else -> TYPICAL_INCLINE_WALK_M_PER_MIN
             }
             return runOrWalkVo2(metersPerMinute, grade) / VO2_PER_MET
         }
@@ -301,7 +304,14 @@ class WorkoutCalorieCalculator {
         return base
     }
 
-    /** VO₂ (ml/kg/min) da velocità e pendenza ([grade] = frazione, 0,08 = 8%), equazioni metaboliche ACSM. */
+    /** 5,5 km/h → 91,7 m/min: l'unità delle equazioni ACSM. */
+    internal fun kmhToMetersPerMinute(kmh: Double): Double = kmh * 1000 / SECONDS_PER_MINUTE
+
+    /**
+     * VO₂ (ml/kg/min) da velocità e pendenza ([grade] = frazione, 0,08 = 8%), equazioni metaboliche ACSM:
+     * camminata (≤ 100 m/min) 3,5 + 0,1·v + 1,8·v·G; corsa (≥ 134 m/min) 3,5 + 0,2·v + 0,9·v·G; in mezzo
+     * (passo svelto o corsetta) raccordo lineare fra le due. Calorie nette = (VO₂/3,5 − 1) × 0,0175 × kg × min.
+     */
     internal fun runOrWalkVo2(metersPerMinute: Double, grade: Double = 0.0): Double {
         val walking = VO2_PER_MET + 0.1 * metersPerMinute + 1.8 * metersPerMinute * grade
         val running = VO2_PER_MET + 0.2 * metersPerMinute + 0.9 * metersPerMinute * grade
@@ -399,6 +409,7 @@ class WorkoutCalorieCalculator {
         /** Corsa in salita tipica: 9 km/h. */
         const val TYPICAL_RUN_M_PER_MIN = 9000.0 / 60
         const val MAX_INCLINE_PERCENT = 40.0
+        const val MAX_TREADMILL_SPEED_KMH = 30.0
         const val WALK_MAX_M_PER_MIN = 100.0
         const val RUN_MIN_M_PER_MIN = 134.0
         const val MIN_CARDIO_MET = 2.0

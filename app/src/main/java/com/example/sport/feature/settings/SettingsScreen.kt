@@ -278,6 +278,8 @@ private fun RestoreDialog(pending: PendingRestore, actions: SettingsActions) {
                         pluralStringResource(R.plurals.count_weighins, summary.bodyWeights, summary.bodyWeights),
                         pluralStringResource(R.plurals.count_diet_plans, summary.dietPlans, summary.dietPlans),
                         pluralStringResource(R.plurals.count_custom_exercises, summary.customExercises, summary.customExercises),
+                        pluralStringResource(R.plurals.count_user_foods, summary.userFoods, summary.userFoods),
+                        pluralStringResource(R.plurals.count_diary_entries, summary.diaryEntries, summary.diaryEntries),
                     ),
                 )
                 Text(stringResource(R.string.settings_restore_warning), color = MaterialTheme.colorScheme.error)

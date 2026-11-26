@@ -71,6 +71,8 @@ internal data class SetEditTarget(
     val description: String,
     /** Pendenza del tapis roulant (%), per gli esercizi INCLINE_TIME. */
     val inclinePercent: Double? = null,
+    /** Velocità del tapis roulant (km/h), per gli esercizi INCLINE_TIME. */
+    val speedKmh: Double? = null,
 )
 
 /** Testi dei campi → valori da salvare; null se manca un dato o un numero non è valido. */
@@ -84,6 +86,7 @@ internal fun parseSetValues(
     minutes: String,
     incline: String = "",
     time: String = "",
+    speed: String = "",
 ): SetValues? {
     fun number(text: String): Double? = Formatters.parseDecimal(text)?.takeIf { it >= 0 }
     fun whole(text: String): Int? = text.trim().toIntOrNull()?.takeIf { it >= 0 }
@@ -106,8 +109,9 @@ internal fun parseSetValues(
         }
         ExerciseTrackingType.INCLINE_TIME -> {
             val typedIncline = number(incline)
-            if (!isBlankOr(incline, typedIncline)) return null
-            SetValues(inclinePercent = typedIncline, durationSeconds = parseClock(time) ?: return null)
+            val typedSpeed = number(speed)
+            if (!isBlankOr(incline, typedIncline) || !isBlankOr(speed, typedSpeed)) return null
+            SetValues(inclinePercent = typedIncline, speedKmh = typedSpeed, durationSeconds = parseClock(time) ?: return null)
         }
     }
     return values.takeIf { it.isValid }
@@ -131,8 +135,9 @@ internal fun SetEditDialog(
     var kilometers by remember(target.setId) { mutableStateOf(Formatters.editable(target.distanceMeters?.let { it / 1000 })) }
     var minutes by remember(target.setId) { mutableStateOf(target.durationSeconds?.let { (it / 60.0).roundToInt().toString() }.orEmpty()) }
     var incline by remember(target.setId) { mutableStateOf(Formatters.editable(target.inclinePercent)) }
+    var speed by remember(target.setId) { mutableStateOf(Formatters.editable(target.speedKmh)) }
     var time by remember(target.setId) { mutableStateOf(target.durationSeconds?.let { Formatters.clock(it.toLong()) }.orEmpty()) }
-    val values = parseSetValues(target.trackingType, unit, weight, reps, seconds, kilometers, minutes, incline, time)
+    val values = parseSetValues(target.trackingType, unit, weight, reps, seconds, kilometers, minutes, incline, time, speed)
         // Tapis roulant registrato prima della v5 con la distanza: la correzione non la cancella.
         ?.let { if (target.trackingType == ExerciseTrackingType.INCLINE_TIME) it.copy(distanceMeters = target.distanceMeters) else it }
 
@@ -166,6 +171,7 @@ internal fun SetEditDialog(
                 }
                 ExerciseTrackingType.INCLINE_TIME -> {
                     NumberField(incline, { incline = it }, stringResource(R.string.set_edit_incline), decimal = true)
+                    NumberField(speed, { speed = it }, stringResource(R.string.set_edit_speed), decimal = true)
                     OutlinedTextField(
                         value = time,
                         onValueChange = { time = it },

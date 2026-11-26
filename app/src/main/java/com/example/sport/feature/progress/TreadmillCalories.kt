@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,9 +38,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sport.R
-import com.example.sport.core.data.progress.InclineSession
-import com.example.sport.core.data.progress.InclineTrend
-import com.example.sport.core.data.progress.inclineTrend
+import com.example.sport.core.data.ExerciseSessionCalories
 import com.example.sport.core.designsystem.component.SectionHeader
 import com.example.sport.core.designsystem.component.StatValue
 import com.example.sport.core.designsystem.theme.SportDimens
@@ -76,59 +74,57 @@ import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.compose.m3.common.rememberM3VicoTheme
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** Una sessione di tapis roulant nella pagina dei progressi, con il confronto con la precedente. */
+/** Una sessione di tapis roulant nelle statistiche: calorie della sessione e totale cumulativo. */
 @Immutable
-data class InclineSessionUi(
+data class TreadmillSessionUi(
     val sessionId: Long,
     val date: LocalDate,
-    val totalSeconds: Int,
-    val averageIncline: Double,
-    val maxIncline: Double,
-    val trend: InclineTrend,
-    /** Differenza di tempo rispetto alla sessione precedente (null per la prima). */
-    val secondsDelta: Int?,
-    /** Differenza di pendenza media rispetto alla sessione precedente (null per la prima). */
-    val inclineDelta: Double?,
+    /** null se all'epoca mancava una pesata (la stima non è possibile). */
+    val kcal: Int?,
+    /** Somma delle calorie dalla prima sessione del periodo fino a questa compresa. */
+    val cumulativeKcal: Int,
 )
 
-/** Progressi di un esercizio INCLINE_TIME: sessioni del periodo in ordine cronologico. */
+/** Statistiche del tapis roulant: **solo calorie**, sessione per sessione e in totale. */
 @Immutable
-data class InclineProgressUi(val sessions: List<InclineSessionUi>) {
-    val latest: InclineSessionUi? get() = sessions.lastOrNull()
-    val longestSeconds: Int? get() = sessions.maxOfOrNull { it.totalSeconds }
-    val steepest: Double? get() = sessions.maxOfOrNull { it.maxIncline }
+data class TreadmillCaloriesUi(val sessions: List<TreadmillSessionUi>) {
+    private val estimated: List<Int> get() = sessions.mapNotNull { it.kcal }
 
-    /** Sessioni migliorate rispetto alla precedente (stessa pendenza più a lungo, più pendenza a parità di tempo…). */
-    val improvements: Int get() = sessions.count { it.trend.isImprovement }
+    val totalKcal: Int get() = estimated.sum()
+    val averageKcal: Int? get() = estimated.takeIf { it.isNotEmpty() }?.average()?.roundToInt()
+    val latest: TreadmillSessionUi? get() = sessions.lastOrNull()
+
+    /** La sessione che ha bruciato di più nel periodo (evidenziata nell'elenco). */
+    val bestSessionId: Long? get() = sessions.filter { it.kcal != null }.maxByOrNull { it.kcal ?: 0 }?.sessionId
+
+    /** Ci sono sessioni ma nessuna stima: manca il peso corporeo. */
+    val missingWeight: Boolean get() = sessions.isNotEmpty() && estimated.isEmpty()
 }
 
-/** Sessioni (dalla più vecchia) → modello della pagina, confrontando ciascuna con la precedente. */
-internal fun inclineProgressUi(sessions: List<InclineSession>, zone: ZoneId): InclineProgressUi =
-    InclineProgressUi(
-        sessions.mapIndexed { index, session ->
-            val previous = sessions.getOrNull(index - 1)
-            InclineSessionUi(
+/** Calorie per allenamento (dalla più vecchia) → modello della pagina con il totale cumulativo. */
+internal fun treadmillCaloriesUi(sessions: List<ExerciseSessionCalories>, zone: ZoneId): TreadmillCaloriesUi {
+    var running = 0
+    return TreadmillCaloriesUi(
+        sessions.map { session ->
+            running += session.kcal ?: 0
+            TreadmillSessionUi(
                 sessionId = session.sessionId,
                 date = session.performedAt.toLocalDate(zone),
-                totalSeconds = session.totalSeconds,
-                averageIncline = session.averageIncline,
-                maxIncline = session.maxIncline,
-                trend = inclineTrend(previous, session),
-                secondsDelta = previous?.let { session.totalSeconds - it.totalSeconds },
-                inclineDelta = previous?.let { session.averageIncline - it.averageIncline },
+                kcal = session.kcal,
+                cumulativeKcal = running,
             )
         },
     )
+}
 
-/** Contenuto della pagina per il tapis roulant: periodo, riepilogo, grafico comparativo, sessioni. */
+/** Pagina del tapis roulant: periodo, riepilogo calorie, grafico calorie per sessione + cumulativo, sessioni. */
 @Composable
-internal fun InclineProgressBody(
+internal fun TreadmillCaloriesBody(
     state: ExerciseProgressUiState.Content,
-    incline: InclineProgressUi,
+    treadmill: TreadmillCaloriesUi,
     actions: ExerciseProgressActions,
 ) {
     LazyColumn(
@@ -137,34 +133,44 @@ internal fun InclineProgressBody(
         verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingM),
     ) {
         item { RangeChips(state.range, actions.onSelectRange) }
-        if (incline.sessions.isEmpty()) {
+        when {
+            treadmill.sessions.isEmpty() -> item { HintText(stringResource(R.string.treadmill_none_in_range)) }
+            treadmill.missingWeight -> item { HintText(stringResource(R.string.treadmill_needs_weight)) }
+            else -> {
+                item { TreadmillSummaryCard(treadmill) }
+                item { TreadmillChartCard(treadmill.sessions) }
+            }
+        }
+        if (treadmill.sessions.isNotEmpty()) {
             item {
-                Text(
-                    stringResource(R.string.incline_none_in_range),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                SectionHeader(
+                    stringResource(R.string.exercise_progress_sessions),
                     modifier = Modifier.padding(horizontal = SportDimens.ScreenPadding),
                 )
             }
-            return@LazyColumn
-        }
-        item { InclineSummaryCard(incline) }
-        item { InclineChartCard(incline.sessions) }
-        item {
-            SectionHeader(
-                stringResource(R.string.exercise_progress_sessions),
-                modifier = Modifier.padding(horizontal = SportDimens.ScreenPadding),
-            )
-        }
-        items(incline.sessions.asReversed(), key = { "incline-${it.sessionId}" }) { session ->
-            InclineSessionRow(session, onClick = { actions.onOpenSession(session.sessionId) })
+            items(treadmill.sessions.asReversed(), key = { "treadmill-${it.sessionId}" }) { session ->
+                TreadmillSessionRow(
+                    session = session,
+                    isBest = session.sessionId == treadmill.bestSessionId && treadmill.sessions.size > 1,
+                    onClick = { actions.onOpenSession(session.sessionId) },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun InclineSummaryCard(incline: InclineProgressUi) {
-    val latest = incline.latest ?: return
+private fun HintText(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = SportDimens.ScreenPadding),
+    )
+}
+
+@Composable
+private fun TreadmillSummaryCard(treadmill: TreadmillCaloriesUi) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = SportDimens.ScreenPadding),
         shape = MaterialTheme.shapes.large,
@@ -173,45 +179,36 @@ private fun InclineSummaryCard(incline: InclineProgressUi) {
         Column(Modifier.padding(SportDimens.CardPadding), verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingM)) {
             Column {
                 Text(
-                    stringResource(R.string.incline_latest),
+                    stringResource(R.string.treadmill_total_in_range),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    stringResource(R.string.incline_session_value, Formatters.clock(latest.totalSeconds.toLong()), Formatters.incline(latest.averageIncline)),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
+                Text(Formatters.kcal(treadmill.totalKcal), style = MaterialTheme.typography.headlineMedium)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingXl)) {
-                incline.longestSeconds?.let { StatValue(Formatters.clock(it.toLong()), stringResource(R.string.incline_longest)) }
-                incline.steepest?.let { StatValue(Formatters.incline(it), stringResource(R.string.incline_steepest)) }
-                StatValue(
-                    stringResource(R.string.incline_improvements_value, incline.improvements, (incline.sessions.size - 1).coerceAtLeast(0)),
-                    stringResource(R.string.incline_improvements),
-                )
+                treadmill.latest?.kcal?.let { StatValue(Formatters.kcal(it), stringResource(R.string.treadmill_latest)) }
+                treadmill.averageKcal?.let { StatValue(Formatters.kcal(it), stringResource(R.string.treadmill_average)) }
+                StatValue(treadmill.sessions.size.toString(), stringResource(R.string.treadmill_sessions))
             }
         }
     }
 }
 
 @Composable
-private fun InclineChartCard(sessions: List<InclineSessionUi>) {
-    val timeColor = MaterialTheme.colorScheme.secondary
-    val inclineColor = MaterialTheme.colorScheme.primary
+private fun TreadmillChartCard(sessions: List<TreadmillSessionUi>) {
+    val sessionColor = MaterialTheme.colorScheme.primary
+    val cumulativeColor = MaterialTheme.colorScheme.secondary
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = SportDimens.ScreenPadding),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.padding(SportDimens.CardPadding), verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingS)) {
-            Text(
-                stringResource(R.string.incline_chart_title),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            InclineComparisonChart(sessions, timeColor = timeColor, inclineColor = inclineColor)
+            Text(stringResource(R.string.treadmill_chart_title), style = MaterialTheme.typography.titleSmall)
+            TreadmillCaloriesChart(sessions, sessionColor = sessionColor, cumulativeColor = cumulativeColor)
             Row(horizontalArrangement = Arrangement.spacedBy(SportDimens.SpacingL)) {
-                LegendSwatch(timeColor, stringResource(R.string.incline_legend_time), round = false)
-                LegendSwatch(inclineColor, stringResource(R.string.incline_legend_incline), round = true)
+                LegendSwatch(sessionColor, stringResource(R.string.treadmill_legend_session), round = false)
+                LegendSwatch(cumulativeColor, stringResource(R.string.treadmill_legend_cumulative), round = true)
             }
         }
     }
@@ -230,50 +227,56 @@ private fun LegendSwatch(color: Color, label: String, round: Boolean) {
 }
 
 /**
- * Grafico a doppia serie sessione per sessione: barre = tempo di corsa (asse sinistro, minuti),
- * linea con punti = pendenza media (asse destro, %). Tenendo premuto compare il dettaglio.
+ * Calorie sessione per sessione: barre = kcal della sessione (asse sinistro), linea con punti =
+ * totale cumulativo del periodo (asse destro). Tenendo premuto compare il dettaglio.
  */
 @Composable
-internal fun InclineComparisonChart(sessions: List<InclineSessionUi>, timeColor: Color, inclineColor: Color, modifier: Modifier = Modifier) {
+internal fun TreadmillCaloriesChart(
+    sessions: List<TreadmillSessionUi>,
+    sessionColor: Color,
+    cumulativeColor: Color,
+    modifier: Modifier = Modifier,
+) {
     if (sessions.isEmpty()) return
     val xs = sessions.indices.map { it.toDouble() }
-    val minutes = sessions.map { it.totalSeconds / 60.0 }
-    val inclines = sessions.map { it.averageIncline }
-    val timeAxis = niceAxis(0.0, max(minutes.max(), 1.0))
-    val inclineAxis = niceAxis(0.0, max(inclines.max(), 1.0))
+    val perSession = sessions.map { (it.kcal ?: 0).toDouble() }
+    val cumulative = sessions.map { it.cumulativeKcal.toDouble() }
+    val sessionAxis = niceAxis(0.0, max(perSession.max(), 1.0))
+    val cumulativeAxis = niceAxis(0.0, max(cumulative.max(), 1.0))
     val labelSpacing = max(1, (sessions.size / X_LABELS.toDouble()).roundToInt())
     val minX = if (sessions.size == 1) -1.0 else 0.0
     val maxX = if (sessions.size == 1) 1.0 else (sessions.size - 1).toDouble()
 
     val dates = sessions.map { Formatters.dayMonth(it.date) }
     val markerTexts = sessions.map { session ->
-        "${Formatters.shortDate(session.date)} · ${Formatters.clock(session.totalSeconds.toLong())} · ${Formatters.incline(session.averageIncline)}"
+        val kcal = session.kcal?.let(Formatters::kcal) ?: "—"
+        "${Formatters.shortDate(session.date)} · $kcal · ${Formatters.kcal(session.cumulativeKcal)}"
     }
     val currentDates by rememberUpdatedState(dates)
     val currentMarkers by rememberUpdatedState(markerTexts)
     val description = stringResource(
-        R.string.incline_chart_description,
+        R.string.treadmill_chart_description,
         sessions.size,
-        Formatters.clock(sessions.last().totalSeconds.toLong()),
-        Formatters.incline(sessions.last().averageIncline),
+        sessions.last().kcal?.let(Formatters::kcal) ?: "—",
+        Formatters.kcal(sessions.last().cumulativeKcal),
     )
 
     val model = remember(sessions) {
         CartesianChartModel(
-            ColumnCartesianLayerModel.build { series(xs, minutes) },
-            LineCartesianLayerModel.build { series(xs, inclines) },
+            ColumnCartesianLayerModel.build { series(xs, perSession) },
+            LineCartesianLayerModel.build { series(xs, cumulative) },
         )
     }
     val column = rememberLineComponent(
-        fill = Fill(timeColor),
+        fill = Fill(sessionColor),
         thickness = 14.dp,
         shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
     )
     val line = LineCartesianLayer.rememberLine(
-        fill = remember(inclineColor) { LineCartesianLayer.LineFill.single(Fill(inclineColor)) },
+        fill = remember(cumulativeColor) { LineCartesianLayer.LineFill.single(Fill(cumulativeColor)) },
         stroke = LineCartesianLayer.LineStroke.Continuous(thickness = 2.5.dp),
         pointProvider = LineCartesianLayer.PointProvider.single(
-            LineCartesianLayer.Point(rememberShapeComponent(Fill(inclineColor), CircleShape), size = 7.dp),
+            LineCartesianLayer.Point(rememberShapeComponent(Fill(cumulativeColor), CircleShape), size = 7.dp),
         ),
     )
     val markerText = rememberTextComponent(
@@ -285,23 +288,23 @@ internal fun InclineComparisonChart(sessions: List<InclineSessionUi>, timeColor:
         val chart = rememberCartesianChart(
             rememberColumnCartesianLayer(
                 columnProvider = ColumnCartesianLayer.ColumnProvider.series(column),
-                rangeProvider = remember(timeAxis, minX, maxX) { CartesianLayerRangeProvider.fixed(minX, maxX, timeAxis.min, timeAxis.max) },
+                rangeProvider = remember(sessionAxis, minX, maxX) { CartesianLayerRangeProvider.fixed(minX, maxX, sessionAxis.min, sessionAxis.max) },
                 verticalAxisPosition = Axis.Position.Vertical.Start,
             ),
             rememberLineCartesianLayer(
                 lineProvider = LineCartesianLayer.LineProvider.series(line),
-                rangeProvider = remember(inclineAxis, minX, maxX) { CartesianLayerRangeProvider.fixed(minX, maxX, inclineAxis.min, inclineAxis.max) },
+                rangeProvider = remember(cumulativeAxis, minX, maxX) { CartesianLayerRangeProvider.fixed(minX, maxX, cumulativeAxis.min, cumulativeAxis.max) },
                 verticalAxisPosition = Axis.Position.Vertical.End,
             ),
             startAxis = VerticalAxis.rememberStart(
-                valueFormatter = remember { CartesianValueFormatter { _, value, _ -> "${Formatters.number(value)}′" } },
-                itemPlacer = remember(timeAxis) { VerticalAxis.ItemPlacer.step({ timeAxis.step }) },
+                valueFormatter = remember { CartesianValueFormatter { _, value, _ -> Formatters.integer(value) } },
+                itemPlacer = remember(sessionAxis) { VerticalAxis.ItemPlacer.step({ sessionAxis.step }) },
             ),
             endAxis = VerticalAxis.rememberEnd(
-                // Una sola griglia (quella dei minuti): due scale diverse darebbero linee sfalsate.
+                // Una sola griglia (quella della sessione): due scale diverse darebbero linee sfalsate.
                 guideline = null,
-                valueFormatter = remember { CartesianValueFormatter { _, value, _ -> Formatters.incline(value) } },
-                itemPlacer = remember(inclineAxis) { VerticalAxis.ItemPlacer.step({ inclineAxis.step }) },
+                valueFormatter = remember { CartesianValueFormatter { _, value, _ -> Formatters.integer(value) } },
+                itemPlacer = remember(cumulativeAxis) { VerticalAxis.ItemPlacer.step({ cumulativeAxis.step }) },
             ),
             bottomAxis = HorizontalAxis.rememberBottom(
                 valueFormatter = remember { CartesianValueFormatter { _, value, _ -> currentDates.getOrNull(value.roundToInt()).orEmpty() } },
@@ -332,8 +335,7 @@ internal fun InclineComparisonChart(sessions: List<InclineSessionUi>, timeColor:
 }
 
 @Composable
-private fun InclineSessionRow(session: InclineSessionUi, onClick: () -> Unit) {
-    val improvement = session.trend.isImprovement
+private fun TreadmillSessionRow(session: TreadmillSessionUi, isBest: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = SportDimens.ScreenPadding),
         shape = MaterialTheme.shapes.medium,
@@ -350,53 +352,25 @@ private fun InclineSessionRow(session: InclineSessionUi, onClick: () -> Unit) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SportDimens.SpacingXs)) {
                 Text(Formatters.shortDate(session.date), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    stringResource(R.string.incline_session_value, Formatters.clock(session.totalSeconds.toLong()), Formatters.incline(session.averageIncline)),
+                    session.kcal?.let(Formatters::kcal) ?: stringResource(R.string.treadmill_session_no_estimate),
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (session.maxIncline > session.averageIncline + 0.25) {
-                    Text(
-                        stringResource(R.string.incline_session_max, Formatters.incline(session.maxIncline)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 Text(
-                    trendLabel(session),
+                    stringResource(R.string.treadmill_session_cumulative, Formatters.kcal(session.cumulativeKcal)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (improvement) SportTheme.extendedColors.record else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (improvement) {
+            if (isBest) {
                 Icon(
-                    Icons.AutoMirrored.Outlined.TrendingUp,
-                    contentDescription = stringResource(R.string.incline_improved),
+                    Icons.Outlined.LocalFireDepartment,
+                    contentDescription = stringResource(R.string.treadmill_best_session),
                     tint = SportTheme.extendedColors.record,
                 )
             }
         }
     }
 }
-
-/** Frase del confronto con la sessione precedente ("Stessa pendenza, +2:00", "+1% a parità di durata"). */
-@Composable
-private fun trendLabel(session: InclineSessionUi): String {
-    val time = signedClock(session.secondsDelta ?: 0)
-    val slope = signedIncline(session.inclineDelta ?: 0.0)
-    return when (session.trend) {
-        InclineTrend.FIRST -> stringResource(R.string.incline_trend_first)
-        InclineTrend.LONGER_SAME_INCLINE -> stringResource(R.string.incline_trend_longer_same, time)
-        InclineTrend.STEEPER_SAME_TIME -> stringResource(R.string.incline_trend_steeper_same, slope)
-        InclineTrend.STEEPER_AND_LONGER -> stringResource(R.string.incline_trend_steeper_longer, slope, time)
-        InclineTrend.SAME -> stringResource(R.string.incline_trend_same)
-        InclineTrend.STEEPER, InclineTrend.LONGER, InclineTrend.LOWER -> stringResource(R.string.incline_trend_change, slope, time)
-    }
-}
-
-/** +2:00 / −0:45 (segno meno tipografico). */
-private fun signedClock(seconds: Int): String = (if (seconds < 0) "−" else "+") + Formatters.clock(abs(seconds).toLong())
-
-/** +1% / −0,5%. */
-private fun signedIncline(delta: Double): String = (if (delta < 0) "−" else "+") + Formatters.incline(abs(delta))
 
 /** Etichette dell'asse x: circa cinque date. */
 private const val X_LABELS = 5

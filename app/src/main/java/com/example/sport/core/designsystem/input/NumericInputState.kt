@@ -41,6 +41,15 @@ data class NumericInputConfig(
         /** Pendenza del tapis roulant: i tapis salgono di 0,5% per volta, fino al 40% dei modelli da camminata. */
         val InclinePercent = NumericInputConfig(allowDecimal = true, maxIntegerDigits = 2, maxDecimalDigits = 1, step = 0.5, min = 0.0, max = 40.0)
 
+        /**
+         * Velocità del tapis roulant: si scrive al decimo (5,5 km/h); +/- di mezzo km/h, i decimi si
+         * correggono digitando (o con i tasti ±0,1 della regolazione macchinario).
+         */
+        val SpeedKmh = NumericInputConfig(allowDecimal = true, maxIntegerDigits = 2, maxDecimalDigits = 1, step = 0.5, min = 0.0, max = 30.0)
+
+        /** Grammatura di un alimento nel diario: grammi interi, +/- di 10 g, fino a 5 kg. */
+        val Grams = NumericInputConfig(allowDecimal = false, maxIntegerDigits = 4, maxDecimalDigits = 0, step = 10.0, min = 0.0, max = 5000.0)
+
         /** Tempo di corsa mm:ss fino a 99:59; +/- di un minuto. */
         val Clock = NumericInputConfig(allowDecimal = false, maxIntegerDigits = 4, maxDecimalDigits = 0, step = 60.0, min = 0.0, max = 5999.0, clock = true)
 

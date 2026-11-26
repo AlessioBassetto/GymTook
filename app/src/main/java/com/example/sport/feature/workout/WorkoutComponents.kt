@@ -73,14 +73,21 @@ private val BadgeWidth = 36.dp
 private val CheckSize = 52.dp
 private const val PREVIOUS_WEIGHT = 1.1f
 
+/**
+ * Il tapis roulant ha tre campi (pendenza, velocità, tempo) e parte già dalla regolazione salvata e
+ * dal tempo della volta scorsa: la colonna "Prec." toglierebbe spazio al tempo mm:ss.
+ */
+private fun ExerciseTrackingType.showsPreviousColumn(): Boolean = this != ExerciseTrackingType.INCLINE_TIME
+
 /** Peso relativo delle colonne: si adattano alla larghezza dello schermo. */
 private fun SetMetric.columnWeight(): Float = when (this) {
     SetMetric.WEIGHT, SetMetric.DISTANCE_KM -> 1.25f
     SetMetric.REPS, SetMetric.DURATION_MINUTES -> 1f
     SetMetric.DURATION_SECONDS -> 1.25f
     SetMetric.RPE, SetMetric.RIR -> 0.9f
-    // Tapis roulant: due soli campi, larghi e leggibili.
-    SetMetric.INCLINE_PERCENT, SetMetric.DURATION_CLOCK -> 1.5f
+    // Tapis roulant: pendenza, velocità e tempo (mm:ss, il più largo); senza colonna "Prec.".
+    SetMetric.INCLINE_PERCENT, SetMetric.SPEED_KMH -> 1f
+    SetMetric.DURATION_CLOCK -> 1.5f
 }
 
 /** Intestazione della colonna; il peso usa l'unità scelta ("kg", "+lb" con la zavorra, "−kg" con l'assistenza). */
@@ -107,6 +114,7 @@ private fun SetMetric.columnLabelRes(): Int = when (this) {
     SetMetric.DURATION_MINUTES -> R.string.workout_col_minutes
     SetMetric.DISTANCE_KM -> R.string.workout_col_km
     SetMetric.INCLINE_PERCENT -> R.string.workout_col_incline
+    SetMetric.SPEED_KMH -> R.string.workout_col_speed
     SetMetric.DURATION_CLOCK -> R.string.workout_col_time
 }
 
@@ -120,6 +128,7 @@ internal fun SetMetric.fieldLabelRes(): Int = when (this) {
     SetMetric.DURATION_MINUTES -> R.string.workout_field_minutes
     SetMetric.DISTANCE_KM -> R.string.workout_field_km
     SetMetric.INCLINE_PERCENT -> R.string.workout_field_incline
+    SetMetric.SPEED_KMH -> R.string.workout_field_speed
     SetMetric.DURATION_CLOCK -> R.string.workout_field_time
 }
 
@@ -134,7 +143,9 @@ internal fun SetColumnLabels(metrics: List<SetMetric>, trackingType: ExerciseTra
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(stringResource(R.string.workout_col_set), style = style, color = color, modifier = Modifier.width(BadgeWidth))
-        Text(stringResource(R.string.workout_col_previous), style = style, color = color, modifier = Modifier.weight(PREVIOUS_WEIGHT))
+        if (trackingType.showsPreviousColumn()) {
+            Text(stringResource(R.string.workout_col_previous), style = style, color = color, modifier = Modifier.weight(PREVIOUS_WEIGHT))
+        }
         metrics.forEach { metric ->
             Text(
                 metric.columnLabel(trackingType),
@@ -179,14 +190,16 @@ internal fun SetRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SetBadge(row, onTypeChange, onDelete)
-            Text(
-                text = row.previous ?: "—",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(PREVIOUS_WEIGHT),
-            )
+            if (trackingType.showsPreviousColumn()) {
+                Text(
+                    text = row.previous ?: "—",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(PREVIOUS_WEIGHT),
+                )
+            }
             metrics.forEach { metric ->
                 val isActive = editing?.setId == row.setId && editing.metric == metric
                 val timing = stopwatch?.takeIf { it.setId == row.setId && metric == SetMetric.DURATION_CLOCK }

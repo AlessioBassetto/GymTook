@@ -19,6 +19,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -111,6 +112,45 @@ class CalorieRepository @Inject constructor(
         }
     }
 
+    // ------------------------------------------------------------------ Calorie di un singolo esercizio
+
+    /**
+     * Calorie bruciate in un solo esercizio (il tapis roulant), allenamento per allenamento dal
+     * [from] in poi, dalla più vecchia. Contano solo le sue serie e il loro tempo effettivo (niente
+     * recupero né altri esercizi della stessa sessione), con il peso corporeo del giorno e il profilo.
+     * Senza nessuna pesata le calorie sono null. Si aggiorna con serie, pesate e profilo.
+     */
+    fun observeExerciseCalories(exerciseId: String, from: Instant): Flow<List<ExerciseSessionCalories>> = combine(
+        calorieDao.observeExerciseCalorieSetRows(exerciseId, from),
+        bodyWeightDao.observeAll(),
+        bodyProfileDao.observe(),
+    ) { rows, weights, profile ->
+        rows.groupBy { it.set.sessionId }.map { (sessionId, sessionRows) ->
+            val startedAt = sessionRows.first().startedAt
+            val date = startedAt.atZone(clock.zone).toLocalDate()
+            val sets = sessionRows.map { it.set.toCalorieSet() }
+            val body = bodyWeightFor(date, weights)?.let { weight -> bodyMetrics(weight, profile, date) }
+            // Solo il tempo dell'esercizio: la stima non aggiunge recuperi né transizioni.
+            val activeSeconds = sets.sumOf { it.durationSeconds ?: 0 }
+            val estimate = body?.let {
+                calculator.estimate(it, CalorieSession(elapsed = Duration.ofSeconds(activeSeconds.toLong()), sets = sets))
+            }
+            ExerciseSessionCalories(
+                sessionId = sessionId,
+                performedAt = startedAt,
+                kcal = estimate?.totalKcal,
+                activeSeconds = estimate?.activeSeconds?.toInt() ?: activeSeconds,
+            )
+        }.sortedBy { it.performedAt }
+    }
+
+    private fun bodyMetrics(weightKg: Double, profile: BodyProfileEntity?, date: LocalDate) = BodyMetrics(
+        weightKg = weightKg,
+        heightCm = profile?.heightCm?.toDouble(),
+        ageYears = profile?.birthYear?.let { (date.year - it).coerceIn(MIN_AGE_YEARS, MAX_AGE_YEARS) },
+        sex = profile?.sex,
+    )
+
     /**
      * Calcolo vero e proprio: una query per le serie (a blocchi, per il limite di parametri
      * SQLite), una per le pesate, una per il profilo; poi il calcolatore puro per ogni sessione.
@@ -129,12 +169,7 @@ class CalorieRepository @Inject constructor(
             val sets = setsBySession[session.id].orEmpty().map { it.toCalorieSet() }
             val estimate = weightKg?.let { weight ->
                 calculator.estimate(
-                    body = BodyMetrics(
-                        weightKg = weight,
-                        heightCm = profile?.heightCm?.toDouble(),
-                        ageYears = profile?.birthYear?.let { (date.year - it).coerceIn(MIN_AGE_YEARS, MAX_AGE_YEARS) },
-                        sex = profile?.sex,
-                    ),
+                    body = bodyMetrics(weight, profile, date),
                     session = CalorieSession(
                         elapsed = session.endedAt?.let { Duration.between(session.startedAt, it) },
                         sets = sets,
@@ -171,6 +206,7 @@ class CalorieRepository @Inject constructor(
         rir = rir,
         plannedRestSeconds = restSeconds,
         inclinePercent = inclinePercent,
+        speedKmh = speedKmh,
     )
 
     companion object {
@@ -192,3 +228,13 @@ class CalorieRepository @Inject constructor(
             (weights.lastOrNull { !it.date.isAfter(date) } ?: weights.firstOrNull())?.weightKg
     }
 }
+
+/** Calorie di un esercizio in un allenamento (statistiche del tapis roulant). */
+data class ExerciseSessionCalories(
+    val sessionId: Long,
+    val performedAt: Instant,
+    /** Stima in kcal; null se non c'è ancora nessuna pesata. */
+    val kcal: Int?,
+    /** Tempo effettivo dell'esercizio, in secondi. */
+    val activeSeconds: Int,
+)

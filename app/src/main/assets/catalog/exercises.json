@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "exercises": [
     {
       "id": "barbell_bench_press",
@@ -31929,17 +31929,21 @@
       ],
       "instructions": [
         "Sali sul tapis roulant e scegli la modalità manuale o un programma.",
-        "Imposta una velocità di camminata comoda e regola l'inclinazione in percentuale.",
+        "Imposta una velocità di camminata comoda (in km/h) e regola la pendenza in percentuale.",
         "Cammina con passo naturale, busto eretto e braccia che oscillano, senza aggrapparti ai corrimano.",
-        "Registra inclinazione e tempo: l'app li usa per confrontare le sessioni e stimare le calorie."
+        "Registra pendenza, velocità e tempo: l'app ne ricava le calorie bruciate e ricorda l'ultima regolazione."
       ],
       "keyPoints": [
-        "Aumenta inclinazione o tempo in modo graduale",
+        "Aumenta pendenza, velocità o tempo in modo graduale",
         "Appoggia tutto il piede"
       ],
       "commonMistakes": [
         "Aggrapparsi ai corrimano",
         "Inclinazione troppo alta che costringe a piegarsi in avanti"
+      ],
+      "setupParams": [
+        "Pendenza (%)",
+        "Velocità (km/h)"
       ],
       "media": [
         {

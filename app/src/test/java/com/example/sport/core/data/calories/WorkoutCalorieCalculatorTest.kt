@@ -259,6 +259,41 @@ class WorkoutCalorieCalculatorTest {
         assertEquals((calculator.runOrWalkVo2(100.0) / 3.5 - 1) * 0.0175 * 80 * 30, flat.activeKcal, 1e-6)
     }
 
+    @Test
+    fun treadmillSpeed_isConvertedToMetersPerMinute_forTheAcsmEquations() {
+        assertEquals(91.6667, calculator.kmhToMetersPerMinute(5.5), 1e-4)
+
+        // 30 minuti a 5,5 km/h al 6%: VO₂ = 3,5 + 0,1·v + 1,8·v·0,06 con v = 91,67 m/min.
+        val walk = CalorieSet(INCLINE_WALK, durationSeconds = 30 * 60, inclinePercent = 6.0, speedKmh = 5.5)
+        val walking = calculator.estimate(athlete, CalorieSession(Duration.ofMinutes(30), listOf(walk)))!!
+        val v = 5500.0 / 60
+        val walkVo2 = 3.5 + 0.1 * v + 1.8 * v * 0.06
+        assertEquals((walkVo2 / 3.5 - 1) * 0.0175 * 80 * 30, walking.activeKcal, 1e-6)
+
+        // 20 minuti a 10 km/h in piano: oltre 134 m/min vale l'equazione della corsa (3,5 + 0,2·v).
+        val run = CalorieSet(INCLINE_WALK, durationSeconds = 20 * 60, inclinePercent = 0.0, speedKmh = 10.0)
+        val running = calculator.estimate(athlete, CalorieSession(Duration.ofMinutes(20), listOf(run)))!!
+        val runVo2 = 3.5 + 0.2 * (10000.0 / 60)
+        assertEquals((runVo2 / 3.5 - 1) * 0.0175 * 80 * 20, running.activeKcal, 1e-6)
+    }
+
+    @Test
+    fun treadmillSpeed_wins_overDistanceAndTypicalSpeed_andWeightScalesIt() {
+        fun kcal(speed: Double?, body: BodyMetrics = athlete, meters: Double? = null) = calculator.estimate(
+            body,
+            CalorieSession(
+                Duration.ofMinutes(30),
+                listOf(CalorieSet(INCLINE_WALK, durationSeconds = 30 * 60, distanceMeters = meters, inclinePercent = 8.0, speedKmh = speed)),
+            ),
+        )!!.totalKcal
+
+        assertTrue("Più veloce, più calorie", kcal(6.0) > kcal(4.5))
+        assertEquals("Senza velocità: 5 km/h tipici", kcal(5.0), kcal(null))
+        assertEquals("La velocità registrata vale più della distanza", kcal(6.0), kcal(6.0, meters = 1000.0))
+        assertTrue("Più peso corporeo", kcal(5.5, athlete.copy(weightKg = 100.0)) > kcal(5.5))
+        assertEquals("Oltre i 30 km/h si considera 30", kcal(30.0), kcal(45.0))
+    }
+
     private companion object {
         fun strength(
             id: String,

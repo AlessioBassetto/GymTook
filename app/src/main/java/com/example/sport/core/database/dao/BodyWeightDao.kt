@@ -28,6 +28,10 @@ interface BodyWeightDao {
     @Query("SELECT * FROM body_weight_entries ORDER BY date ASC")
     suspend fun getAll(): List<BodyWeightEntryEntity>
 
+    /** Come [getAll], osservabile: le statistiche calorie si aggiornano a ogni pesata. */
+    @Query("SELECT * FROM body_weight_entries ORDER BY date ASC")
+    fun observeAll(): Flow<List<BodyWeightEntryEntity>>
+
     @Query("SELECT * FROM body_weight_entries ORDER BY date DESC LIMIT 1")
     fun observeLatest(): Flow<BodyWeightEntryEntity?>
 

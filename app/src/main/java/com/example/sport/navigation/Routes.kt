@@ -99,6 +99,17 @@ data object DietPlansRoute
 @Serializable
 data class DietPlanEditorRoute(val planId: Long)
 
+/**
+ * Selettore dei piatti per un pasto del diario: [epochDay] = giorno (LocalDate.toEpochDay),
+ * [mealType] = nome di MealType.
+ */
+@Serializable
+data class FoodPickerRoute(val epochDay: Long, val mealType: String)
+
+/** Editor di un piatto ([recipe] false) o di una ricetta dell'utente; [foodId] null = nuovo. */
+@Serializable
+data class FoodEditorRoute(val foodId: String? = null, val recipe: Boolean = false)
+
 /** Impostazioni (unità, sforzo) e backup dei dati. */
 @Serializable
 data object SettingsRoute

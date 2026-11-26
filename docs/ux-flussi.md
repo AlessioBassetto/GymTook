@@ -165,11 +165,21 @@ Record, volumi e grafici non sono salvati a parte: si calcolano dalle serie nel 
 - **Azzerare un solo esercizio**: Progressi dell'esercizio → menu ⋮ → **Azzera storico esercizio**, oppure scheda esercizio → **Gestione dati**. Spariscono le sue serie da tutti gli allenamenti conclusi; schede, settaggi, altri esercizi e allenamento in corso restano.
 - Pesata sbagliata: tocco sulla riga per correggerla, cestino per eliminarla (**Annulla** nella barra in basso).
 
-### 13. Dieta: spuntare un pasto
-- Dieta → card del pasto → **cerchio di spunta** (64dp): la card diventa lime e i macro del giorno si aggiornano.
+### 13. Dieta: diario del giorno a grammi
+- **Dieta** è il diario del giorno (frecce per i giorni precedenti/successivi, **Oggi** per tornare): totali di calorie, proteine, carboidrati e grassi, poi i cinque pasti **Colazione, Spuntino, Pranzo, Merenda, Cena** con le calorie di ciascuno. Con un piano attivo i totali si confrontano con i suoi obiettivi e i pasti del piano compaiono nel pasto giusto, da spuntare come prima (contano nei totali); senza piano **Imposta** ne crea uno.
+- **Aggiungi a Pranzo** apre il **catalogo dei piatti**: 298 piatti italiani con i valori per 100 g (`assets/food/italian_dishes_catalog.json`: colazione e dolci fit, primi e cereali, carne, pesce, vegetariani/legumi/uova, contorni, frutta/snack/bevande), ricerca istantanea senza accenti né maiuscole ("ragu" trova "Pasta al ragù"), sinonimi ("nutella"), filtri per categoria e **I miei**. In alto il totale del pasto e del giorno, aggiornato a ogni aggiunta: si possono aggiungere più piatti di fila.
+- **Grammi**: tocco sul piatto → pannello con la porzione tipica, tastierino dell'app, −10 / +10 / +50 g e porzioni 50, 100, 150, 200 g; calorie e macro si ricalcolano mentre si scrive (Calorie = kcal per 100 g × grammi / 100). I chip dei pasti spostano il piatto in un altro pasto; **Aggiungi** lo mette nel diario.
+- **Correggere**: tocco sul piatto nel diario → stesso pannello con **Salva** ed **Elimina dal diario**; il cestino sulla riga elimina con un tocco (**Annulla** nella barra in basso). Le calorie non sono salvate: si calcolano dai grammi, quindi cambiano subito.
+- **Piatti e ricette personali** (pulsante **+** o in fondo ai risultati): un piatto con i valori per 100 g (senza calorie si calcolano dai macro, 4/4/9) oppure una **ricetta** fatta di ingredienti del catalogo con i loro grammi e, facoltativo, il peso del piatto finito; i valori per 100 g si calcolano da soli. Si modificano o eliminano dall'icona a matita in **I miei**; il diario già scritto non cambia.
+- **Open Food Facts** (con rete, solo su richiesta): se il piatto non c'è, **Cerca «…» su Open Food Facts** interroga il database aperto dei prodotti confezionati (si invia solo il testo cercato). Il prodotto scelto viene salvato e resta disponibile offline in **I miei**; i dati sono dei volontari (licenza ODbL) e conviene confrontarli con l'etichetta. Il servizio limita le ricerche (10 al minuto) e a volte risponde "occupato": l'app riprova due volte con attese crescenti, poi mostra "Ricerca online non riuscita".
+- Diario, piatti, ricette e prodotti salvati entrano nel backup; il catalogo resta nell'app.
+
+| Diario | Grammi e calcolo live | Open Food Facts | Ricetta |
+|---|---|---|---|
+| ![Diario del giorno](screenshots/47-dieta-diario.png) | ![Pannello grammi](screenshots/48-dieta-grammi.png) | ![Prodotti online](screenshots/49-dieta-online.png) | ![Ricetta dagli ingredienti](screenshots/50-dieta-ricetta.png) |
 
 ### 14. Dieta: costruire il piano
-- Dieta senza piano → **Crea un piano** (nome già proposto) → si apre l'editor con colazione, spuntino, pranzo, snack e cena già pronti (orari 7:30–20:00). Il primo piano diventa attivo.
+- Dieta → **Imposta** (senza piano) o l'elenco dei piani → nome già proposto → si apre l'editor con colazione, spuntino, pranzo, merenda e cena già pronti (orari 7:30–20:00). Il primo piano diventa attivo.
 - **Obiettivi giornalieri**: tocco sulla card → calorie e grammi di proteine, carboidrati e grassi; sotto, il totale dei pasti del piano per vedere subito cosa manca.
 - Pasto → **Aggiungi alimento**: nome, quantità con unità (chip g, ml, pz, cucchiaio), calorie e macro. Con i soli macro le calorie si calcolano (4/4/9 kcal per grammo) e "Usa" le copia nel campo. Numeri con virgola o punto.
 - Menu ⋮ del pasto: modifica (tipo, nome, orario "7:30", "730" o "13"), sposta su/giù, elimina con conferma. **Aggiungi pasto** per pre/post workout.
@@ -215,18 +225,19 @@ Record, volumi e grafici non sono salvati a parte: si calcolano dalle serie nel 
 |---|---|---|---|
 | ![Profilo corporeo](screenshots/34-profilo-corporeo.png) | ![Riepilogo](screenshots/35-riepilogo-kcal.png) | ![Storico](screenshots/36-storico-kcal.png) | ![Dettaglio](screenshots/37-dettaglio-kcal.png) |
 
-### 19. Tapis roulant in salita (inclinazione + tempo)
-- Esercizi con registrazione **Inclinazione e tempo**: "Camminata in salita sul tapis roulant" del catalogo e gli esercizi personalizzati che scelgono questo tipo. La corsa sul tapis resta a distanza e tempo.
-- **Logger**: colonne **Pend. %** e **Tempo**. La pendenza sale e scende di 0,5% (0–40%); il tempo si scrive come sul display di un microonde (2-5-3-0 = 25:30) e ±1:00 lo sposta di un minuto. Le serie partono da pendenza e tempo della volta scorsa; **+ Serie** li copia dall'ultima.
-- **Cronometro**: sul campo Tempo, **Avvia cronometro** conta dal tempo già scritto (si riprende dopo una pausa); resta acceso chiudendo il tastierino e si ferma con **Ferma cronometro**, spuntando la serie o terminando l'allenamento. Scrivere un tempo a mano lo spegne.
-- **Progressi** (scheda esercizio → icona Progressi): ultima sessione, durata migliore, pendenza massima e sessioni migliorate; grafico a doppia serie sessione per sessione (barre = minuti, asse sinistro; linea = pendenza media pesata sul tempo, asse destro; tenendo premuto compare il dettaglio). Ogni sessione dice com'è andata rispetto alla precedente: **stessa pendenza più a lungo**, **più pendenza a parità di durata** o **entrambe** sono miglioramenti (freccia e colore dei record); differenze sotto 0,25 punti e 30 secondi contano come "uguale".
-- **Correzione dallo storico**: campi Inclinazione (%) e Tempo (mm:ss); per la tastiera numerica valgono anche "25,30" e "25.30", oppure i soli minuti ("25").
-- **Calorie**: peso corporeo, durata esatta e pendenza con le equazioni ACSM (camminata VO₂ = 3,5 + 0,1·v + 1,8·v·pendenza; corsa 3,5 + 0,2·v + 0,9·v·pendenza). La velocità non si registra: si usa quella tipica (5 km/h in camminata, 9 km/h se il nome indica corsa).
-- **Aggiornamento dalla 1.0.3**: la migrazione Room v4 → v5 aggiunge la colonna della pendenza; le camminate già registrate con distanza e tempo restano intatte e mostrano anche la distanza ("30:00 · 3 km"), che non viene ricopiata nelle nuove serie.
+### 19. Tapis roulant: pendenza, velocità, tempo e calorie
+- Esercizi con registrazione **Tapis roulant: pendenza, velocità e tempo**: "Camminata in salita sul tapis roulant" del catalogo e gli esercizi personalizzati che scelgono questo tipo. La corsa sul tapis del catalogo resta a distanza e tempo.
+- **Regolazione dedicata** (scheda esercizio → **I miei settaggi**, oppure **Regolazione macchinario** nel logger): due voci fisse, **Pendenza (%)** con −0,5/+0,5 e **Velocità (km/h)** con −0,5, −0,1, +0,1, +0,5; si può anche scrivere il valore (virgola o punto, 0–40% e 0–30 km/h). Le altre voci e le note restano libere.
+- **Ultima combinazione**: spuntata una serie, la sua pendenza e la sua velocità diventano la regolazione salvata e valgono anche per le serie ancora da fare. Il prossimo allenamento parte da lì (la regolazione scritta "a freddo" nella scheda esercizio conta allo stesso modo); il tempo parte da quello della volta scorsa.
+- **Logger**: colonne **Pend. %**, **km/h** e **Tempo** (senza la colonna "Prec.", per lasciare spazio al tempo). Pendenza ±0,5, velocità ±0,5 dal tastierino (i decimi si scrivono); tempo come sul display di un microonde (2-5-3-0 = 25:30), ±1:00. **Avvia cronometro** sul campo Tempo conta dal tempo già scritto, resta acceso chiudendo il tastierino e si ferma con **Ferma cronometro**, spuntando la serie o terminando l'allenamento.
+- **Statistiche solo calorie** (scheda esercizio → icona Progressi): calorie bruciate nel periodo, ultima sessione, media a sessione, numero di sessioni; grafico con le calorie di ogni sessione (barre, asse sinistro) e il totale cumulativo (linea, asse destro); elenco delle sessioni con il cumulativo e l'icona della sessione più intensa. Contano solo il tempo sul tapis e il peso corporeo del giorno; senza pesate la pagina chiede di registrarne una.
+- **Calorie** (`WorkoutCalorieCalculator`): equazioni ACSM con la velocità registrata (km/h × 1000 / 60 = m/min), la pendenza G = %/100 e la durata esatta: camminata (fino a 100 m/min) VO₂ = 3,5 + 0,1·v + 1,8·v·G, corsa (da 134 m/min) 3,5 + 0,2·v + 0,9·v·G, in mezzo un raccordo lineare; kcal nette = (VO₂/3,5 − 1) × 0,0175 × kg × minuti, più il metabolismo a riposo. Le serie senza velocità usano la distanza se c'era, altrimenti 5 km/h.
+- **Correzione dallo storico**: campi Inclinazione (%), Velocità (km/h) e Tempo (mm:ss; valgono anche "25,30", "25.30" o i soli minuti).
+- **Aggiornamento dalla 1.0.4**: la migrazione Room v5 → v6 aggiunge la colonna della velocità; le serie già registrate restano intatte.
 
-| Logger con cronometro | Confronto sessioni | Correzione |
+| Regolazione dedicata | Logger | Statistiche solo calorie |
 |---|---|---|
-| ![Pendenza e cronometro](screenshots/38-tapis-cronometro.png) | ![Tempo e pendenza](screenshots/39-tapis-progressi.png) | ![Correggi serie](screenshots/40-tapis-correzione.png) |
+| ![Pendenza e velocità](screenshots/44-tapis-regolazione.png) | ![Pendenza, km/h e tempo](screenshots/45-tapis-logger.png) | ![Calorie per sessione e cumulativo](screenshots/46-tapis-calorie.png) |
 
 ### 20. Catalogo in italiano, anteprime e video
 - Tutti i 733 esercizi hanno nome, alias, esecuzione passo passo, punti chiave ed errori comuni in italiano (70 curati a mano, 663 tradotti dal dataset); la ricerca trova sia il nome italiano sia quello inglese.

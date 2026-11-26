@@ -97,6 +97,13 @@ class DataUtilsTest {
 
         val running = buildPrefilledSets(9, count = 1, previous = previous, fallbackReps = null, trackingType = ExerciseTrackingType.DISTANCE_DURATION)
         assertEquals(3000.0, running.single().distanceMeters!!, 0.0)
+
+        // La regolazione salvata (ultima combinazione o scritta "a freddo") vale più della volta scorsa.
+        val setup = listOf(MachineSetupParam("Pendenza (%)", "8"), MachineSetupParam("Velocità (km/h)", "5,5"))
+        val fromSetup = buildPrefilledSets(9, count = 2, previous = previous, fallbackReps = null, trackingType = ExerciseTrackingType.INCLINE_TIME, setupParams = setup)
+        assertEquals(listOf(8.0, 8.0), fromSetup.map { it.inclinePercent })
+        assertEquals(listOf(5.5, 5.5), fromSetup.map { it.speedKmh })
+        assertEquals("Il tempo resta quello della volta scorsa", listOf(1800, 600), fromSetup.map { it.durationSeconds })
     }
 
     @Test

@@ -9,7 +9,6 @@ import com.example.sport.core.data.ProgressRepository
 import com.example.sport.core.data.SetValues
 import com.example.sport.core.data.WorkoutRepository
 import com.example.sport.core.data.logSession
-import com.example.sport.core.data.progress.InclineTrend
 import com.example.sport.core.data.progress.RecordKind
 import com.example.sport.core.database.DatabaseTest
 import com.example.sport.core.database.T0
@@ -205,7 +204,7 @@ class ProgressViewModelsTest : DatabaseTest() {
         clock.current = T0
         log(0, BENCH to listOf(LoggedSet(60.0, 10, SetType.WARMUP), LoggedSet(100.0, 5), LoggedSet(90.0, 8)))
         log(4, BENCH to listOf(LoggedSet(102.5, 5), LoggedSet(102.5, 4)))
-        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to BENCH)), progress)
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to BENCH)), progress, db.calorieRepository(clock))
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
 
         val content = viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.points?.size == 2 } as ExerciseProgressUiState.Content
@@ -225,14 +224,14 @@ class ProgressViewModelsTest : DatabaseTest() {
     @Test
     fun exerciseProgress_bodyweightUsesReps_andUnknownIsNotFound() = runTest {
         log(0, PULL_UP to listOf(LoggedSet(null, 10), LoggedSet(null, 8)))
-        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to PULL_UP)), progress)
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to PULL_UP)), progress, db.calorieRepository(clock))
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
         val content = viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.points?.isNotEmpty() == true } as ExerciseProgressUiState.Content
         assertEquals(ProgressMetric.REPS, content.metric)
         assertEquals(18.0, content.points.single().value, 0.0)
         assertTrue("A corpo libero niente record di carico", content.records.isEmpty())
 
-        val missing = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to "non_esiste")), progress)
+        val missing = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to "non_esiste")), progress, db.calorieRepository(clock))
         backgroundScope.launch(Dispatchers.Main) { missing.uiState.collect {} }
         assertEquals(ExerciseProgressUiState.NotFound, missing.uiState.first { it !is ExerciseProgressUiState.Loading })
     }
@@ -297,7 +296,7 @@ class ProgressViewModelsTest : DatabaseTest() {
         clock.current = T0
         log(0, BENCH to listOf(LoggedSet(100.0, 5)), SQUAT to listOf(LoggedSet(120.0, 5)))
         log(7, BENCH to listOf(LoggedSet(1000.0, 5)))
-        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to BENCH)), progress)
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to BENCH)), progress, db.calorieRepository(clock))
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
 
         fun ExerciseProgressUiState.heaviest() = (this as? ExerciseProgressUiState.Content)?.records?.firstOrNull { it.kind == RecordKind.HEAVIEST_SET }
@@ -330,10 +329,10 @@ class ProgressViewModelsTest : DatabaseTest() {
         assertEquals("Il record torna quello vero", 100.0, progress.observeExerciseRecords(BENCH).first()!!.heaviestSet.valueKg, 0.0)
     }
 
-    // ------------------------------------------------------------------ Tapis roulant in salita
+    // ------------------------------------------------------------------ Tapis roulant: velocità e calorie
 
-    /** Allenamento con il tapis in salita: (pendenza %, secondi) per serie, poi "Termina" dopo 40 minuti. */
-    private suspend fun logIncline(dayOffset: Long, vararg sets: Pair<Double, Int>): Long {
+    /** Allenamento con il tapis: (pendenza %, velocità km/h, secondi) per serie, poi "Termina" dopo 40 minuti. */
+    private suspend fun logTreadmill(dayOffset: Long, vararg sets: Triple<Double, Double, Int>): Long {
         clock.current = T0.plus(java.time.Duration.ofDays(dayOffset))
         val dao = db.workoutSessionDao()
         val sessionId = workout.startFree("Tapis")
@@ -341,7 +340,8 @@ class ProgressViewModelsTest : DatabaseTest() {
         while (dao.getSets(sessionExerciseId).size < sets.size) workout.addSet(sessionExerciseId)
         dao.getSets(sessionExerciseId).sortedBy { it.setIndex }.zip(sets).forEach { (set, spec) ->
             workout.updateMetric(set.id, com.example.sport.core.data.SetMetric.INCLINE_PERCENT, spec.first)
-            workout.updateMetric(set.id, com.example.sport.core.data.SetMetric.DURATION_CLOCK, spec.second.toDouble())
+            workout.updateMetric(set.id, com.example.sport.core.data.SetMetric.SPEED_KMH, spec.second)
+            workout.updateMetric(set.id, com.example.sport.core.data.SetMetric.DURATION_CLOCK, spec.third.toDouble())
             workout.setCompleted(set.id, true)
         }
         clock.current = clock.current.plus(java.time.Duration.ofMinutes(40))
@@ -350,41 +350,41 @@ class ProgressViewModelsTest : DatabaseTest() {
     }
 
     @Test
-    fun treadmill_recallsTheLastIncline_comparesSessions_andEstimatesCalories() = runTest {
+    fun treadmill_statisticsAreOnlyCalories_perSessionAndCumulative() = runTest {
         weigh(today, 80.0)
-        val first = logIncline(0, 10.0 to 25 * 60)
+        val first = logTreadmill(0, Triple(10.0, 5.0, 25 * 60))
+        logTreadmill(3, Triple(12.0, 5.5, 30 * 60))
+        logTreadmill(6, Triple(0.0, 10.0, 20 * 60))
 
-        // Nuova sessione: la serie parte da pendenza e tempo della volta scorsa.
-        clock.current = T0.plus(java.time.Duration.ofDays(2))
-        val draft = workout.startFree("Tapis")
-        val prefilled = db.workoutSessionDao().getSets(workout.addExercise(draft, TREADMILL)).first()
-        assertEquals(10.0, prefilled.inclinePercent!!, 0.0)
-        assertEquals(25 * 60, prefilled.durationSeconds)
-        workout.discard(draft)
-
-        logIncline(3, 10.0 to 30 * 60) // stessa pendenza, più a lungo
-        logIncline(6, 12.0 to 30 * 60) // più pendenza, stesso tempo
-        logIncline(9, 8.0 to 20 * 60) // calo
-
-        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to TREADMILL)), progress)
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to TREADMILL)), progress, db.calorieRepository(clock))
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
-        val content = viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.incline?.sessions?.size == 4 } as ExerciseProgressUiState.Content
-        val incline = content.incline!!
-        assertEquals(
-            listOf(InclineTrend.FIRST, InclineTrend.LONGER_SAME_INCLINE, InclineTrend.STEEPER_SAME_TIME, InclineTrend.LOWER),
-            incline.sessions.map { it.trend },
-        )
-        assertEquals(2, incline.improvements)
-        assertEquals(30 * 60, incline.longestSeconds)
-        assertEquals(12.0, incline.steepest!!, 0.0)
-        assertEquals(5 * 60, incline.sessions[1].secondsDelta)
+        val content = viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.treadmill?.sessions?.size == 3 } as ExerciseProgressUiState.Content
+        val treadmill = content.treadmill!!
+        assertTrue("Nessun grafico a ripetizioni per il tapis", content.metrics.isEmpty())
 
-        // Calorie: peso corporeo, durata registrata e pendenza (più pendenza = più calorie a parità di tempo).
-        val sessions = incline.sessions.map { db.workoutSessionDao().getSession(it.sessionId)!! }
-        assertEquals(80.0, sessions[0].bodyWeightKg!!, 0.0)
-        assertTrue(sessions.all { (it.caloriesBurned ?: 0) > 100 })
-        assertTrue("12% batte 10% sugli stessi 30 minuti", sessions[2].caloriesBurned!! > sessions[1].caloriesBurned!!)
-        assertEquals(first, incline.sessions.first().sessionId)
+        // Solo il tempo sul tapis (niente recupero): 25 min al 10% a 5 km/h, 80 kg, senza altezza.
+        val vo2 = 3.5 + 0.1 * (5000.0 / 60) + 1.8 * (5000.0 / 60) * 0.10
+        val expectedFirst = (0.0175 * 80 * 25) + (vo2 / 3.5 - 1) * 0.0175 * 80 * 25
+        assertEquals(expectedFirst, treadmill.sessions[0].kcal!!.toDouble(), 1.0)
+        assertEquals(first, treadmill.sessions[0].sessionId)
+        assertEquals("Più pendenza e velocità per più tempo", true, treadmill.sessions[1].kcal!! > treadmill.sessions[0].kcal!!)
+        assertEquals(treadmill.sessions.sumOf { it.kcal!! }, treadmill.sessions.last().cumulativeKcal)
+        assertEquals(treadmill.totalKcal, treadmill.sessions.last().cumulativeKcal)
+
+        // Una pesata nuova (giorno dell'ultima sessione) ricalcola subito le statistiche di quella sessione.
+        val before = treadmill.sessions[2].kcal!!
+        weigh(today, 90.0)
+        viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.treadmill?.sessions?.get(2)?.kcal?.let { kcal -> kcal > before } == true }
+    }
+
+    @Test
+    fun treadmill_withoutWeighIns_hasSessionsButNoCalories() = runTest {
+        logTreadmill(0, Triple(8.0, 5.0, 20 * 60))
+        val viewModel = ExerciseProgressViewModel(SavedStateHandle(mapOf("exerciseId" to TREADMILL)), progress, db.calorieRepository(clock))
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        val content = viewModel.uiState.first { (it as? ExerciseProgressUiState.Content)?.treadmill?.sessions?.size == 1 } as ExerciseProgressUiState.Content
+        assertNull(content.treadmill!!.sessions.single().kcal)
+        assertTrue(content.treadmill!!.missingWeight)
     }
 
     private companion object {

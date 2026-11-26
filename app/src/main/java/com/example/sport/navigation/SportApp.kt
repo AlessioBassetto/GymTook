@@ -53,6 +53,8 @@ import com.example.sport.feature.exercises.ExerciseEditorScreen
 import com.example.sport.feature.exercises.ExerciseListScreen
 import com.example.sport.feature.nutrition.DietPlanEditorScreen
 import com.example.sport.feature.nutrition.DietPlansScreen
+import com.example.sport.feature.nutrition.FoodEditorScreen
+import com.example.sport.feature.nutrition.FoodPickerScreen
 import com.example.sport.feature.nutrition.NutritionScreen
 import com.example.sport.feature.progress.BodyWeightScreen
 import com.example.sport.feature.progress.ExerciseProgressScreen
@@ -260,7 +262,19 @@ fun SportApp(
                 NutritionScreen(
                     onOpenPlans = { navController.navigate(DietPlansRoute) { launchSingleTop = true } },
                     onEditPlan = { navController.navigate(DietPlanEditorRoute(it)) },
+                    onAddFood = { date, meal -> navController.navigate(FoodPickerRoute(date.toEpochDay(), meal.name)) },
                 )
+            }
+            composable<FoodPickerRoute> {
+                FoodPickerScreen(
+                    onBack = navController::popBackStack,
+                    onNewFood = { navController.navigate(FoodEditorRoute(recipe = false)) },
+                    onNewRecipe = { navController.navigate(FoodEditorRoute(recipe = true)) },
+                    onEditFood = { navController.navigate(FoodEditorRoute(foodId = it)) },
+                )
+            }
+            composable<FoodEditorRoute> {
+                FoodEditorScreen(onBack = navController::popBackStack)
             }
             composable<DietPlansRoute> {
                 DietPlansScreen(

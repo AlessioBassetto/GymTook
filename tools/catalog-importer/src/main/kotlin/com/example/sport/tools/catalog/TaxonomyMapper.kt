@@ -8,6 +8,7 @@ import com.example.sport.core.model.ForceType
 import com.example.sport.core.model.MediaKind
 import com.example.sport.core.model.Mechanic
 import com.example.sport.core.model.Muscle
+import com.example.sport.core.model.TreadmillSettings
 import com.example.sport.core.model.catalog.CatalogExerciseDto
 import com.example.sport.core.model.catalog.CatalogMediaDto
 
@@ -84,7 +85,8 @@ class TaxonomyMapper {
             primaryMuscles = primary,
             secondaryMuscles = secondary,
             instructions = source.instructions.map { it.trim() }.filter { it.isNotEmpty() },
-            setupParams = setupParamsOf(name, equipment),
+            // Tapis roulant: regolazione dedicata (pendenza e velocità) al posto dei suggerimenti generici.
+            setupParams = if (trackingType == ExerciseTrackingType.INCLINE_TIME) TreadmillSettings.PARAM_NAMES else setupParamsOf(name, equipment),
             contentLocale = CatalogExerciseDto.CONTENT_LOCALE_EN,
             media = mediaOf(source),
             origin = FreeExerciseDb.origin(source),

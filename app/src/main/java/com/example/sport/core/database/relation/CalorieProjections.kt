@@ -1,6 +1,7 @@
 package com.example.sport.core.database.relation
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import com.example.sport.core.model.Equipment
 import com.example.sport.core.model.ExerciseCategory
 import com.example.sport.core.model.ExerciseTrackingType
@@ -85,6 +86,18 @@ data class CalorieSetRow(
 
     @ColumnInfo(name = "incline_percent")
     val inclinePercent: Double? = null,
+
+    @ColumnInfo(name = "speed_kmh")
+    val speedKmh: Double? = null,
+)
+
+/** Una serie di [CalorieSetRow] con l'inizio del suo allenamento (per il peso corporeo del giorno). */
+data class ExerciseCalorieSetRow(
+    @Embedded
+    val set: CalorieSetRow,
+
+    @ColumnInfo(name = "started_at")
+    val startedAt: Instant,
 )
 
 /** Esito della stima per un allenamento, da scrivere nella sua riga. */

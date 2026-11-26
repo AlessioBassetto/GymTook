@@ -326,6 +326,10 @@ class WorkoutViewModel @Inject constructor(
             if (timed) stopStopwatch()
             if (completing) fillMissingFromPrevious(exercise, set, skip = if (timed) setOf(SetMetric.DURATION_CLOCK) else emptySet())
             workoutRepository.setCompleted(setId, completing)
+            // Tapis roulant: pendenza e velocità di questa serie diventano la regolazione salvata.
+            if (completing && exercise.exercise.trackingType == ExerciseTrackingType.INCLINE_TIME) {
+                workoutRepository.rememberTreadmillSettings(setId)
+            }
             if (completing) {
                 when (val plan = restPlanAfter(setId)) {
                     RestPlan.Finished, RestPlan.SupersetPartner -> restTimer.cancel()
@@ -627,7 +631,7 @@ class WorkoutViewModel @Inject constructor(
         SetMetric.REPS, SetMetric.RIR, SetMetric.DURATION_SECONDS, SetMetric.DURATION_MINUTES -> value.toLong().toString()
         SetMetric.WEIGHT -> Formatters.weightNumber(value, unit)
         SetMetric.RPE, SetMetric.DISTANCE_KM -> Formatters.number(value)
-        SetMetric.INCLINE_PERCENT -> Formatters.number(value)
+        SetMetric.INCLINE_PERCENT, SetMetric.SPEED_KMH -> Formatters.number(value)
         SetMetric.DURATION_CLOCK -> Formatters.clock(value.toLong())
     }
 }
@@ -647,10 +651,11 @@ internal object SetFormat {
                 set.distanceMeters?.let { "${Formatters.number(it / 1000)} km" },
                 set.durationSeconds?.let { "${it / 60} min" },
             ).joinToString(" · ").ifEmpty { null }
-            // Tapis roulant: "8,5% · 25:00", il riferimento rapido della volta scorsa. Le serie registrate
-            // prima della v5 (distanza e tempo) mostrano anche la distanza: il dato resta visibile.
+            // Tapis roulant: "8,5% · 5,5 km/h · 25:00", il riferimento rapido della volta scorsa. Le serie
+            // registrate prima della v5 (distanza e tempo) mostrano anche la distanza: il dato resta visibile.
             ExerciseTrackingType.INCLINE_TIME -> listOfNotNull(
                 set.inclinePercent?.let(Formatters::incline),
+                set.speedKmh?.let(Formatters::speed),
                 set.durationSeconds?.let { Formatters.clock(it.toLong()) },
                 set.distanceMeters?.takeIf { it > 0 }?.let { "${Formatters.number(it / 1000)} km" },
             ).joinToString(" · ").ifEmpty { null }

@@ -213,6 +213,10 @@ data class ExerciseSetEntity(
     @ColumnInfo(name = "incline_percent")
     val inclinePercent: Double? = null,
 
+    /** Velocità del tapis roulant in km/h (0–30, decimi), per gli esercizi INCLINE_TIME. */
+    @ColumnInfo(name = "speed_kmh")
+    val speedKmh: Double? = null,
+
     @ColumnInfo(name = "is_completed")
     val isCompleted: Boolean = false,
 

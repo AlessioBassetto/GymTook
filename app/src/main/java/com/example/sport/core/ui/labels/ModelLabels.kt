@@ -6,6 +6,7 @@ import com.example.sport.core.model.DifficultyLevel
 import com.example.sport.core.model.Equipment
 import com.example.sport.core.model.ExerciseCategory
 import com.example.sport.core.model.ExerciseTrackingType
+import com.example.sport.core.model.FoodCategory
 import com.example.sport.core.model.MealType
 import com.example.sport.core.model.Mechanic
 import com.example.sport.core.model.Muscle
@@ -139,4 +140,16 @@ fun SetType.labelRes(): Int = when (this) {
     SetType.WORKING -> R.string.set_type_working
     SetType.DROP -> R.string.set_type_drop
     SetType.FAILURE -> R.string.set_type_failure
+}
+
+@StringRes
+fun FoodCategory.labelRes(): Int = when (this) {
+    FoodCategory.BREAKFAST_SWEETS -> R.string.food_category_breakfast
+    FoodCategory.FIRST_COURSES -> R.string.food_category_first_courses
+    FoodCategory.MEAT -> R.string.food_category_meat
+    FoodCategory.FISH -> R.string.food_category_fish
+    FoodCategory.VEGETARIAN -> R.string.food_category_vegetarian
+    FoodCategory.SIDES -> R.string.food_category_sides
+    FoodCategory.FRUIT_SNACKS_DRINKS -> R.string.food_category_fruit_snacks
+    FoodCategory.OTHER -> R.string.food_category_other
 }

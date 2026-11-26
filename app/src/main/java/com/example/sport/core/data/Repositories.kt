@@ -153,13 +153,16 @@ class NutritionRepository @Inject constructor(
     private val dietDao: DietDao,
     private val clock: Clock,
 ) {
-    fun observeToday(): Flow<NutritionDay?> {
-        val today = LocalDate.now(clock)
-        return combine(dietDao.observeActivePlanWithMeals(), dietDao.observeLogsForDate(today)) { plan, logs ->
-            plan?.let { NutritionDay(today, it, logs.map { log -> log.mealId }.toSet()) }
-        }
-    }
+    fun today(): LocalDate = LocalDate.now(clock)
 
-    suspend fun setMealConsumed(mealId: Long, consumed: Boolean) =
-        dietDao.setMealConsumed(mealId, LocalDate.now(clock), consumed, Instant.now(clock))
+    fun observeToday(): Flow<NutritionDay?> = observeDay(today())
+
+    /** Piano attivo e pasti del piano spuntati nel giorno [date] (null se non c'è un piano attivo). */
+    fun observeDay(date: LocalDate): Flow<NutritionDay?> =
+        combine(dietDao.observeActivePlanWithMeals(), dietDao.observeLogsForDate(date)) { plan, logs ->
+            plan?.let { NutritionDay(date, it, logs.map { log -> log.mealId }.toSet()) }
+        }
+
+    suspend fun setMealConsumed(mealId: Long, consumed: Boolean, date: LocalDate = today()) =
+        dietDao.setMealConsumed(mealId, date, consumed, Instant.now(clock))
 }

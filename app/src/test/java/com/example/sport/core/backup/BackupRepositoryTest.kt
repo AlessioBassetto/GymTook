@@ -18,6 +18,17 @@ import com.example.sport.core.database.T0
 import com.example.sport.core.database.expectThrows
 import com.example.sport.core.database.seed.AssetExerciseCatalogSource
 import com.example.sport.core.database.seed.ExerciseCatalogSeeder
+import com.example.sport.core.database.seed.AssetFoodCatalogSource
+import com.example.sport.core.database.seed.FoodCatalogSeeder
+import com.example.sport.core.data.food.FoodRepository
+import com.example.sport.core.data.food.OpenFoodFactsClient
+import com.example.sport.core.data.food.OpenFoodFactsConfig
+import com.example.sport.core.data.food.RecipeIngredientDraft
+import com.example.sport.core.data.food.nutrients
+import com.example.sport.core.data.food.per100g
+import com.example.sport.core.model.FoodCategory
+import com.example.sport.core.model.MealType
+import okhttp3.OkHttpClient
 import com.example.sport.core.media.UserVideoStore
 import com.example.sport.core.model.EffortScale
 import com.example.sport.core.model.Muscle
@@ -52,6 +63,8 @@ class BackupRepositoryTest : DatabaseTest() {
     private lateinit var target: SportDatabase
     private lateinit var targetSettings: SettingsRepository
     private lateinit var targetBackup: BackupRepository
+    private lateinit var porridgeId: String
+    private lateinit var recipeId: String
 
     @Before
     fun setUp() = runTest {
@@ -66,6 +79,11 @@ class BackupRepositoryTest : DatabaseTest() {
             clock = Clock.fixed(T0, ZoneOffset.UTC),
             applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         ).seedIfNeeded()
+        // Catalogo dei piatti su entrambi i telefoni (è nell'app, non nel backup).
+        listOf(db, target).forEach { database ->
+            FoodCatalogSeeder(database.foodDao(), AssetFoodCatalogSource(context, Dispatchers.IO), Clock.fixed(T0, ZoneOffset.UTC), CoroutineScope(SupervisorJob() + Dispatchers.IO))
+                .seedIfNeeded()
+        }
         targetSettings = testSettingsRepository(context.filesDir)
         targetBackup = BackupRepository(target, targetSettings, target.calorieRepository(clock), clock, Dispatchers.IO)
     }
@@ -92,6 +110,13 @@ class BackupRepositoryTest : DatabaseTest() {
         val planId = diet.createPlan("Massa")
         diet.updateTargets(planId, DietTargets(2800, 180.0, 350.0, 80.0))
         diet.addItem(diet.observePlan(planId).first()!!.orderedMeals.first().meal.id, MealItemInput("Avena", 80.0, "g", proteinG = 10.0, carbsG = 54.0, fatG = 6.0))
+        // Diario a grammi con un piatto e una ricetta dell'utente.
+        val foods = FoodRepository(db.foodDao(), OpenFoodFactsClient(OkHttpClient(), OpenFoodFactsConfig("http://127.0.0.1:9/", "Sport/test"), Dispatchers.IO), clock)
+        porridgeId = foods.saveCustomFood(null, "Porridge della casa", FoodCategory.BREAKFAST_SWEETS, null, 10.0, 20.0, 5.0, 250.0)
+        val pasta = foods.food("cat:pasta_secca_cruda")!!
+        recipeId = foods.saveRecipe(null, "Pasta al tonno", FoodCategory.FIRST_COURSES, listOf(RecipeIngredientDraft(pasta.id, pasta.name, 80.0, pasta.per100g)))
+        foods.addEntry(today, MealType.LUNCH, foods.food(recipeId)!!, 200.0)
+        foods.addEntry(today, MealType.BREAKFAST, foods.food("cat:banana")!!, 120.0)
         settings.setWeightUnit(WeightUnit.LB)
         settings.setEffortScale(EffortScale.RIR)
         return customId
@@ -104,7 +129,7 @@ class BackupRepositoryTest : DatabaseTest() {
 
         val file = targetBackup.parse(json)
         val summary = targetBackup.restore(file)
-        assertEquals(BackupSummary(sessions = 2, routines = 1, bodyWeights = 2, dietPlans = 1, customExercises = 1), summary)
+        assertEquals(BackupSummary(sessions = 2, routines = 1, bodyWeights = 2, dietPlans = 1, customExercises = 1, diaryEntries = 2, userFoods = 2), summary)
 
         val sessions = target.workoutSessionDao().observeCompletedSessionSummaries(10).first()
         assertEquals(2, sessions.size)
@@ -118,6 +143,11 @@ class BackupRepositoryTest : DatabaseTest() {
         assertEquals(310.0, plan.orderedMeals.first().orderedItems.single().caloriesKcal!!, 0.0)
         assertEquals(WeightUnit.LB, targetSettings.current().weightUnit)
         assertEquals(EffortScale.RIR, targetSettings.current().effortScale)
+        assertEquals(165.0, target.foodDao().getFood(porridgeId)!!.kcalPer100g, 1e-9)
+        assertEquals(1, target.foodDao().getIngredients(recipeId).size)
+        val diary = target.foodDao().observeEntries(today).first()
+        assertEquals(listOf(200.0, 120.0), diary.map { it.grams })
+        assertEquals("200 g della ricetta (solo pasta: 353 kcal/100 g)", 706.0, diary.first().nutrients.kcal, 1e-6)
 
         // Il backup del secondo telefono è identico (stesse righe, stesse colonne).
         assertEquals(json.withoutTimestamp(), targetBackup.export().withoutTimestamp())

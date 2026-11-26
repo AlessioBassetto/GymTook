@@ -11,6 +11,7 @@ import com.example.sport.core.model.EffortScale
 import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.model.SetType
+import com.example.sport.core.model.TreadmillSettings
 import com.example.sport.core.model.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import java.time.Clock
@@ -33,6 +34,9 @@ enum class SetMetric(val inputConfig: NumericInputConfig) {
     DISTANCE_KM(NumericInputConfig.DistanceKm),
     INCLINE_PERCENT(NumericInputConfig.InclinePercent),
 
+    /** Velocità del tapis roulant in km/h. */
+    SPEED_KMH(NumericInputConfig.SpeedKmh),
+
     /** Tempo di corsa mm:ss (salvato in secondi). */
     DURATION_CLOCK(NumericInputConfig.Clock),
     ;
@@ -46,6 +50,7 @@ enum class SetMetric(val inputConfig: NumericInputConfig) {
         DURATION_MINUTES -> set.durationSeconds?.let { it / 60.0 }
         DISTANCE_KM -> set.distanceMeters?.let { it / 1000.0 }
         INCLINE_PERCENT -> set.inclinePercent
+        SPEED_KMH -> set.speedKmh
         DURATION_CLOCK -> set.durationSeconds?.toDouble()
     }
 
@@ -72,7 +77,7 @@ enum class SetMetric(val inputConfig: NumericInputConfig) {
                 -> listOf(WEIGHT, REPS)
                 ExerciseTrackingType.DURATION -> listOf(DURATION_SECONDS)
                 ExerciseTrackingType.DISTANCE_DURATION -> listOf(DISTANCE_KM, DURATION_MINUTES)
-                ExerciseTrackingType.INCLINE_TIME -> listOf(INCLINE_PERCENT, DURATION_CLOCK)
+                ExerciseTrackingType.INCLINE_TIME -> listOf(INCLINE_PERCENT, SPEED_KMH, DURATION_CLOCK)
             }
             return if (withRpe) base + effortMetric(effort) else base
         }
@@ -148,12 +153,29 @@ class WorkoutRepository @Inject constructor(
             SetMetric.DURATION_MINUTES -> sessionDao.updateSetDuration(setId, value?.let { (it * 60).roundToInt() })
             SetMetric.DISTANCE_KM -> sessionDao.updateSetDistance(setId, value?.let { it * 1000 })
             SetMetric.INCLINE_PERCENT -> sessionDao.updateSetIncline(setId, value)
+            SetMetric.SPEED_KMH -> sessionDao.updateSetSpeed(setId, value)
             SetMetric.DURATION_CLOCK -> sessionDao.updateSetDuration(setId, value?.roundToInt())
         }
     }
 
     suspend fun setCompleted(setId: Long, completed: Boolean) =
         sessionDao.setSetCompleted(setId, completed, if (completed) now() else null)
+
+    /**
+     * Tapis roulant: spuntata una serie, la sua pendenza e la sua velocità diventano la regolazione
+     * salvata (l'ultima combinazione usata). La scheda esercizio la mostra in "I miei settaggi" e il
+     * prossimo allenamento parte da lì. Le altre voci e le note del profilo restano.
+     */
+    suspend fun rememberTreadmillSettings(setId: Long) {
+        val set = sessionDao.getSet(setId) ?: return
+        if (set.inclinePercent == null && set.speedKmh == null) return
+        val sessionExercise = setupDao.getSessionExercise(set.sessionExerciseId) ?: return
+        val params = TreadmillSettings.withValues(sessionExercise.machineSetup, set.inclinePercent, set.speedKmh)
+        if (sessionExercise.machineSetupId != null && params == sessionExercise.machineSetup) return
+        setupDao.saveForSessionExercise(sessionExercise.id, params, DEFAULT_SETUP_LABEL, now())
+        // Le serie ancora da fare seguono la combinazione appena usata (come la regolazione mostrata).
+        sessionDao.applyTreadmillSettingsToPendingSets(sessionExercise.id, set.inclinePercent, set.speedKmh)
+    }
 
     suspend fun setSetType(setId: Long, type: SetType) = sessionDao.updateSetType(setId, type)
 
@@ -183,13 +205,28 @@ class WorkoutRepository @Inject constructor(
     fun observeSetups(exerciseId: String): Flow<List<MachineSetupEntity>> = setupDao.observeSetupsForExercise(exerciseId)
 
     /** Salvataggio dal logger: aggiorna il profilo in uso (o ne crea uno), note comprese. */
-    suspend fun saveSetup(sessionExerciseId: Long, params: List<MachineSetupParam>, notes: String?, defaultLabel: String): Long =
-        setupDao.saveWithNotesForSessionExercise(sessionExerciseId, params, notes, defaultLabel, now())
+    suspend fun saveSetup(sessionExerciseId: Long, params: List<MachineSetupParam>, notes: String?, defaultLabel: String): Long {
+        val setupId = setupDao.saveWithNotesForSessionExercise(sessionExerciseId, params, notes, defaultLabel, now())
+        applyTreadmillSettings(listOf(sessionExerciseId), params)
+        return setupId
+    }
 
     suspend fun saveSetupAsNew(sessionExerciseId: Long, label: String, params: List<MachineSetupParam>, notes: String?): Long {
         val setupId = setupDao.saveAsNewForSessionExercise(sessionExerciseId, label, params, now())
         setupDao.updateNotes(setupId, notes?.trim()?.takeIf { it.isNotEmpty() })
+        applyTreadmillSettings(listOf(sessionExerciseId), params)
         return setupId
+    }
+
+    /**
+     * Pendenza e velocità appena salvate nella regolazione valgono per le serie del tapis ancora da
+     * fare (quelle spuntate restano come registrate). Per gli altri macchinari non cambia nulla.
+     */
+    private suspend fun applyTreadmillSettings(sessionExerciseIds: List<Long>, params: List<MachineSetupParam>) {
+        val incline = TreadmillSettings.incline(params)
+        val speed = TreadmillSettings.speed(params)
+        if (incline == null && speed == null) return
+        sessionExerciseIds.forEach { sessionDao.applyTreadmillSettingsToPendingSets(it, incline, speed) }
     }
 
     /**
@@ -202,7 +239,12 @@ class WorkoutRepository @Inject constructor(
         label: String,
         params: List<MachineSetupParam>,
         notes: String?,
-    ): Long = setupDao.saveFromLibrary(exerciseId, setupId, label, params, notes, now())
+    ): Long {
+        val savedId = setupDao.saveFromLibrary(exerciseId, setupId, label, params, notes, now())
+        // Allenamento già in corso con questo tapis: la nuova regolazione vale per le serie da fare.
+        applyTreadmillSettings(sessionDao.getActiveSessionExerciseIds(exerciseId), params)
+        return savedId
+    }
 
     suspend fun deleteSetup(setupId: Long) = setupDao.deleteById(setupId)
 
@@ -257,6 +299,9 @@ class WorkoutRepository @Inject constructor(
 
     private companion object {
         const val DEFAULT_SETS_FOR_NEW_EXERCISE = 3
+
+        /** Nome del profilo creato in automatico (uguale a R.string.setup_default_label). */
+        const val DEFAULT_SETUP_LABEL = "Predefinita"
     }
 }
 

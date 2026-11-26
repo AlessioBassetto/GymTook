@@ -93,6 +93,26 @@ class NumericInputStateTest {
     }
 
     @Test
+    fun treadmillSpeed_isTypedToTheTenth_andStepsByHalfAKilometre() {
+        val speed = NumericInputState.of(5.5, NumericInputConfig.SpeedKmh)
+        assertEquals("5,5", speed.displayText)
+        assertEquals("6", speed.type(Increment).displayText)
+        assertEquals("5", speed.type(Decrement).displayText)
+        assertEquals("Un solo decimale", "6,2", NumericInputState.of(null, NumericInputConfig.SpeedKmh).type(*digits("6,25")).displayText)
+        assertEquals("Oltre i 30 km/h", "3", NumericInputState.of(null, NumericInputConfig.SpeedKmh).type(*digits("35")).displayText)
+    }
+
+    @Test
+    fun grams_areWholeNumbers_upToFiveKilos() {
+        val grams = NumericInputState.of(280.0, NumericInputConfig.Grams)
+        assertEquals("280", grams.displayText)
+        assertEquals("290", grams.type(Increment).displayText)
+        assertEquals("Il primo tasto sostituisce la porzione", "135", grams.type(*digits("135")).displayText)
+        assertEquals("Niente virgola", "12", NumericInputState.of(null, NumericInputConfig.Grams).type(*digits("1,2")).displayText)
+        assertEquals("Massimo 5000 g", "500", NumericInputState.of(null, NumericInputConfig.Grams).type(*digits("5001")).displayText)
+    }
+
+    @Test
     fun clock_digitsEnterFromTheRight_likeAMicrowave() {
         val time = NumericInputState.of(null, NumericInputConfig.Clock).type(Digit(2), Digit(5), Digit(3), Digit(0))
         assertEquals("25:30", time.displayText)

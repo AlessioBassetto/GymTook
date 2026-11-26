@@ -8,6 +8,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import com.example.sport.core.data.CalorieRepository
 import com.example.sport.core.database.seed.ExerciseCatalogSeeder
+import com.example.sport.core.database.seed.FoodCatalogSeeder
 import com.example.sport.core.di.ApplicationScope
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +27,9 @@ class SportApplication : Application(), SingletonImageLoader.Factory, Configurat
     lateinit var workerFactory: HiltWorkerFactory
 
     @Inject
+    lateinit var foodCatalogSeeder: FoodCatalogSeeder
+
+    @Inject
     lateinit var calorieRepository: CalorieRepository
 
     @Inject
@@ -36,6 +40,8 @@ class SportApplication : Application(), SingletonImageLoader.Factory, Configurat
         super.onCreate()
         // Installa/aggiorna il catalogo esercizi in background al primo avvio e dopo ogni update.
         exerciseCatalogSeeder.seedInBackground()
+        // Catalogo dei piatti italiani della dieta: stessa logica, versione separata.
+        foodCatalogSeeder.seedInBackground()
         // Allenamenti salvati prima delle calorie (schema v3) o senza pesate: stima appena possibile.
         calorieRepository.recalculateMissingInBackground(applicationScope)
     }

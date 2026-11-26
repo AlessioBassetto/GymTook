@@ -15,5 +15,6 @@ data class AppMetadataEntity(
 ) {
     companion object {
         const val KEY_EXERCISE_CATALOG_VERSION = "exercise_catalog_version"
+        const val KEY_FOOD_CATALOG_VERSION = "food_catalog_version"
     }
 }

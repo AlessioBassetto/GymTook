@@ -59,6 +59,10 @@ data class BackupSummary(
     val bodyWeights: Int,
     val dietPlans: Int,
     val customExercises: Int,
+    /** Voci del diario alimentare (piatti con grammatura). */
+    val diaryEntries: Int = 0,
+    /** Piatti, ricette e prodotti salvati dall'utente. */
+    val userFoods: Int = 0,
 )
 
 /** Il file non è un backup dell'app, è di una versione più recente o non è coerente. */
@@ -66,7 +70,8 @@ class InvalidBackupException(message: String, cause: Throwable? = null) : Except
 
 /**
  * Esportazione e ripristino di tutti i dati dell'utente: schede, allenamenti, regolazioni,
- * peso corporeo e profilo corporeo, piani alimentari, esercizi personalizzati, preferiti e impostazioni.
+ * peso corporeo e profilo corporeo, piani alimentari, diario alimentare con piatti e ricette
+ * dell'utente, esercizi personalizzati, preferiti e impostazioni.
  * Restano fuori il catalogo (è nell'app) e i video personali (file pesanti, solo su questo telefono).
  */
 @Singleton
@@ -95,6 +100,8 @@ class BackupRepository @Inject constructor(
                         "WHERE e.is_custom = 1 ORDER BY m.exercise_id",
                 ),
             )
+            // Del catalogo dieta entrano solo piatti, ricette e prodotti dell'utente.
+            put(FOOD_ITEMS, db.dump("SELECT * FROM food_items WHERE source != 'CATALOG' ORDER BY id"))
             USER_TABLES.forEach { table -> put(table, db.dump("SELECT * FROM $table")) }
         }
         val flags = db.query("SELECT id, is_favorite, is_hidden FROM exercises WHERE is_custom = 0 AND (is_favorite = 1 OR is_hidden = 1) ORDER BY id")
@@ -138,6 +145,8 @@ class BackupRepository @Inject constructor(
         bodyWeights = file.tables[BODY_WEIGHTS].orEmpty().size,
         dietPlans = file.tables[DIET_PLANS].orEmpty().size,
         customExercises = file.tables[EXERCISES].orEmpty().size,
+        diaryEntries = file.tables[MEAL_ENTRIES].orEmpty().size,
+        userFoods = file.tables[FOOD_ITEMS].orEmpty().size,
     )
 
     /**
@@ -154,7 +163,12 @@ class BackupRepository @Inject constructor(
                     USER_TABLES.asReversed().forEach { db.delete(it, null, null) }
                     restoreCustomExercises(db, file)
                     restoreCatalogFlags(db, file.catalogFlags)
+                    restoreUserFoods(db, file)
                     USER_TABLES.forEach { table -> db.insertRows(table, file.tables[table].orEmpty()) }
+                    // Diario e ricette che puntano a un piatto del catalogo non più presente: il valore
+                    // copiato nella voce resta, si perde solo il collegamento.
+                    db.execSQL("UPDATE meal_entries SET food_item_id = NULL WHERE food_item_id IS NOT NULL AND food_item_id NOT IN (SELECT id FROM food_items)")
+                    db.execSQL("UPDATE food_recipe_ingredients SET ingredient_id = NULL WHERE ingredient_id IS NOT NULL AND ingredient_id NOT IN (SELECT id FROM food_items)")
                     // Riferimenti rotti (es. un esercizio che qui non esiste): si annulla tutto.
                     db.query("PRAGMA foreign_key_check").use { cursor ->
                         if (cursor.moveToFirst()) throw InvalidBackupException("Riferimento mancante nella tabella ${cursor.getString(0)}")
@@ -190,6 +204,17 @@ class BackupRepository @Inject constructor(
             if (updated == 0) db.insert("exercises", SQLiteDatabase.CONFLICT_ABORT, values)
         }
         db.insertRows("exercise_muscles", file.tables[EXERCISE_MUSCLES].orEmpty())
+    }
+
+    /**
+     * Piatti, ricette e prodotti dell'utente: sostituiti da quelli del backup. Il catalogo italiano
+     * è nell'app e resta com'è (i backup non lo contengono). Un backup che contenesse righe del
+     * catalogo non le può sovrascrivere.
+     */
+    private fun restoreUserFoods(db: SupportSQLiteDatabase, file: BackupFile) {
+        db.delete(FOOD_ITEMS, "source != 'CATALOG'", null)
+        val rows = file.tables[FOOD_ITEMS].orEmpty().filter { (it["source"] as? JsonPrimitive)?.content != "CATALOG" }
+        db.insertRows(FOOD_ITEMS, rows)
     }
 
     private fun restoreCatalogFlags(db: SupportSQLiteDatabase, flags: List<CatalogFlag>) {
@@ -256,6 +281,8 @@ class BackupRepository @Inject constructor(
         private const val SESSIONS = "workout_sessions"
         private const val BODY_WEIGHTS = "body_weight_entries"
         private const val DIET_PLANS = "diet_plans"
+        private const val FOOD_ITEMS = "food_items"
+        private const val MEAL_ENTRIES = "meal_entries"
 
         /** Tabelle interamente dell'utente, in ordine di dipendenza (genitori prima dei figli). */
         val USER_TABLES = listOf(
@@ -273,8 +300,10 @@ class BackupRepository @Inject constructor(
             "meals",
             "meal_items",
             "meal_logs",
+            "food_recipe_ingredients",
+            MEAL_ENTRIES,
         )
 
-        private val KNOWN_TABLES = USER_TABLES.toSet() + EXERCISES + EXERCISE_MUSCLES
+        private val KNOWN_TABLES = USER_TABLES.toSet() + EXERCISES + EXERCISE_MUSCLES + FOOD_ITEMS
     }
 }

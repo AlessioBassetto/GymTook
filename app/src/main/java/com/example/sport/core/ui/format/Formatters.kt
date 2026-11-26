@@ -90,6 +90,12 @@ object Formatters {
     /** Pendenza del tapis roulant: 8.5 → "8,5%", 10.0 → "10%". */
     fun incline(percent: Double): String = "${number(percent)}%"
 
+    /** Velocità del tapis roulant: 5.5 → "5,5 km/h". */
+    fun speed(kmh: Double): String = "${number(kmh)} km/h"
+
+    /** Grammatura: 135.0 → "135 g". */
+    fun grams(value: Double): String = "${integer(value)} g"
+
     /** 1250 → "1.250 kcal". */
     fun kcal(value: Int): String = "${integer(value.toDouble())} kcal"
 

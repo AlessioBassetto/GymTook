@@ -8,7 +8,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.example.sport.R
 import com.example.sport.core.data.ProgressRepository
-import com.example.sport.core.data.progress.InclineSession
+import com.example.sport.core.data.CalorieRepository
+import com.example.sport.core.data.ExerciseSessionCalories
 import com.example.sport.core.data.progress.PersonalRecord
 import com.example.sport.core.data.progress.RecordKind
 import com.example.sport.core.database.dao.HistoryRemoval
@@ -115,8 +116,8 @@ sealed interface ExerciseProgressUiState {
         val points: List<MetricPoint>,
         val sessions: List<ExerciseSessionUi>,
         val records: List<RecordTileUi>,
-        /** Solo per gli esercizi INCLINE_TIME: confronto pendenza/tempo sessione per sessione. */
-        val incline: InclineProgressUi? = null,
+        /** Solo per il tapis roulant (INCLINE_TIME): statistiche delle sole calorie. */
+        val treadmill: TreadmillCaloriesUi? = null,
     ) : ExerciseProgressUiState {
         val latest: Double? get() = points.lastOrNull()?.value
         val best: Double? get() = points.maxOfOrNull { it.value }
@@ -124,11 +125,11 @@ sealed interface ExerciseProgressUiState {
     }
 }
 
-/** Dati del periodo scelto: serie a ripetizioni e sessioni di tapis roulant. */
+/** Dati del periodo scelto: serie a ripetizioni e calorie delle sessioni di tapis roulant. */
 private data class RangeData(
     val range: TimeRange,
     val rows: List<ExerciseProgressPoint>,
-    val inclineSessions: List<InclineSession>,
+    val treadmillCalories: List<ExerciseSessionCalories>,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -136,6 +137,7 @@ private data class RangeData(
 class ExerciseProgressViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: ProgressRepository,
+    private val calorieRepository: CalorieRepository,
 ) : ViewModel() {
 
     private val exerciseId = savedStateHandle.toRoute<ExerciseProgressRoute>().exerciseId
@@ -146,8 +148,8 @@ class ExerciseProgressViewModel @Inject constructor(
         val from = selected.startDate(repository.today()).atStartOfDay(repository.zone()).toInstant()
         combine(
             repository.observeExerciseProgress(exerciseId, from),
-            repository.observeInclineSessions(exerciseId, from),
-        ) { rows, inclineSessions -> RangeData(selected, rows, inclineSessions) }
+            calorieRepository.observeExerciseCalories(exerciseId, from),
+        ) { rows, calories -> RangeData(selected, rows, calories) }
     }
 
     val uiState: StateFlow<ExerciseProgressUiState> = combine(
@@ -155,7 +157,7 @@ class ExerciseProgressViewModel @Inject constructor(
         rowsInRange,
         repository.observeExerciseRecords(exerciseId),
         chosenMetric,
-    ) { exercise, (selected, rows, inclineSessions), records, chosen ->
+    ) { exercise, (selected, rows, treadmillCalories), records, chosen ->
         if (exercise == null) return@combine ExerciseProgressUiState.NotFound
         val zone = repository.zone()
         val metrics = ProgressMetric.availableFor(exercise.trackingType)
@@ -171,7 +173,7 @@ class ExerciseProgressViewModel @Inject constructor(
             records = records?.let { listOfNotNull(it.heaviestSet, it.bestOneRepMax, it.bestSessionVolume) }
                 .orEmpty()
                 .map { it.toUi(zone) },
-            incline = if (exercise.trackingType == ExerciseTrackingType.INCLINE_TIME) inclineProgressUi(inclineSessions, zone) else null,
+            treadmill = if (exercise.trackingType == ExerciseTrackingType.INCLINE_TIME) treadmillCaloriesUi(treadmillCalories, zone) else null,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExerciseProgressUiState.Loading)
 

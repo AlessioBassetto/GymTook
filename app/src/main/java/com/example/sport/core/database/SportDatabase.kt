@@ -13,6 +13,7 @@ import com.example.sport.core.database.dao.CalorieDao
 import com.example.sport.core.database.dao.CatalogDao
 import com.example.sport.core.database.dao.DietDao
 import com.example.sport.core.database.dao.ExerciseDao
+import com.example.sport.core.database.dao.FoodDao
 import com.example.sport.core.database.dao.MachineSetupDao
 import com.example.sport.core.database.dao.MediaDao
 import com.example.sport.core.database.dao.ProgressDao
@@ -26,6 +27,9 @@ import com.example.sport.core.database.entity.ExerciseEntity
 import com.example.sport.core.database.entity.ExerciseMediaEntity
 import com.example.sport.core.database.entity.ExerciseMuscleEntity
 import com.example.sport.core.database.entity.ExerciseUserVideoEntity
+import com.example.sport.core.database.entity.FoodItemEntity
+import com.example.sport.core.database.entity.FoodRecipeIngredientEntity
+import com.example.sport.core.database.entity.MealEntryEntity
 import com.example.sport.core.database.migration.MANUAL_MIGRATIONS
 import com.example.sport.core.database.migration.Migration1To2
 import com.example.sport.core.database.entity.ExerciseSetEntity
@@ -68,8 +72,11 @@ import com.example.sport.core.database.entity.WorkoutSessionEntity
         AppMetadataEntity::class,
         ExerciseUserVideoEntity::class,
         BodyProfileEntity::class,
+        FoodItemEntity::class,
+        FoodRecipeIngredientEntity::class,
+        MealEntryEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = Migration1To2::class),
@@ -78,6 +85,8 @@ import com.example.sport.core.database.entity.WorkoutSessionEntity
         AutoMigration(from = 2, to = 3),
         // v3 → v4 (calorie): Migration scritta a mano, vedi MIGRATION_3_4 in Migrations.kt.
         // v4 → v5 (tapis roulant): colonna exercise_sets.incline_percent, vedi MIGRATION_4_5.
+        // v5 → v6 (tapis + dieta): exercise_sets.speed_kmh e le tabelle food_items,
+        // food_recipe_ingredients e meal_entries, vedi MIGRATION_5_6.
     ],
 )
 @TypeConverters(Converters::class)
@@ -102,6 +111,8 @@ abstract class SportDatabase : RoomDatabase() {
     abstract fun calorieDao(): CalorieDao
 
     abstract fun dietDao(): DietDao
+
+    abstract fun foodDao(): FoodDao
 
     abstract fun mediaDao(): MediaDao
 

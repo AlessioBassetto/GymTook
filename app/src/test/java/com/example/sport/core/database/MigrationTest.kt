@@ -8,6 +8,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.sport.core.database.entity.ExerciseUserVideoEntity
 import com.example.sport.core.database.migration.MANUAL_MIGRATIONS
 import com.example.sport.core.database.seed.AssetExerciseCatalogSource
+import com.example.sport.core.database.seed.AssetFoodCatalogSource
+import com.example.sport.core.database.seed.FoodCatalogSeedResult
+import com.example.sport.core.database.seed.FoodCatalogSeeder
+import com.example.sport.core.database.entity.MealEntryEntity
+import com.example.sport.core.model.MealType
+import java.time.LocalDate
 import com.example.sport.core.database.seed.CatalogSeedResult
 import com.example.sport.core.database.seed.ExerciseCatalogSeeder
 import com.example.sport.core.model.ExerciseCategory
@@ -273,6 +279,87 @@ class MigrationTest {
             val kept = db.workoutSessionDao().getSets(1).single()
             assertEquals("Lo storico resta intatto", 1800, kept.durationSeconds)
             assertEquals(3000.0, kept.distanceMeters!!, 0.0)
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun v5ToV6_addsTheSpeedAndTheDiary_keepingPlansAndHistory() = runTest {
+        createDatabase(version = 5) { db ->
+            val start = T0.toEpochMilli()
+            val end = T0.plusSeconds(30 * 60).toEpochMilli()
+            db.execSQL(
+                """
+                INSERT INTO exercises (id, name, name_en, aliases, search_text, equipment, primary_muscle,
+                    primary_muscle_group, tracking_type, category, mechanic, force, level, is_unilateral, instructions,
+                    key_points, common_mistakes, content_locale, supports_machine_setup, setup_param_hints,
+                    default_rest_seconds, is_custom, is_favorite, is_hidden, is_retired, catalog_version,
+                    created_at, updated_at)
+                VALUES ('walking_treadmill', 'Camminata in salita sul tapis roulant', 'Walking, Treadmill', '[]', 'tapis',
+                    'CARDIO_MACHINE', 'CARDIO', 'CARDIO_FULL_BODY', 'INCLINE_TIME', 'CARDIO', NULL, NULL, 'BEGINNER', 0,
+                    '[]', '[]', '[]', 'it', 0, '[]', 60, 0, 0, 0, 0, 4, $start, $start)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "INSERT INTO workout_sessions (id, routine_id, routine_day_id, title, status, started_at, ended_at, body_weight_kg, notes) " +
+                    "VALUES (1, NULL, NULL, 'Cardio', 'COMPLETED', $start, $end, NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO session_exercises (id, session_id, exercise_id, routine_exercise_id, position, superset_group, " +
+                    "rest_seconds, machine_setup_id, machine_setup, replaced_exercise_id, notes) " +
+                    "VALUES (1, 1, 'walking_treadmill', NULL, 0, NULL, 60, NULL, '[]', NULL, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO exercise_sets (id, session_exercise_id, set_index, set_type, weight_kg, reps, rpe, rir, " +
+                    "duration_seconds, distance_meters, incline_percent, is_completed, completed_at, notes) " +
+                    "VALUES (1, 1, 0, 'WORKING', NULL, NULL, NULL, NULL, 1800, NULL, 10.0, 1, $end, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO diet_plans (id, name, is_active, target_calories_kcal, target_protein_g, target_carbs_g, target_fat_g, " +
+                    "notes, created_at, updated_at) VALUES (1, 'Massa', 1, 2600, 160.0, 320.0, 70.0, NULL, $start, $start)",
+            )
+            db.execSQL("INSERT INTO meals (id, diet_plan_id, meal_type, name, position, time_of_day, notes) VALUES (1, 1, 'LUNCH', NULL, 0, NULL, NULL)")
+            db.execSQL("INSERT INTO meal_logs (meal_id, date, consumed_at, note) VALUES (1, 20000, $start, NULL)")
+        }
+
+        val db = Room.databaseBuilder(context, SportDatabase::class.java, databaseName)
+            .addMigrations(*MANUAL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            // Apertura = MIGRATION_5_6 + validazione dello schema v6 da parte di Room.
+            val set = db.workoutSessionDao().getSets(1).single()
+            assertEquals(10.0, set.inclinePercent!!, 0.0)
+            assertNull("Le serie esistenti non hanno una velocità", set.speedKmh)
+            db.workoutSessionDao().updateSetSpeed(1, 5.5)
+            assertEquals(5.5, db.workoutSessionDao().getSets(1).single().speedKmh!!, 0.0)
+            assertEquals("Il piano alimentare resta", 2600, db.dietDao().getPlan(1)!!.targetCaloriesKcal)
+
+            // Primo avvio: il catalogo dei piatti italiani entra nella tabella nuova; il diario funziona.
+            val seeded = FoodCatalogSeeder(
+                foodDao = db.foodDao(),
+                source = AssetFoodCatalogSource(context, Dispatchers.IO),
+                clock = Clock.fixed(T0, ZoneOffset.UTC),
+                applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            ).seedIfNeeded()
+            assertTrue(seeded is FoodCatalogSeedResult.Installed)
+            val pasta = db.foodDao().getFood("cat:pasta_al_pomodoro")!!
+            val entryId = db.foodDao().insertEntry(
+                MealEntryEntity(
+                    date = LocalDate.of(2026, 11, 26),
+                    mealType = MealType.LUNCH,
+                    foodItemId = pasta.id,
+                    name = pasta.name,
+                    grams = 280.0,
+                    kcalPer100g = pasta.kcalPer100g,
+                    proteinPer100g = pasta.proteinPer100g,
+                    carbsPer100g = pasta.carbsPer100g,
+                    fatPer100g = pasta.fatPer100g,
+                    createdAt = T0,
+                ),
+            )
+            assertEquals(280.0, db.foodDao().getEntry(entryId)!!.grams, 0.0)
         } finally {
             db.close()
         }

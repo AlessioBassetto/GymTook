@@ -22,7 +22,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.sport.core.data.progress.InclineSession
+import com.example.sport.core.data.ExerciseSessionCalories
 import com.example.sport.core.data.progress.RecordKind
 import com.example.sport.core.data.progress.WeightTrendPoint
 import com.example.sport.core.database.T0
@@ -410,58 +410,68 @@ class ProgressUiTest {
         assertEquals(listOf("deleteRecord:HEAVIEST_SET:31", "deleteRecord:SESSION_VOLUME:null", "reset"), calls)
     }
 
-    // ------------------------------------------------------------------ Tapis roulant in salita
+    // ------------------------------------------------------------------ Tapis roulant: solo calorie
 
-    private fun inclineSession(id: Long, daysAgo: Long, incline: Double, minutes: Int) = InclineSession(
+    private fun treadmillSession(id: Long, daysAgo: Long, kcal: Int?) = ExerciseSessionCalories(
         sessionId = id,
         performedAt = today.minusDays(daysAgo).atTime(7, 0).toInstant(ZoneOffset.UTC),
-        totalSeconds = minutes * 60,
-        averageIncline = incline,
-        maxIncline = incline,
-        setCount = 1,
+        kcal = kcal,
+        activeSeconds = 1800,
+    )
+
+    private fun treadmillState(treadmill: TreadmillCaloriesUi) = ExerciseProgressUiState.Content(
+        exerciseId = "walking_treadmill",
+        name = "Camminata in salita sul tapis roulant",
+        metrics = emptyList(),
+        metric = null,
+        range = TimeRange.HALF_YEAR,
+        points = emptyList(),
+        sessions = emptyList(),
+        records = emptyList(),
+        treadmill = treadmill,
     )
 
     @Test
-    fun inclineProgress_comparesTimeAndIncline_andHighlightsImprovements() {
-        val incline = inclineProgressUi(
-            listOf(inclineSession(1, 6, 10.0, 25), inclineSession(2, 3, 10.0, 30), inclineSession(3, 0, 12.0, 30)),
+    fun treadmillProgress_showsOnlyCalories_perSessionAndCumulative() {
+        val treadmill = treadmillCaloriesUi(
+            listOf(treadmillSession(1, 6, 300), treadmillSession(2, 3, 420), treadmillSession(3, 0, 360)),
             ZoneOffset.UTC,
         )
-        val state = ExerciseProgressUiState.Content(
-            exerciseId = "walking_treadmill",
-            name = "Camminata in salita sul tapis roulant",
-            metrics = emptyList(),
-            metric = null,
-            range = TimeRange.HALF_YEAR,
-            points = emptyList(),
-            sessions = emptyList(),
-            records = emptyList(),
-            incline = incline,
-        )
-        setContent { ExerciseProgressContent(state, exerciseActions()) }
+        setContent { ExerciseProgressContent(treadmillState(treadmill), exerciseActions()) }
 
-        composeRule.onNodeWithText("Ultima sessione").assertIsDisplayed()
-        composeRule.onNodeWithText("2 su 2").assertIsDisplayed()
-        composeRule.onNodeWithText("Tempo e pendenza, sessione per sessione").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Confronto di 3 sessioni: l'ultima 30:00 a 12% di pendenza.").assertIsDisplayed()
-        composeRule.onNodeWithText("Pendenza media (%)").assertIsDisplayed()
+        composeRule.onNodeWithText("Calorie bruciate nel periodo").assertIsDisplayed()
+        composeRule.onNodeWithText("1.080 kcal").assertIsDisplayed()
+        composeRule.onNodeWithText("media a sessione").assertIsDisplayed()
+        composeRule.onNodeWithText("Calorie per sessione e totale cumulativo").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Calorie di 3 sessioni: l'ultima 360 kcal, totale 1.080 kcal.").assertIsDisplayed()
+        // Niente più grafici o confronti di pendenza e tempo.
+        composeRule.onNodeWithText("Tempo e pendenza, sessione per sessione").assertDoesNotExist()
+        composeRule.onNodeWithText("pendenza massima").assertDoesNotExist()
 
         val list = composeRule.onNode(hasScrollToIndexAction())
-        list.performScrollToNode(hasText("+2% di pendenza a parità di durata"))
-        composeRule.onNodeWithText("+2% di pendenza a parità di durata").performClick()
-        list.performScrollToNode(hasText("Stessa pendenza, +5:00 di tempo"))
-        list.performScrollToNode(hasText("Prima sessione del periodo"))
-        assertEquals(2, composeRule.onAllNodes(hasContentDescription("Migliorata rispetto alla volta precedente")).fetchSemanticsNodes().size)
-        assertEquals(listOf("session:3"), calls)
+        list.performScrollToNode(hasText("Totale cumulativo 720 kcal"))
+        assertEquals(1, composeRule.onAllNodes(hasContentDescription("Sessione con più calorie bruciate")).fetchSemanticsNodes().size)
+        composeRule.onNodeWithText("Totale cumulativo 720 kcal").performClick()
+        assertEquals(listOf("session:2"), calls)
     }
 
     @Test
-    fun inclineProgress_emptyRange_explainsIt() {
-        val state = ExerciseProgressUiState.Content(
-            "walking_treadmill", "Camminata in salita sul tapis roulant", emptyList(), null, TimeRange.MONTH,
-            emptyList(), emptyList(), emptyList(), incline = InclineProgressUi(emptyList()),
-        )
-        setContent { ExerciseProgressContent(state, exerciseActions()) }
+    fun treadmillProgress_withoutWeight_asksForAWeighIn_andEmptyRangeExplainsIt() {
+        setContent {
+            ExerciseProgressContent(
+                treadmillState(treadmillCaloriesUi(listOf(treadmillSession(1, 1, null)), ZoneOffset.UTC)),
+                exerciseActions(),
+            )
+        }
+        composeRule.onNodeWithText(
+            "Registra il tuo peso corporeo (Progressi → Peso corporeo) per vedere le calorie bruciate sul tapis roulant.",
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Calorie non stimate (manca il peso)").assertIsDisplayed()
+    }
+
+    @Test
+    fun treadmillProgress_emptyRange_explainsIt() {
+        setContent { ExerciseProgressContent(treadmillState(TreadmillCaloriesUi(emptyList())), exerciseActions()) }
         composeRule.onNodeWithText("Nessuna sessione di tapis roulant nel periodo scelto.").assertIsDisplayed()
     }
 
@@ -481,7 +491,7 @@ class ProgressUiTest {
                     exerciseId = "walking_treadmill",
                     name = "Camminata in salita sul tapis roulant",
                     trackingType = ExerciseTrackingType.INCLINE_TIME,
-                    sets = listOf(SessionSetUi(5L, SetType.WORKING, 1, "8,5% · 25:00", null, null, durationSeconds = 1500, inclinePercent = 8.5)),
+                    sets = listOf(SessionSetUi(5L, SetType.WORKING, 1, "8,5% · 5,5 km/h · 25:00", null, null, durationSeconds = 1500, inclinePercent = 8.5, speedKmh = 5.5)),
                     volumeKg = 0.0,
                 ),
             ),
@@ -494,30 +504,31 @@ class ProgressUiTest {
                     onBack = {},
                     onOpenExercise = {},
                     onDelete = {},
-                    onUpdateSet = { id, values -> calls += "update:$id:${values.inclinePercent}:${values.durationSeconds}" },
+                    onUpdateSet = { id, values -> calls += "update:$id:${values.inclinePercent}:${values.speedKmh}:${values.durationSeconds}" },
                     onDeleteSet = {},
                 ),
             )
         }
 
-        composeRule.onNodeWithText("8,5% · 25:00").performClick()
+        composeRule.onNodeWithText("8,5% · 5,5 km/h · 25:00").performClick()
         composeRule.onNodeWithText("Inclinazione (%)").assertIsDisplayed()
         composeRule.onNode(hasText("8,5") and hasSetTextAction()).performTextReplacement("9")
+        composeRule.onNode(hasText("5,5") and hasSetTextAction()).performTextReplacement("6,2")
         composeRule.onNode(hasText("25:00") and hasSetTextAction()).performTextReplacement("27:30")
         composeRule.onNodeWithText("Salva").performClick()
 
-        composeRule.onNodeWithText("8,5% · 25:00").performClick()
+        composeRule.onNodeWithText("8,5% · 5,5 km/h · 25:00").performClick()
         // Oltre il 40% nessun tapis roulant: non si salva.
         composeRule.onNode(hasText("8,5") and hasSetTextAction()).performTextReplacement("45")
         composeRule.onNodeWithText("Salva").assertIsNotEnabled()
 
-        assertEquals(listOf("update:5:9.0:1650"), calls)
+        assertEquals(listOf("update:5:9.0:6.2:1650"), calls)
     }
 
     @Test
     fun setValues_parseInclineAndClockTime() {
-        fun parse(incline: String, time: String) =
-            parseSetValues(ExerciseTrackingType.INCLINE_TIME, WeightUnit.KG, "", "", "", "", "", incline, time)
+        fun parse(incline: String, time: String, speed: String = "") =
+            parseSetValues(ExerciseTrackingType.INCLINE_TIME, WeightUnit.KG, "", "", "", "", "", incline, time, speed)
 
         assertEquals(8.5, parse("8,5", "25:30")!!.inclinePercent!!, 0.0)
         assertEquals(1530, parse("8,5", "25:30")!!.durationSeconds)
@@ -527,6 +538,9 @@ class ProgressUiTest {
         assertEquals("Secondi oltre 59", null, parse("10", "25:75"))
         assertEquals(null, parse("abc", "25:00"))
         assertEquals(null, parse("41", "25:00"))
+        assertEquals(5.5, parse("8", "25:00", speed = "5,5")!!.speedKmh!!, 0.0)
+        assertEquals("Oltre i 30 km/h", null, parse("8", "25:00", speed = "35"))
+        assertEquals(null, parse("8", "25:00", speed = "veloce"))
         assertEquals(90, parseClock(" 1:30 "))
         assertEquals("Tastiera numerica senza i due punti", 1530, parseClock("25,30"))
         assertEquals(1530, parseClock("25.30"))

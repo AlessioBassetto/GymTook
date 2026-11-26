@@ -14,8 +14,10 @@ import com.example.sport.core.database.entity.RoutineExerciseEntity
 import com.example.sport.core.database.entity.SessionExerciseEntity
 import com.example.sport.core.database.entity.WorkoutSessionEntity
 import com.example.sport.core.model.ExerciseTrackingType
+import com.example.sport.core.model.MachineSetupParam
 import com.example.sport.core.model.SessionStatus
 import com.example.sport.core.model.SetType
+import com.example.sport.core.model.TreadmillSettings
 import com.example.sport.core.database.relation.ActiveSessionHeader
 import com.example.sport.core.database.relation.ExerciseBestWeight
 import com.example.sport.core.database.relation.SessionSummary
@@ -243,6 +245,31 @@ interface WorkoutSessionDao {
     @Query("UPDATE exercise_sets SET incline_percent = :percent WHERE id = :setId")
     suspend fun updateSetIncline(setId: Long, percent: Double?)
 
+    @Query("UPDATE exercise_sets SET speed_kmh = :kmh WHERE id = :setId")
+    suspend fun updateSetSpeed(setId: Long, kmh: Double?)
+
+    /**
+     * Tapis roulant: la regolazione cambiata (logger o scheda esercizio) vale per le serie ancora
+     * da fare; quelle spuntate restano come sono state registrate. Null = voce non toccata.
+     */
+    @Query(
+        """
+        UPDATE exercise_sets
+        SET incline_percent = COALESCE(:incline, incline_percent), speed_kmh = COALESCE(:speed, speed_kmh)
+        WHERE session_exercise_id = :sessionExerciseId AND is_completed = 0
+        """,
+    )
+    suspend fun applyTreadmillSettingsToPendingSets(sessionExerciseId: Long, incline: Double?, speed: Double?)
+
+    /** Esercizi dell'allenamento in corso che usano [exerciseId] (per applicare una regolazione "a freddo"). */
+    @Query(
+        """
+        SELECT se.id FROM session_exercises se INNER JOIN workout_sessions ws ON ws.id = se.session_id
+        WHERE ws.status = 'IN_PROGRESS' AND se.exercise_id = :exerciseId
+        """,
+    )
+    suspend fun getActiveSessionExerciseIds(exerciseId: String): List<Long>
+
     @Query("UPDATE exercise_sets SET set_type = :type WHERE id = :setId")
     suspend fun updateSetType(setId: Long, type: SetType)
 
@@ -353,7 +380,7 @@ interface WorkoutSessionDao {
         """
         UPDATE exercise_sets
         SET weight_kg = :weightKg, reps = :reps, duration_seconds = :durationSeconds, distance_meters = :distanceMeters,
-            incline_percent = :inclinePercent
+            incline_percent = :inclinePercent, speed_kmh = :speedKmh
         WHERE id = :setId
         """,
     )
@@ -364,6 +391,7 @@ interface WorkoutSessionDao {
         durationSeconds: Int?,
         distanceMeters: Double?,
         inclinePercent: Double? = null,
+        speedKmh: Double? = null,
     )
 
     /** Allenamento a cui appartiene una serie (per ricalcolarne le calorie dopo una correzione). */
@@ -440,6 +468,7 @@ interface WorkoutSessionDao {
                     previous = getPreviousWorkingSets(planned.exerciseId),
                     fallbackReps = planned.targetRepsMax ?: planned.targetRepsMin,
                     trackingType = exercise.trackingType,
+                    setupParams = setup?.params.orEmpty(),
                 ),
             )
         }
@@ -468,6 +497,7 @@ interface WorkoutSessionDao {
                 previous = getPreviousWorkingSets(exerciseId),
                 fallbackReps = null,
                 trackingType = exercise.trackingType,
+                setupParams = setup?.params.orEmpty(),
             ),
         )
         return sessionExerciseId
@@ -487,6 +517,7 @@ interface WorkoutSessionDao {
                 durationSeconds = last?.durationSeconds,
                 distanceMeters = last?.distanceMeters,
                 inclinePercent = last?.inclinePercent,
+                speedKmh = last?.speedKmh,
             ),
         )
     }
@@ -571,22 +602,40 @@ interface WorkoutSessionDao {
 
         val previous = getPreviousWorkingSets(newExerciseId)
         if (pending.isEmpty()) {
-            insertSets(buildPrefilledSets(targetId, count = 1, previous = previous, fallbackReps = null, trackingType = replacement.trackingType))
+            insertSets(
+                buildPrefilledSets(
+                    targetId,
+                    count = 1,
+                    previous = previous,
+                    fallbackReps = null,
+                    trackingType = replacement.trackingType,
+                    setupParams = setup?.params.orEmpty(),
+                ),
+            )
         } else {
-            val keepDistance = replacement.trackingType != ExerciseTrackingType.INCLINE_TIME
+            // Stessi valori di una serie nuova; si tengono solo tipo e ripetizioni già scritte.
+            val prefilled = buildPrefilledSets(
+                targetId,
+                count = pending.size,
+                previous = previous,
+                fallbackReps = null,
+                trackingType = replacement.trackingType,
+                setupParams = setup?.params.orEmpty(),
+            )
             updateSets(
                 pending.mapIndexed { index, set ->
-                    val reference = previous.getOrNull(index) ?: previous.lastOrNull()
+                    val fresh = prefilled[index]
                     set.copy(
                         sessionExerciseId = targetId,
                         setIndex = index,
-                        weightKg = reference?.weightKg,
-                        reps = reference?.reps ?: set.reps,
+                        weightKg = fresh.weightKg,
+                        reps = fresh.reps ?: set.reps,
                         rpe = null,
                         rir = null,
-                        durationSeconds = reference?.durationSeconds,
-                        distanceMeters = reference?.distanceMeters?.takeIf { keepDistance },
-                        inclinePercent = reference?.inclinePercent,
+                        durationSeconds = fresh.durationSeconds,
+                        distanceMeters = fresh.distanceMeters,
+                        inclinePercent = fresh.inclinePercent,
+                        speedKmh = fresh.speedKmh,
                     )
                 },
             )
@@ -701,6 +750,10 @@ interface WorkoutSessionDao {
 /**
  * Serie pre-compilate: la serie i-esima copia la i-esima serie della volta precedente
  * (o l'ultima disponibile), così l'utente deve solo spuntare se ripete lo stesso lavoro.
+ *
+ * Tapis roulant ([ExerciseTrackingType.INCLINE_TIME]): pendenza e velocità vengono dalla
+ * regolazione salvata ([setupParams], l'ultima combinazione usata o quella scritta "a freddo"
+ * nella scheda esercizio); senza regolazione, dalla volta precedente.
  */
 internal fun buildPrefilledSets(
     sessionExerciseId: Long,
@@ -708,8 +761,10 @@ internal fun buildPrefilledSets(
     previous: List<ExerciseSetEntity>,
     fallbackReps: Int?,
     trackingType: ExerciseTrackingType? = null,
+    setupParams: List<MachineSetupParam> = emptyList(),
 ): List<ExerciseSetEntity> = List(count) { index ->
     val reference = previous.getOrNull(index) ?: previous.lastOrNull()
+    val treadmill = trackingType == ExerciseTrackingType.INCLINE_TIME
     ExerciseSetEntity(
         sessionExerciseId = sessionExerciseId,
         setIndex = index,
@@ -719,8 +774,8 @@ internal fun buildPrefilledSets(
         durationSeconds = reference?.durationSeconds,
         // Il tapis in salita non registra la distanza: quella di una serie di prima della v5 non va
         // ricopiata (resterebbe invisibile nel logger e falserebbe la velocità nelle calorie).
-        distanceMeters = reference?.distanceMeters?.takeIf { trackingType != ExerciseTrackingType.INCLINE_TIME },
-        // Tapis roulant: la pendenza della volta scorsa è il riferimento rapido della nuova serie.
-        inclinePercent = reference?.inclinePercent,
+        distanceMeters = reference?.distanceMeters?.takeIf { !treadmill },
+        inclinePercent = (if (treadmill) TreadmillSettings.incline(setupParams) else null) ?: reference?.inclinePercent,
+        speedKmh = (if (treadmill) TreadmillSettings.speed(setupParams) else null) ?: reference?.speedKmh,
     )
 }

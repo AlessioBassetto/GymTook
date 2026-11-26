@@ -163,7 +163,7 @@
     <string name="tracking_assisted">Con contrappeso (assistito)</string>
     <string name="tracking_duration">Tempo</string>
     <string name="tracking_distance_duration">Distanza e tempo</string>
-    <string name="tracking_incline_time">Inclinazione e tempo</string>
+    <string name="tracking_incline_time">Tapis roulant: pendenza, velocità e tempo</string>
 
     <!-- Scheda esercizio: azioni, alternative, video -->
     <string name="exercise_more_options">Altre opzioni</string>
@@ -338,8 +338,6 @@
     <string name="session_no_sets">Nessuna serie completata</string>
 
     <!-- Dieta -->
-    <string name="nutrition_empty_title">Nessun piano alimentare attivo</string>
-    <string name="nutrition_empty_message">Con un piano attivo qui vedrai i pasti del giorno da spuntare e i macro-nutrienti raggiunti.</string>
     <string name="nutrition_today">Oggi · %1$s</string>
     <string name="nutrition_calories">Calorie</string>
     <string name="nutrition_protein">Proteine</string>
@@ -422,7 +420,7 @@
     <string name="meal_breakfast">Colazione</string>
     <string name="meal_morning_snack">Spuntino</string>
     <string name="meal_lunch">Pranzo</string>
-    <string name="meal_afternoon_snack">Snack</string>
+    <string name="meal_afternoon_snack">Merenda</string>
     <string name="meal_dinner">Cena</string>
     <string name="meal_other">Altro pasto</string>
     <string name="set_type_warmup">Riscaldamento</string>
@@ -479,6 +477,7 @@
     <string name="workout_col_km">km</string>
     <string name="workout_col_minutes">Min</string>
     <string name="workout_col_incline" formatted="false">Pend. %</string>
+    <string name="workout_col_speed">km/h</string>
     <string name="workout_col_time">Tempo</string>
     <string name="workout_set_complete">Completa la serie %1$d</string>
     <string name="workout_set_uncomplete">Serie %1$d completata, tocca per annullare</string>
@@ -492,6 +491,7 @@
     <string name="workout_field_km">Distanza</string>
     <string name="workout_field_minutes">Minuti</string>
     <string name="workout_field_incline">Inclinazione</string>
+    <string name="workout_field_speed">Velocità</string>
     <string name="workout_field_time">Tempo di corsa</string>
     <string name="workout_stopwatch_start">Avvia cronometro</string>
     <string name="workout_stopwatch_stop">Ferma cronometro · %1$s</string>
@@ -580,6 +580,14 @@
         <item quantity="one">%d pesata</item>
         <item quantity="other">%d pesate</item>
     </plurals>
+    <plurals name="count_diary_entries">
+        <item quantity="one">%d voce del diario alimentare</item>
+        <item quantity="other">%d voci del diario alimentare</item>
+    </plurals>
+    <plurals name="count_user_foods">
+        <item quantity="one">%d piatto o ricetta personale</item>
+        <item quantity="other">%d piatti e ricette personali</item>
+    </plurals>
     <plurals name="count_diet_plans">
         <item quantity="one">%d piano alimentare</item>
         <item quantity="other">%d piani alimentari</item>
@@ -592,7 +600,7 @@
     <string name="settings_restore_failed">Ripristino non riuscito: i dati non sono stati modificati</string>
     <string name="settings_invalid_file">Il file scelto non è un backup di questa app, oppure è di una versione più recente</string>
     <string name="settings_restore_title">Ripristinare il backup?</string>
-    <string name="settings_restore_contents">%1$s, %2$s, %3$s, %4$s e %5$s.</string>
+    <string name="settings_restore_contents">%1$s, %2$s, %3$s, %4$s, %5$s, %6$s e %7$s.</string>
     <string name="settings_restore_dated">Backup del %1$s:</string>
     <string name="settings_restore_warning">Sostituisce tutti i dati attuali di questo telefono. I video personali restano.</string>
     <string name="settings_restore_confirm">Ripristina</string>
@@ -754,6 +762,7 @@
     <string name="set_edit_kilometers">Distanza (km)</string>
     <string name="set_edit_minutes">Durata (minuti)</string>
     <string name="set_edit_incline" formatted="false">Inclinazione (%)</string>
+    <string name="set_edit_speed">Velocità (km/h)</string>
     <string name="set_edit_time">Tempo (mm:ss)</string>
     <string name="set_delete">Elimina serie</string>
     <string name="set_delete_title">Eliminare la serie %1$s?</string>
@@ -795,24 +804,95 @@
     <string name="body_profile_note">Servono solo alla stima delle calorie: metabolismo a riposo e ampiezza dei movimenti. Se un dato manca si usa un valore medio.</string>
     <string name="body_profile_saved">Profilo salvato: calorie ricalcolate</string>
 
-    <!-- Tapis roulant: inclinazione e tempo -->
-    <string name="incline_none_in_range">Nessuna sessione di tapis roulant nel periodo scelto.</string>
-    <string name="incline_latest">Ultima sessione</string>
-    <string name="incline_session_value">%1$s · %2$s</string>
-    <string name="incline_session_max">Pendenza massima %1$s</string>
-    <string name="incline_longest">durata migliore</string>
-    <string name="incline_steepest">pendenza massima</string>
-    <string name="incline_improvements">sessioni migliorate</string>
-    <string name="incline_improvements_value">%1$d su %2$d</string>
-    <string name="incline_chart_title">Tempo e pendenza, sessione per sessione</string>
-    <string name="incline_legend_time">Tempo (minuti)</string>
-    <string name="incline_legend_incline" formatted="false">Pendenza media (%)</string>
-    <string name="incline_chart_description">Confronto di %1$d sessioni: l\'ultima %2$s a %3$s di pendenza.</string>
-    <string name="incline_improved">Migliorata rispetto alla volta precedente</string>
-    <string name="incline_trend_first">Prima sessione del periodo</string>
-    <string name="incline_trend_longer_same">Stessa pendenza, %1$s di tempo</string>
-    <string name="incline_trend_steeper_same">%1$s di pendenza a parità di durata</string>
-    <string name="incline_trend_steeper_longer">%1$s di pendenza e %2$s di tempo</string>
-    <string name="incline_trend_same">Come la volta precedente</string>
-    <string name="incline_trend_change">Pendenza %1$s, tempo %2$s</string>
+    <!-- Tapis roulant: statistiche solo calorie -->
+    <string name="treadmill_none_in_range">Nessuna sessione di tapis roulant nel periodo scelto.</string>
+    <string name="treadmill_needs_weight">Registra il tuo peso corporeo (Progressi → Peso corporeo) per vedere le calorie bruciate sul tapis roulant.</string>
+    <string name="treadmill_total_in_range">Calorie bruciate nel periodo</string>
+    <string name="treadmill_latest">ultima sessione</string>
+    <string name="treadmill_average">media a sessione</string>
+    <string name="treadmill_sessions">sessioni</string>
+    <string name="treadmill_chart_title">Calorie per sessione e totale cumulativo</string>
+    <string name="treadmill_legend_session">Calorie della sessione</string>
+    <string name="treadmill_legend_cumulative">Totale cumulativo</string>
+    <string name="treadmill_chart_description">Calorie di %1$d sessioni: l\'ultima %2$s, totale %3$s.</string>
+    <string name="treadmill_session_cumulative">Totale cumulativo %1$s</string>
+    <string name="treadmill_session_no_estimate">Calorie non stimate (manca il peso)</string>
+    <string name="treadmill_best_session">Sessione con più calorie bruciate</string>
+
+    <!-- Dieta: diario, catalogo dei piatti e grammature -->
+    <string name="food_category_breakfast">Colazione e dolci fit</string>
+    <string name="food_category_first_courses">Primi e cereali</string>
+    <string name="food_category_meat">Secondi di carne</string>
+    <string name="food_category_fish">Secondi di pesce</string>
+    <string name="food_category_vegetarian">Vegetariani, legumi e uova</string>
+    <string name="food_category_sides">Contorni e verdure</string>
+    <string name="food_category_fruit_snacks">Frutta, snack e bevande</string>
+    <string name="food_category_other">Confezionati e altro</string>
+    <string name="food_per_100g">100 g = %1$s kcal · %2$s</string>
+    <string name="food_grams_label">Grammi</string>
+    <string name="food_add">Aggiungi</string>
+    <string name="food_entry_delete">Elimina dal diario</string>
+    <string name="food_entry_delete_named">Elimina %1$s</string>
+    <string name="food_entry_deleted">Eliminato</string>
+    <string name="food_macros_line">P %1$s g · C %2$s g · G %3$s g</string>
+    <string name="diary_previous_day">Giorno precedente</string>
+    <string name="diary_next_day">Giorno successivo</string>
+    <string name="diary_today">Oggi</string>
+    <string name="diary_no_targets">Nessun obiettivo: crea un piano per impostare calorie e macro.</string>
+    <string name="diary_set_targets">Imposta</string>
+    <string name="diary_add_to_meal">Aggiungi a %1$s</string>
+    <string name="diary_from_plan">Dal piano: %1$s</string>
+    <string name="food_added">Aggiunto: %1$s, %2$s a %3$s</string>
+    <string name="food_picker_title">Aggiungi a %1$s</string>
+    <string name="food_picker_totals">Pasto %1$s · Giorno %2$s</string>
+    <string name="food_create_menu">Crea piatto o ricetta</string>
+    <string name="food_new_food">Nuovo piatto</string>
+    <string name="food_new_recipe">Nuova ricetta</string>
+    <string name="food_search_hint">Cerca un piatto (pasta, pollo, yogurt…)</string>
+    <string name="food_filter_all">Tutti</string>
+    <string name="food_filter_mine">I miei</string>
+    <string name="food_no_results">Nessun piatto trovato.</string>
+    <string name="food_source_custom">Il mio piatto</string>
+    <string name="food_source_recipe">La mia ricetta</string>
+    <string name="food_source_off">Open Food Facts</string>
+    <string name="food_kcal_per_100g">%1$s kcal/100 g</string>
+    <string name="food_edit_named">Modifica %1$s</string>
+    <string name="food_online_results">Open Food Facts: «%1$s»</string>
+    <string name="food_online_none">Nessun prodotto con i valori nutrizionali.</string>
+    <string name="food_online_attribution">Dati da Open Food Facts (licenza ODbL), inseriti da volontari: confrontali con l\'etichetta.</string>
+    <string name="food_online_loading">Ricerca su Open Food Facts…</string>
+    <string name="food_online_failed">Ricerca online non riuscita: riprova tra poco.</string>
+    <string name="food_online_search">Cerca «%1$s» su Open Food Facts</string>
+    <string name="food_online_offline">Senza connessione: la ricerca su Open Food Facts torna disponibile appena sei online.</string>
+    <string name="food_editor_new_food">Nuovo piatto</string>
+    <string name="food_editor_edit_food">Modifica piatto</string>
+    <string name="food_editor_new_recipe">Nuova ricetta</string>
+    <string name="food_editor_edit_recipe">Modifica ricetta</string>
+    <string name="food_editor_name">Nome</string>
+    <string name="food_editor_category">Categoria</string>
+    <string name="food_editor_values_per_100g">Valori per 100 g</string>
+    <string name="food_editor_protein">Proteine (g)</string>
+    <string name="food_editor_carbs">Carboidrati (g)</string>
+    <string name="food_editor_fat">Grassi (g)</string>
+    <string name="food_editor_kcal">Calorie (kcal), facoltative</string>
+    <string name="food_editor_kcal_computed">Calcolate dai macronutrienti: %1$s kcal</string>
+    <string name="food_editor_portion">Porzione tipica (g)</string>
+    <string name="food_editor_ingredients">Ingredienti</string>
+    <string name="food_editor_remove_ingredient">Togli %1$s</string>
+    <string name="food_editor_add_ingredient">Aggiungi un ingrediente (cerca)</string>
+    <string name="food_editor_final_weight">Peso del piatto finito (g), facoltativo</string>
+    <string name="food_editor_final_weight_hint">Somma degli ingredienti: %1$s. Scrivi il peso da cotto se cambia (la pasta assorbe acqua, la carne cala).</string>
+    <string name="food_editor_recipe_per_100g">La ricetta, per 100 g</string>
+    <string name="food_editor_delete_food">Elimina piatto</string>
+    <string name="food_editor_delete_recipe">Elimina ricetta</string>
+    <string name="food_editor_delete_title">Eliminare «%1$s»?</string>
+    <string name="food_editor_delete_message">Non comparirà più nella ricerca; le voci del diario già inserite restano.</string>
+
+    <!-- Regolazione dedicata del tapis roulant -->
+    <string name="treadmill_setup_title">Regolazione tapis roulant</string>
+    <string name="treadmill_setup_incline" formatted="false">Pendenza (%)</string>
+    <string name="treadmill_setup_speed">Velocità (km/h)</string>
+    <string name="treadmill_setup_step">%1$s di %2$s</string>
+    <string name="treadmill_setup_out_of_range">Valore fra %1$s e %2$s</string>
+
 </resources>

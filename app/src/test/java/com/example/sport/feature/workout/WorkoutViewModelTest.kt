@@ -84,7 +84,7 @@ class WorkoutViewModelTest : DatabaseTest() {
         workoutRepository.startFromRoutineDay(dayId)
         backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
         val exercise = awaitActive().exercises[0]
-        assertEquals(listOf(SetMetric.INCLINE_PERCENT, SetMetric.DURATION_CLOCK), exercise.metrics)
+        assertEquals(listOf(SetMetric.INCLINE_PERCENT, SetMetric.SPEED_KMH, SetMetric.DURATION_CLOCK), exercise.metrics)
         val setId = exercise.sets[0].setId
 
         // Pendenza: 8, poi "+" = 8,5%.
@@ -94,6 +94,13 @@ class WorkoutViewModelTest : DatabaseTest() {
         viewModel.onKey(KeypadKey.Increment)
         awaitActive { it.exercises[0].sets[0].values[SetMetric.INCLINE_PERCENT] == "8,5" }
         assertEquals(8.5, db.workoutSessionDao().getSet(setId)!!.inclinePercent!!, 0.0)
+
+        // Velocità: 5,5 km/h digitati, "+" = 6 km/h (passi di mezzo km/h).
+        viewModel.onFieldClick(setId, SetMetric.SPEED_KMH)
+        assertEquals("0,5", awaitActive { it.editing?.metric == SetMetric.SPEED_KMH }.editing!!.stepLabel)
+        listOf(KeypadKey.Digit(5), KeypadKey.DecimalSeparator, KeypadKey.Digit(5), KeypadKey.Increment).forEach(viewModel::onKey)
+        awaitActive { it.exercises[0].sets[0].values[SetMetric.SPEED_KMH] == "6" }
+        assertEquals(6.0, db.workoutSessionDao().getSet(setId)!!.speedKmh!!, 0.0)
 
         // Tempo: cronometro avviato e fermato dopo 25 minuti e 30 secondi.
         viewModel.onFieldClick(setId, SetMetric.DURATION_CLOCK)
@@ -117,11 +124,20 @@ class WorkoutViewModelTest : DatabaseTest() {
         val saved = db.workoutSessionDao().getSet(setId)!!
         assertEquals(1560, saved.durationSeconds)
         assertEquals(8.5, saved.inclinePercent!!, 0.0)
+        assertEquals(6.0, saved.speedKmh!!, 0.0)
+
+        // La combinazione appena usata diventa la regolazione salvata del tapis.
+        val setup = db.machineSetupDao().getLastUsedSetup("walking_treadmill")!!
+        assertEquals(
+            listOf(MachineSetupParam("Pendenza (%)", "8,5"), MachineSetupParam("Velocità (km/h)", "6")),
+            setup.params,
+        )
 
         // "+ Serie" copia pendenza e tempo dell'ultima serie.
         workoutRepository.addSet(exercise.sessionExerciseId)
         val added = db.workoutSessionDao().getSets(exercise.sessionExerciseId).maxBy { it.setIndex }
         assertEquals(8.5, added.inclinePercent!!, 0.0)
+        assertEquals(6.0, added.speedKmh!!, 0.0)
         assertEquals(1560, added.durationSeconds)
     }
 
@@ -134,6 +150,47 @@ class WorkoutViewModelTest : DatabaseTest() {
         assertEquals("8,5% · 25:00", SetFormat.previous(type, set(8.5, 1500, null), WeightUnit.KG))
         assertEquals("30:00 · 3 km", SetFormat.previous(type, set(null, 1800, 3000.0), WeightUnit.KG))
         assertNull(SetFormat.previous(type, set(null, null, null), WeightUnit.KG))
+    }
+
+    @Test
+    fun treadmill_coldSettingsPrefillTheWorkout_andLoggerSettingsApplyToTheSetsStillToDo() = runTest {
+        // Regolazione scritta "a freddo" nella scheda esercizio: pendenza 10%, velocità 5,5 km/h.
+        workoutRepository.saveSetupFromLibrary(
+            exerciseId = "walking_treadmill",
+            setupId = null,
+            label = "Predefinita",
+            params = listOf(MachineSetupParam("Pendenza (%)", "10"), MachineSetupParam("Velocità (km/h)", "5,5")),
+            notes = null,
+        )
+        val (_, dayId) = createRoutineWithDay("Cardio", listOf("walking_treadmill" to 2))
+        workoutRepository.startFromRoutineDay(dayId)
+        backgroundScope.launch(Dispatchers.Main) { viewModel.uiState.collect {} }
+        val exercise = awaitActive().exercises[0]
+        val dao = db.workoutSessionDao()
+        dao.getSets(exercise.sessionExerciseId).forEach { set ->
+            assertEquals(10.0, set.inclinePercent!!, 0.0)
+            assertEquals(5.5, set.speedKmh!!, 0.0)
+        }
+
+        // Prima serie fatta così; poi nel logger la regolazione sale a 12% e 6 km/h.
+        val (firstSet, secondSet) = dao.getSets(exercise.sessionExerciseId).sortedBy { it.setIndex }
+        workoutRepository.updateMetric(firstSet.id, SetMetric.DURATION_CLOCK, 600.0)
+        workoutRepository.updateMetric(firstSet.id, SetMetric.SPEED_KMH, 6.5)
+        viewModel.onToggleComplete(firstSet.id)
+        awaitActive { it.exercises[0].sets[0].isCompleted }
+        // La combinazione usata diventa la regolazione e vale per la serie ancora da fare.
+        awaitActive { it.exercises[0].sets[1].values[SetMetric.SPEED_KMH] == "6,5" }
+        assertEquals(6.5, dao.getSet(secondSet.id)!!.speedKmh!!, 0.0)
+        assertEquals(6.5, db.machineSetupDao().getLastUsedSetup("walking_treadmill")!!.params.let { com.example.sport.core.model.TreadmillSettings.speed(it) }!!, 0.0)
+        workoutRepository.saveSetup(
+            exercise.sessionExerciseId,
+            listOf(MachineSetupParam("Pendenza (%)", "12"), MachineSetupParam("Velocità (km/h)", "6")),
+            notes = null,
+            defaultLabel = "Predefinita",
+        )
+        assertEquals("La serie fatta resta com'era", 10.0, dao.getSet(firstSet.id)!!.inclinePercent!!, 0.0)
+        assertEquals(12.0, dao.getSet(secondSet.id)!!.inclinePercent!!, 0.0)
+        assertEquals(6.0, dao.getSet(secondSet.id)!!.speedKmh!!, 0.0)
     }
 
     @Test

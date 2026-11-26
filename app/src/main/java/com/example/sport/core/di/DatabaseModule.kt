@@ -7,6 +7,7 @@ import com.example.sport.core.database.dao.BodyWeightDao
 import com.example.sport.core.database.dao.CalorieDao
 import com.example.sport.core.database.dao.CatalogDao
 import com.example.sport.core.database.dao.DietDao
+import com.example.sport.core.database.dao.FoodDao
 import com.example.sport.core.database.dao.ExerciseDao
 import com.example.sport.core.database.dao.MachineSetupDao
 import com.example.sport.core.database.dao.MediaDao
@@ -15,6 +16,8 @@ import com.example.sport.core.database.dao.RoutineDao
 import com.example.sport.core.database.dao.WorkoutSessionDao
 import com.example.sport.core.database.seed.AssetExerciseCatalogSource
 import com.example.sport.core.database.seed.ExerciseCatalogSource
+import com.example.sport.core.database.seed.AssetFoodCatalogSource
+import com.example.sport.core.database.seed.FoodCatalogSource
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -62,6 +65,9 @@ object DatabaseModule {
     fun provideDietDao(database: SportDatabase): DietDao = database.dietDao()
 
     @Provides
+    fun provideFoodDao(database: SportDatabase): FoodDao = database.foodDao()
+
+    @Provides
     fun provideMediaDao(database: SportDatabase): MediaDao = database.mediaDao()
 }
 
@@ -71,4 +77,7 @@ abstract class CatalogSourceModule {
 
     @Binds
     abstract fun bindExerciseCatalogSource(impl: AssetExerciseCatalogSource): ExerciseCatalogSource
+
+    @Binds
+    abstract fun bindFoodCatalogSource(impl: AssetFoodCatalogSource): FoodCatalogSource
 }

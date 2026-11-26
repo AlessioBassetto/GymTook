@@ -18,6 +18,7 @@ import com.example.sport.core.model.ExerciseTrackingType
 import com.example.sport.core.model.Mechanic
 import com.example.sport.core.model.Muscle
 import com.example.sport.core.model.MuscleRole
+import com.example.sport.core.model.TreadmillSettings
 import com.example.sport.core.model.catalog.newCustomExerciseId
 import kotlinx.serialization.Serializable
 import java.io.File
@@ -149,7 +150,10 @@ class CustomExerciseRepository @Inject constructor(
 
     private fun CustomExerciseDraft.toEntity(id: String, createdAt: Instant, updatedAt: Instant, isFavorite: Boolean): ExerciseEntity {
         val cleanName = name.trim()
-        val hints = setupParamHints.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        val typed = setupParamHints.map { it.trim() }.filter { it.isNotEmpty() }
+        // Tapis roulant: pendenza e velocità sono sempre le prime voci della regolazione.
+        val treadmill = if (trackingType == ExerciseTrackingType.INCLINE_TIME) TreadmillSettings.PARAM_NAMES else emptyList()
+        val hints = (treadmill + typed.filterNot(TreadmillSettings::isTreadmillParam)).distinct()
         return ExerciseEntity(
             id = id,
             name = cleanName,
